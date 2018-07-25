@@ -1,12 +1,15 @@
 package backend
 
-import "fmt"
+import (
+	"strconv"
+	"strings"
+)
 
 const (
 	None = iota
 	Pawn
-	Bishop
 	Knight
+	Bishop
 	Rook
 	Queen
 	King
@@ -19,11 +22,31 @@ type Position struct {
 	LastMove                                                    Move
 }
 
+func (pos *Position) Inspect() string {
+	var sb strings.Builder
+	sb.WriteString(strconv.FormatUint(pos.Pawns, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.Knights, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.Bishops, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.Rooks, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.Queens, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.Kings, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.White, 16))
+	sb.WriteString("-")
+	sb.WriteString(strconv.FormatUint(pos.Black, 16))
+	return sb.String()
+}
+
 const maxMoves = 256
 
 var InitialPosition Position = Position{
 	0xff00000000ff00, 0x4200000000000042, 0x2400000000000024,
-	0x8100000000000081, 0x1000000000000010, 0x800000000000008,
+	0x8100000000000081, 0x800000000000008, 0x1000000000000010,
 	0xffff, 0xffff000000000000, 0, true, 0}
 
 func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
@@ -67,15 +90,15 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 				if allOccupation&to == 0 {
 					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, 0)
 					counter++
+					if from&RANK_2_BB != 0 && allOccupation&(from<<16) == 0 {
+						buffer[counter] = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
+						counter++
+					}
 				}
-				if from&RANK_2_BB != 0 && allOccupation&(from<<16) == 0 {
-					buffer[counter] = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
-					counter++
-				}
-				for toBB = WhitePawnsAttacks(from) & pos.Black; toBB > 0; toBB &= (toBB - 1) {
+				for toBB = WhitePawnAttacks[fromId] & pos.Black; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
-					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
+					to = SquareMask[toId]
+					captureType := pos.TypeOnSquare(SquareMask[toId])
 					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
 					counter++
 				}
@@ -97,7 +120,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 			fromId = BitScan(fromBB)
 			from = SquareMask[uint(fromId)]
 			if from&RANK_2_BB != 0 {
-				to = from << 8
+				to = from >> 8
 				if allOccupation&to == 0 {
 					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 0))
 					counter++
@@ -108,7 +131,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
 					counter++
 				}
-				for toBB = BlackPawnsAttacks(from) & pos.White; toBB > 0; toBB &= (toBB - 1) {
+				for toBB = BlackPawnAttacks[fromId] & pos.White; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
 					captureType := pos.TypeOnSquare(to)
@@ -122,16 +145,16 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 					counter++
 				}
 			} else {
-				to = from >> 8
+				to = SquareMask[fromId-8]
 				if allOccupation&to == 0 {
 					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, 0)
 					counter++
+					if from&RANK_7_BB != 0 && allOccupation&(from>>16) == 0 {
+						buffer[counter] = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
+						counter++
+					}
 				}
-				if from&RANK_7_BB != 0 && allOccupation&(from>>16) == 0 {
-					buffer[counter] = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
-					counter++
-				}
-				for toBB = BlackPawnsAttacks(from) & pos.White; toBB > 0; toBB &= (toBB - 1) {
+				for toBB = BlackPawnAttacks[fromId] & pos.White; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
 					captureType := pos.TypeOnSquare(to)
@@ -143,7 +166,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 		if pos.EpSquare != 0 {
 			epSquareBB := SquareMask[uint(pos.EpSquare)]
 			epBB := (west(epSquareBB) | east(epSquareBB)) & RANK_4_BB
-			for fromBB = epBB & pos.Pawns & pos.White; fromBB > 0; fromBB &= (fromBB - 1) {
+			for fromBB = epBB & pos.Pawns & pos.Black; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[counter] = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
 				counter++
@@ -224,10 +247,10 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			if to&theirOccupation != 0 {
-				buffer[counter] = NewMove(fromId, toId, Bishop, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+				buffer[counter] = NewMove(fromId, toId, Queen, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
 				counter++
 			} else {
-				buffer[counter] = NewMove(fromId, toId, Bishop, None, NewType(0, 0, 0, 0))
+				buffer[counter] = NewMove(fromId, toId, Queen, None, NewType(0, 0, 0, 0))
 				counter++
 			}
 		}
@@ -307,8 +330,6 @@ func (p *Position) TogglePiece(piece int, side bool, square int) {
 	}
 }
 
-var hmm = 0
-
 func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.WhiteMove = pos.WhiteMove
 	res.Pawns = pos.Pawns
@@ -324,37 +345,35 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	if move.Type() == DoublePawnPush {
 		res.EpSquare = move.To()
 	}
-	res.MovePiece(move.Piece(), pos.WhiteMove, move.From(), move.To())
+	res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
 	if move.IsCapture() {
-		move.Inspect()
-		fmt.Print("\n")
-		res.TogglePiece(move.Type(), pos.WhiteMove, move.To())
+		res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
 	}
-	res.WhiteMove = !pos.WhiteMove
 	if !res.IsValid() {
 		return false
 	}
+	res.WhiteMove = !pos.WhiteMove
 	res.LastMove = move
 	return true
 }
 
 func (pos *Position) IsValid() bool {
 	if pos.WhiteMove {
-		return !pos.IsSquaredAttacked(pos.Black & pos.Kings)
+		return !pos.IsSquaredAttacked(pos.White&pos.Kings, !pos.WhiteMove)
 	} else {
-		return !pos.IsSquaredAttacked(pos.White & pos.Kings)
+		return !pos.IsSquaredAttacked(pos.Black&pos.Kings, !pos.WhiteMove)
 	}
 }
 
-func (pos *Position) IsSquaredAttacked(squareBB uint64) bool {
+func (pos *Position) IsSquaredAttacked(squareBB uint64, side bool) bool {
 	var ourOccupancy, attackedSquares uint64
 	allOccupation := pos.White | pos.Black
-	if pos.WhiteMove {
+	if side {
 		ourOccupancy = pos.White
-		attackedSquares = BlackPawnsAttacks(pos.Pawns & pos.Black)
+		attackedSquares = WhitePawnsAttacks(pos.Pawns & pos.White)
 	} else {
 		ourOccupancy = pos.Black
-		attackedSquares = WhitePawnsAttacks(pos.Pawns & pos.White)
+		attackedSquares = BlackPawnsAttacks(pos.Pawns & pos.Black)
 	}
 	if attackedSquares&squareBB != 0 {
 		return true
@@ -369,6 +388,9 @@ func (pos *Position) IsSquaredAttacked(squareBB uint64) bool {
 		return true
 	}
 	if QueensAttacks(ourOccupancy&pos.Queens, allOccupation)&squareBB != 0 {
+		return true
+	}
+	if kingAttacks(ourOccupancy&pos.Kings)&squareBB != 0 {
 		return true
 	}
 	return false

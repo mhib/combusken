@@ -41,7 +41,7 @@ func (m Move) To() int {
 	return int((m >> 6) & 0x3f)
 }
 
-func (m Move) Piece() int {
+func (m Move) MovedPiece() int {
 	return int((m >> 12) & 0x7)
 }
 
@@ -67,7 +67,7 @@ func (m Move) Inspect() {
 	fmt.Print(" To: ")
 	fmt.Print(m.To())
 	fmt.Print(" Piece: ")
-	fmt.Print(m.Piece())
+	fmt.Print(m.MovedPiece())
 	fmt.Print(" Captured Piece: ")
 	fmt.Print(m.CapturedPiece())
 	fmt.Print(" Type: ")
