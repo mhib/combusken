@@ -8,5 +8,5 @@ import (
 func main() {
 	backend.InitBB()
 	position := backend.InitialPosition
-	fmt.Println(backend.Perft(&position, 5))
+	fmt.Println(backend.Perft(&position, 6))
 }

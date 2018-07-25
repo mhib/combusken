@@ -15,8 +15,16 @@ const (
 	King
 )
 
+const (
+	WhiteKingSideCastleFlag = 1 << iota
+	WhiteQueenSideCastleFlag
+	BlackKingSideCastleFlag
+	BlackQueenSideCastleFlag
+)
+
 type Position struct {
 	Pawns, Knights, Bishops, Rooks, Queens, Kings, White, Black uint64
+	Flags                                                       int
 	EpSquare                                                    int
 	WhiteMove                                                   bool
 	LastMove                                                    Move
@@ -47,7 +55,7 @@ const maxMoves = 256
 var InitialPosition Position = Position{
 	0xff00000000ff00, 0x4200000000000042, 0x2400000000000024,
 	0x8100000000000081, 0x800000000000008, 0x1000000000000010,
-	0xffff, 0xffff000000000000, 0, true, 0}
+	0xffff, 0xffff000000000000, 0, 0, true, 0}
 
 func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 	var counter = 0
@@ -257,7 +265,28 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 	}
 	// end of Queens
 
-	// TODO: Castling
+	// Castling
+	if pos.WhiteMove {
+		if allOccupation&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1_MASK, false) && !pos.IsSquareAttacked(F1_MASK, false) {
+			buffer[counter] = WhiteKingSideCastle
+			counter++
+		}
+		if allOccupation&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1_MASK, false) && !pos.IsSquareAttacked(D1_MASK, false) {
+			buffer[counter] = WhiteQueenSideCastle
+			counter++
+		}
+	} else {
+		if allOccupation&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8_MASK, true) && !pos.IsSquareAttacked(F8_MASK, true) {
+			buffer[counter] = BlackKingSideCastle
+			counter++
+		}
+		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8_MASK, true) && !pos.IsSquareAttacked(D1_MASK, true) {
+			buffer[counter] = BlackQueenSideCastle
+			counter++
+		}
+
+	}
+	// end of Castling
 
 	return buffer[:counter]
 }
@@ -342,12 +371,33 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.Black = pos.Black
 
 	res.EpSquare = 0
-	if move.Type() == DoublePawnPush {
-		res.EpSquare = move.To()
-	}
-	res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
-	if move.IsCapture() {
-		res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+
+	switch move {
+	case WhiteKingSideCastle:
+		res.MovePiece(King, true, E1, G1)
+		res.MovePiece(Rook, true, H1, F1)
+	case WhiteQueenSideCastle:
+		res.MovePiece(King, true, E1, C1)
+		res.MovePiece(Rook, true, A1, D1)
+	case BlackKingSideCastle:
+		res.MovePiece(King, false, E8, G8)
+		res.MovePiece(Rook, false, H8, F8)
+	case BlackQueenSideCastle:
+		res.MovePiece(King, false, E8, C8)
+		res.MovePiece(Rook, false, A8, D8)
+	default:
+		if move.Type() == DoublePawnPush {
+			res.EpSquare = move.To()
+		} else if move.Type() == 1 {
+			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+		} else if move.Type() == EPCapture {
+			if pos.WhiteMove {
+				res.TogglePiece(Pawn, false, move.To()-8)
+			} else {
+				res.TogglePiece(Pawn, true, move.To()+8)
+			}
+		}
+		res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
 	}
 	if !res.IsValid() {
 		return false
@@ -359,13 +409,13 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 
 func (pos *Position) IsValid() bool {
 	if pos.WhiteMove {
-		return !pos.IsSquaredAttacked(pos.White&pos.Kings, !pos.WhiteMove)
+		return !pos.IsSquareAttacked(pos.White&pos.Kings, !pos.WhiteMove)
 	} else {
-		return !pos.IsSquaredAttacked(pos.Black&pos.Kings, !pos.WhiteMove)
+		return !pos.IsSquareAttacked(pos.Black&pos.Kings, !pos.WhiteMove)
 	}
 }
 
-func (pos *Position) IsSquaredAttacked(squareBB uint64, side bool) bool {
+func (pos *Position) IsSquareAttacked(squareBB uint64, side bool) bool {
 	var ourOccupancy, attackedSquares uint64
 	allOccupation := pos.White | pos.Black
 	if side {

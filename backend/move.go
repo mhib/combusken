@@ -29,6 +29,11 @@ const (
 
 type Move int32
 
+var WhiteKingSideCastle = NewMove(E1, G1, King, None, KingCastle)
+var WhiteQueenSideCastle = NewMove(E1, C1, King, None, QueenCastle)
+var BlackKingSideCastle = NewMove(E8, G8, King, None, KingCastle)
+var BlackQueenSideCastle = NewMove(E8, C8, King, None, QueenCastle)
+
 func (m Move) From() int {
 	return int(m & 0x3f)
 }

@@ -1,7 +1,5 @@
 package backend
 
-import "fmt"
-
 func Perft(pos *Position, depth int) int {
 	result := 0
 	var child Position
