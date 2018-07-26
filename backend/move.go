@@ -58,6 +58,10 @@ func (m Move) Type() int {
 	return int(m>>18) & 0xf
 }
 
+func (m Move) IsPromotion() bool {
+	return m&(1<<19) != 0
+}
+
 func NewMove(from, to, pieceType, capturedType, moveType int) Move {
 	return Move(from | (to << 6) | (pieceType << 12) | (capturedType << 15) | (moveType << 18))
 }

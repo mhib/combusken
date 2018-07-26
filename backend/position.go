@@ -294,20 +294,15 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
 	if squareBB&pos.Pawns != 0 {
 		return Pawn
-	}
-	if squareBB&pos.Rooks != 0 {
+	} else if squareBB&pos.Rooks != 0 {
 		return Rook
-	}
-	if squareBB&pos.Knights != 0 {
+	} else if squareBB&pos.Knights != 0 {
 		return Knight
-	}
-	if squareBB&pos.Bishops != 0 {
+	} else if squareBB&pos.Bishops != 0 {
 		return Bishop
-	}
-	if squareBB&pos.Queens != 0 {
+	} else if squareBB&pos.Queens != 0 {
 		return Queen
-	}
-	if squareBB&pos.Kings != 0 {
+	} else if squareBB&pos.Kings != 0 {
 		return King
 	}
 	return None
@@ -329,10 +324,28 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 		p.Bishops ^= b
 	case Rook:
 		p.Rooks ^= b
+		if side {
+			if from == H1 {
+				p.Flags |= WhiteKingSideCastleFlag
+			} else if from == A1 {
+				p.Flags |= WhiteQueenSideCastleFlag
+			}
+		} else {
+			if from == H8 {
+				p.Flags |= BlackKingSideCastleFlag
+			} else if from == A8 {
+				p.Flags |= BlackQueenSideCastleFlag
+			}
+		}
 	case Queen:
 		p.Queens ^= b
 	case King:
 		p.Kings ^= b
+		if side {
+			p.Flags |= WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag
+		} else {
+			p.Flags |= BlackKingSideCastleFlag | BlackQueenSideCastleFlag
+		}
 	}
 }
 
@@ -386,18 +399,41 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 		res.MovePiece(King, false, E8, C8)
 		res.MovePiece(Rook, false, A8, D8)
 	default:
-		if move.Type() == DoublePawnPush {
-			res.EpSquare = move.To()
-		} else if move.Type() == 1 {
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-		} else if move.Type() == EPCapture {
-			if pos.WhiteMove {
-				res.TogglePiece(Pawn, false, move.To()-8)
-			} else {
-				res.TogglePiece(Pawn, true, move.To()+8)
+		if !move.IsPromotion() {
+			switch move.Type() {
+			case DoublePawnPush:
+				res.EpSquare = move.To()
+			case Capture:
+				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			case EPCapture:
+				res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
+			}
+			res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
+		} else {
+			res.TogglePiece(Pawn, pos.WhiteMove, move.From())
+			switch move.Type() {
+			case KnightPromotion:
+				res.TogglePiece(Knight, pos.WhiteMove, move.To())
+			case BishopPromotion:
+				res.TogglePiece(Bishop, pos.WhiteMove, move.To())
+			case RookPromotion:
+				res.TogglePiece(Rook, pos.WhiteMove, move.To())
+			case QueenPromotion:
+				res.TogglePiece(Queen, pos.WhiteMove, move.To())
+			case KnightCapturePromotion:
+				res.TogglePiece(Knight, pos.WhiteMove, move.To())
+				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			case BishopCapturePromotion:
+				res.TogglePiece(Bishop, pos.WhiteMove, move.To())
+				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			case RookCapturePromotion:
+				res.TogglePiece(Rook, pos.WhiteMove, move.To())
+				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			case QueenCapturePromotion:
+				res.TogglePiece(Queen, pos.WhiteMove, move.To())
+				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
 			}
 		}
-		res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
 	}
 	if !res.IsValid() {
 		return false
