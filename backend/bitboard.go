@@ -396,7 +396,7 @@ func QueensAttacks(set uint64, occupancy uint64) uint64 {
 	return res
 }
 
-func InitBB() {
+func init() {
 	initSquareMask()
 	initArray(&KingAttacks, kingAttacks)
 	initArray(&KnightAttacks, KnightsAttacks)
