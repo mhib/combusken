@@ -223,7 +223,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 			buffer[counter] = BlackKingSideCastle
 			counter++
 		}
-		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8_MASK, true) && !pos.IsSquareAttacked(D1_MASK, true) {
+		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8_MASK, true) && !pos.IsSquareAttacked(D8_MASK, true) {
 			buffer[counter] = BlackQueenSideCastle
 			counter++
 		}

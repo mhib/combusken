@@ -149,6 +149,13 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.Queens = pos.Queens
 	res.White = pos.White
 	res.Black = pos.Black
+	res.Flags = pos.Flags
+
+	if move.MovedPiece() == Pawn || move.IsCapture() {
+		res.FiftyMove = 0
+	} else {
+		res.FiftyMove = pos.FiftyMove + 1
+	}
 
 	res.EpSquare = 0
 
@@ -172,6 +179,18 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 				res.EpSquare = move.To()
 			case Capture:
 				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+				if move.CapturedPiece() == Rook {
+					switch move.To() {
+					case A1:
+						res.Flags |= WhiteQueenSideCastleFlag
+					case H1:
+						res.Flags |= WhiteKingSideCastleFlag
+					case H8:
+						res.Flags |= BlackKingSideCastleFlag
+					case A8:
+						res.Flags |= BlackQueenSideCastleFlag
+					}
+				}
 			case EPCapture:
 				res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
 			}

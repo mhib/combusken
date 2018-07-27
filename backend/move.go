@@ -81,4 +81,5 @@ func (m Move) Inspect() {
 	fmt.Print(m.CapturedPiece())
 	fmt.Print(" Type: ")
 	fmt.Print(m.Type())
+	fmt.Println("")
 }
