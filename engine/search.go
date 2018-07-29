@@ -1,8 +1,9 @@
 package engine
 
 import (
-	. "github.com/mhib/combusken/backend"
 	"sort"
+
+	. "github.com/mhib/combusken/backend"
 )
 
 const MaxUint = ^uint(0)
