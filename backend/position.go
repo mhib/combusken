@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -266,4 +267,36 @@ func (pos *Position) IsSquareAttacked(squareBB uint64, side bool) bool {
 		return true
 	}
 	return false
+}
+
+func (pos *Position) Print() {
+	for y := 7; y >= 0; y-- {
+		for x := 0; x <= 7; x++ {
+			bb := uint64(1) << uint64(8*y+x)
+			var char byte
+			switch pos.TypeOnSquare(bb) {
+			case Pawn:
+				char = 'p'
+			case Knight:
+				char = 'n'
+			case Bishop:
+				char = 'b'
+			case Rook:
+				char = 'r'
+			case Queen:
+				char = 'q'
+			case King:
+				char = 'k'
+			default:
+				char = '.'
+			}
+			if pos.White&bb != 0 {
+				fmt.Print(strings.ToUpper(string(char)))
+			} else {
+				fmt.Print(string(char))
+			}
+		}
+		fmt.Print("\n")
+	}
+	fmt.Print("\n")
 }
