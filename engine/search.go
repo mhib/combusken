@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"sort"
 
 	. "github.com/mhib/combusken/backend"
@@ -76,7 +77,19 @@ func alphaBeta(pos *Position, depth, alpha, beta, evaluation int) int {
 	return alpha
 }
 
-func depSearch(pos *Position, depth int) Move {
+func moveToFirst(list []EvaledPosition, m Move) {
+	if m == 0 {
+		return
+	}
+	for i := range list {
+		if list[i].move == m {
+			list[i], list[0] = list[0], list[i]
+			return
+		}
+	}
+}
+
+func depSearch(pos *Position, depth int, lastBestMove Move) Move {
 	var counter int
 	var child Position
 	var bestMove Move
@@ -84,6 +97,7 @@ func depSearch(pos *Position, depth int) Move {
 	generateAllLegalMoves(pos)
 	counter = positionCount
 	copy(evaled[:], evaledPositions[0:positionCount])
+	moveToFirst(evaled[:], lastBestMove)
 	var alpha = -MaxInt
 	var beta = MaxInt
 	countPositions = 0
@@ -102,10 +116,17 @@ func depSearch(pos *Position, depth int) Move {
 }
 
 func Search(pos *Position) Move {
+	var lastBestMove, bestMove Move
 	for i := 1; ; i++ {
-		move := depSearch(pos, i)
-		if countPositions >= 7000000 || i > 50 {
-			return move
+		bestMove = depSearch(pos, i, lastBestMove)
+		if bestMove == 0 {
+			return lastBestMove
+		} else {
+			lastBestMove = bestMove
+		}
+		if countPositions >= 7000000 || i > 70 {
+			fmt.Println(i)
+			return bestMove
 		}
 	}
 }
