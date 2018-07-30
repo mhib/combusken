@@ -222,7 +222,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 			}
 		}
 	}
-	if !res.IsValid() {
+	if res.IsInCheck() {
 		return false
 	}
 	res.WhiteMove = !pos.WhiteMove
@@ -230,11 +230,11 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	return true
 }
 
-func (pos *Position) IsValid() bool {
+func (pos *Position) IsInCheck() bool {
 	if pos.WhiteMove {
-		return !pos.IsSquareAttacked(pos.White&pos.Kings, !pos.WhiteMove)
+		return pos.IsSquareAttacked(pos.White&pos.Kings, false)
 	} else {
-		return !pos.IsSquareAttacked(pos.Black&pos.Kings, !pos.WhiteMove)
+		return pos.IsSquareAttacked(pos.Black&pos.Kings, true)
 	}
 }
 

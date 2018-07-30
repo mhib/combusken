@@ -57,7 +57,7 @@ var blackRooksPos = [64]int{
 	-5, 0, 0, 0, 0, 0, 0, -5,
 	-5, 0, 0, 0, 0, 0, 0, -5,
 	-5, 0, 0, 0, 0, 0, 0, -5,
-	0, 0, 0, 5, 5, 0, 0, 0,
+	0, 0, 5, 7, 7, 5, 0, 0,
 }
 
 var whiteRooksPos [64]int
@@ -129,7 +129,7 @@ func Evaluate(pos *Position) int {
 		fromId = BitScan(fromBB)
 		result += pawnValue + whitePawnsPos[fromId]
 	}
-	result -= PopCount(pos.Pawns&pos.White&South(pos.Pawns&pos.White)) * 25
+	result -= PopCount(pos.Pawns&pos.White&South(pos.Pawns&pos.White)) * 12
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result += knightValue + whiteKnightsPos[fromId]
@@ -154,7 +154,7 @@ func Evaluate(pos *Position) int {
 		fromId = BitScan(fromBB)
 		result -= pawnValue + blackPawnsPos[fromId]
 	}
-	result += PopCount((pos.Pawns&pos.Black)&North(pos.Pawns&pos.Black)) * 25
+	result += PopCount((pos.Pawns&pos.Black)&North(pos.Pawns&pos.Black)) * 12
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result -= knightValue + blackKnightsPos[fromId]
@@ -185,7 +185,6 @@ func Evaluate(pos *Position) int {
 
 	if pos.WhiteMove {
 		return result
-	} else {
-		return -result
 	}
+	return -result
 }

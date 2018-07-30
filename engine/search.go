@@ -10,6 +10,7 @@ import (
 const MaxUint = ^uint(0)
 const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
+const Mate = 1000000
 
 type EvaledPosition struct {
 	position Position
@@ -17,17 +18,12 @@ type EvaledPosition struct {
 	value    int
 }
 
-var buffer [256]EvaledPosition
-
 type EvaledPositions []EvaledPosition
 
-var evaledPositions = EvaledPositions(buffer[:])
 var generatedMoves [256]Move
 
-var positionCount = 0
-
 func (s EvaledPositions) Len() int {
-	return positionCount
+	return len(s)
 }
 
 func (s EvaledPositions) Less(i, j int) bool {
@@ -38,35 +34,41 @@ func (s EvaledPositions) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func generateAllLegalMoves(pos *Position) {
-	positionCount = 0
+func generateAllLegalMoves(pos *Position) EvaledPositions {
+	var evaledPositions = EvaledPositions(make([]EvaledPosition, 0, 40))
 	var child Position
 	for _, move := range pos.GenerateAllMoves(generatedMoves[:]) {
 		if pos.MakeMove(move, &child) {
-			evaledPositions[positionCount] = EvaledPosition{child, move, -Evaluate(&child)}
-			positionCount++
+			evaledPositions = append(evaledPositions, EvaledPosition{child, move, -Evaluate(&child)})
 		}
 	}
 	sort.Sort(evaledPositions)
+	return evaledPositions
+}
+
+func contempt(pos *Position) int {
+	return 0
 }
 
 var countPositions int
 
-func alphaBeta(pos *Position, depth, alpha, beta, evaluation int) int {
-	var counter int
+func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int) int {
 	var child Position
-	var evaled [256]EvaledPosition
 	var val int
 	if depth == 0 {
 		countPositions++
 		return evaluation
 	}
-	generateAllLegalMoves(pos)
-	counter = positionCount
-	copy(evaled[:], evaledPositions[0:positionCount])
-	for i := 0; i < counter; i++ {
+	evaled := generateAllLegalMoves(pos)
+	if len(evaled) == 0 {
+		if pos.IsInCheck() {
+			return -mate
+		}
+		return contempt(pos)
+	}
+	for i := range evaled {
 		child = evaled[i].position
-		val = -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value)
+		val = -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1)
 		if val >= beta {
 			return beta
 		}
@@ -89,43 +91,66 @@ func moveToFirst(list []EvaledPosition, m Move) {
 	}
 }
 
-func depSearch(pos *Position, depth int, lastBestMove Move) Move {
-	var counter int
+// Evals that checks for mate
+func extensiveEval(pos *Position, evaledValue, mate int) int {
+	if len(generateAllLegalMoves(pos)) == 0 {
+		if pos.IsInCheck() {
+			return -mate
+		}
+		return contempt(pos)
+	}
+	return evaledValue
+}
+
+func depSearch(pos *Position, depth int, lastBestMove Move, mate int) (Move, bool) {
 	var child Position
 	var bestMove Move
-	var evaled [256]EvaledPosition
-	generateAllLegalMoves(pos)
-	counter = positionCount
-	copy(evaled[:], evaledPositions[0:positionCount])
-	moveToFirst(evaled[:], lastBestMove)
+	evaled := generateAllLegalMoves(pos)
+	moveToFirst(evaled, lastBestMove)
 	var alpha = -MaxInt
 	var beta = MaxInt
 	countPositions = 0
-	for i := 0; i < counter; i++ {
+	if depth == 1 {
+		for i := range evaled {
+			child = evaled[i].position
+			val := -extensiveEval(&child, -evaled[i].value, mate-1)
+			if val > alpha {
+				alpha = val
+				bestMove = evaled[i].move
+			}
+		}
+		return bestMove, alpha > Mate-500
+	}
+	for i := range evaled {
 		child = evaled[i].position
-		val := -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value)
+		val := -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1)
 		if val >= beta {
-			return bestMove
+			return bestMove, false
 		}
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].move
 		}
 	}
-	return bestMove
+	return bestMove, alpha > Mate-500
 }
 
 func Search(pos *Position) Move {
 	var lastBestMove, bestMove Move
+	var mate bool
 	for i := 1; ; i++ {
-		bestMove = depSearch(pos, i, lastBestMove)
+		bestMove, mate = depSearch(pos, i, lastBestMove, Mate)
+		if mate {
+			fmt.Println(i, countPositions)
+			return bestMove
+		}
 		if bestMove == 0 {
 			return lastBestMove
 		} else {
 			lastBestMove = bestMove
 		}
-		if countPositions >= 7000000 || i > 70 {
-			fmt.Println(i)
+		if countPositions >= 700000 || i > 70 {
+			fmt.Println(i, countPositions)
 			return bestMove
 		}
 	}
