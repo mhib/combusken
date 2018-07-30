@@ -117,8 +117,7 @@ func init() {
 }
 
 func isEndGame(pos *Position) bool {
-	return PopCount(pos.Queens) == 0 ||
-		PopCount((pos.White|pos.Black) & ^pos.Pawns) < 7
+	return PopCount(pos.White|pos.Black) < 16
 }
 
 func Evaluate(pos *Position) int {
@@ -130,6 +129,7 @@ func Evaluate(pos *Position) int {
 		fromId = BitScan(fromBB)
 		result += pawnValue + whitePawnsPos[fromId]
 	}
+	result -= PopCount(pos.Pawns&pos.White&South(pos.Pawns&pos.White)) * 25
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result += knightValue + whiteKnightsPos[fromId]
@@ -137,6 +137,9 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Bishops & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result += bishopValue + whiteBishopsPos[fromId]
+	}
+	if PopCount(pos.Bishops&pos.White) > 1 {
+		result += 50
 	}
 	for fromBB = pos.Rooks & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
@@ -151,6 +154,7 @@ func Evaluate(pos *Position) int {
 		fromId = BitScan(fromBB)
 		result -= pawnValue + blackPawnsPos[fromId]
 	}
+	result += PopCount((pos.Pawns&pos.Black)&North(pos.Pawns&pos.Black)) * 25
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result -= knightValue + blackKnightsPos[fromId]
@@ -158,6 +162,9 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Bishops & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result -= bishopValue + blackBishopsPos[fromId]
+	}
+	if PopCount(pos.Bishops&pos.Black) > 1 {
+		result -= 50
 	}
 	for fromBB = pos.Rooks & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)

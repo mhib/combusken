@@ -264,35 +264,35 @@ func BitScan(bb uint64) int {
 	return index64[((bb^(bb-1))*debruijn64)>>58]
 }
 
-func northWest(set uint64) uint64 {
+func NorthWest(set uint64) uint64 {
 	return set << 7
 }
 
-func north(set uint64) uint64 {
+func North(set uint64) uint64 {
 	return set << 8
 }
 
-func northEast(set uint64) uint64 {
+func NorthEast(set uint64) uint64 {
 	return set << 9
 }
 
-func east(set uint64) uint64 {
+func East(set uint64) uint64 {
 	return set << 1
 }
 
-func west(set uint64) uint64 {
+func West(set uint64) uint64 {
 	return set >> 1
 }
 
-func southWest(set uint64) uint64 {
+func SouthWest(set uint64) uint64 {
 	return set >> 9
 }
 
-func south(set uint64) uint64 {
+func South(set uint64) uint64 {
 	return set >> 8
 }
 
-func southEast(set uint64) uint64 {
+func SouthEast(set uint64) uint64 {
 	return set >> 7
 }
 
@@ -303,9 +303,9 @@ func initArray(array *[64]uint64, method func(mask uint64) uint64) {
 }
 
 func kingAttacks(set uint64) uint64 {
-	return northEast(set & ^RANK_8_BB & ^FILE_H_BB) | north(set & ^RANK_8_BB) |
-		northWest(set & ^RANK_8_BB & ^FILE_A_BB) | east(set & ^FILE_H_BB) | west(set & ^FILE_A_BB) |
-		southEast(set & ^RANK_1_BB & ^FILE_H_BB) | south(set & ^RANK_1_BB) | southWest(set & ^RANK_1_BB & ^FILE_A_BB)
+	return NorthEast(set & ^RANK_8_BB & ^FILE_H_BB) | North(set & ^RANK_8_BB) |
+		NorthWest(set & ^RANK_8_BB & ^FILE_A_BB) | East(set & ^FILE_H_BB) | West(set & ^FILE_A_BB) |
+		SouthEast(set & ^RANK_1_BB & ^FILE_H_BB) | South(set & ^RANK_1_BB) | SouthWest(set & ^RANK_1_BB & ^FILE_A_BB)
 }
 
 func InspectBB(bb uint64) {
@@ -334,21 +334,21 @@ func KnightsAttacks(set uint64) uint64 {
 }
 
 func WhitePawnsAttacks(set uint64) uint64 {
-	return northWest(set & ^FILE_A_BB) |
-		northEast(set & ^FILE_H_BB)
+	return NorthWest(set & ^FILE_A_BB) |
+		NorthEast(set & ^FILE_H_BB)
 }
 
 func WhitePawnsMoves(set uint64, occupancy uint64) uint64 {
-	return (north(set) | ((north(north(set)) & RANK_4_BB) & ^north(occupancy&RANK_3_BB))) & ^occupancy
+	return (North(set) | ((North(North(set)) & RANK_4_BB) & ^North(occupancy&RANK_3_BB))) & ^occupancy
 }
 
 func BlackPawnsAttacks(set uint64) uint64 {
-	return southWest(set & ^FILE_A_BB) |
-		southEast(set & ^FILE_H_BB)
+	return SouthWest(set & ^FILE_A_BB) |
+		SouthEast(set & ^FILE_H_BB)
 }
 
 func BlackPawnsMoves(set uint64, occupancy uint64) uint64 {
-	return (south(set) | ((south(south(set)) & RANK_5_BB) & ^south(occupancy&RANK_6_BB))) & ^occupancy
+	return (South(set) | ((South(South(set)) & RANK_5_BB) & ^South(occupancy&RANK_6_BB))) & ^occupancy
 }
 
 func QueenAttacks(square int, occupancy uint64) uint64 {

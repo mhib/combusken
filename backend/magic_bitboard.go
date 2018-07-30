@@ -52,22 +52,22 @@ func generateBishopBlockerMask(mask uint64) uint64 {
 	tmpMask := mask
 	for tmpMask&FILE_H_BB == 0 && tmpMask&RANK_8_BB == 0 {
 		res |= tmpMask
-		tmpMask = northEast(tmpMask)
+		tmpMask = NorthEast(tmpMask)
 	}
 	tmpMask = mask
 	for tmpMask&FILE_H_BB == 0 && tmpMask&RANK_1_BB == 0 {
 		res |= tmpMask
-		tmpMask = southEast(tmpMask)
+		tmpMask = SouthEast(tmpMask)
 	}
 	tmpMask = mask
 	for tmpMask&FILE_A_BB == 0 && tmpMask&RANK_1_BB == 0 {
 		res |= tmpMask
-		tmpMask = southWest(tmpMask)
+		tmpMask = SouthWest(tmpMask)
 	}
 	tmpMask = mask
 	for tmpMask&FILE_A_BB == 0 && tmpMask&RANK_8_BB == 0 {
 		res |= tmpMask
-		tmpMask = northWest(tmpMask)
+		tmpMask = NorthWest(tmpMask)
 	}
 	res &= ^mask
 	return res
@@ -118,34 +118,34 @@ func generateRookMoveBoard(idx int, board uint64) uint64 {
 	blockerMask := rookBlockerMask[idx]
 
 	if mask&FILE_A_BB == 0 {
-		tmpMask := west(mask)
+		tmpMask := West(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = west(tmpMask)
+			tmpMask = West(tmpMask)
 		}
 		res |= tmpMask
 	}
 	if mask&FILE_H_BB == 0 {
-		tmpMask := east(mask)
+		tmpMask := East(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = east(tmpMask)
+			tmpMask = East(tmpMask)
 		}
 		res |= tmpMask
 	}
 	if mask&RANK_8_BB == 0 {
-		tmpMask := north(mask)
+		tmpMask := North(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = north(tmpMask)
+			tmpMask = North(tmpMask)
 		}
 		res |= tmpMask
 	}
 	if mask&RANK_1_BB == 0 {
-		tmpMask := south(mask)
+		tmpMask := South(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = south(tmpMask)
+			tmpMask = South(tmpMask)
 		}
 		res |= tmpMask
 	}
@@ -160,34 +160,34 @@ func generateBishopMoveBoard(idx int, board uint64) uint64 {
 	blockerMask := bishopBlockerMask[idx]
 
 	if mask&FILE_H_BB == 0 && mask&RANK_8_BB == 0 {
-		tmpMask := northEast(mask)
+		tmpMask := NorthEast(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = northEast(tmpMask)
+			tmpMask = NorthEast(tmpMask)
 		}
 		res |= tmpMask
 	}
 	if mask&FILE_H_BB == 0 && mask&RANK_1_BB == 0 {
-		tmpMask := southEast(mask)
+		tmpMask := SouthEast(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = southEast(tmpMask)
+			tmpMask = SouthEast(tmpMask)
 		}
 		res |= tmpMask
 	}
 	if mask&FILE_A_BB == 0 && mask&RANK_1_BB == 0 {
-		tmpMask := southWest(mask)
+		tmpMask := SouthWest(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = southWest(tmpMask)
+			tmpMask = SouthWest(tmpMask)
 		}
 		res |= tmpMask
 	}
 	if mask&FILE_A_BB == 0 && mask&RANK_8_BB == 0 {
-		tmpMask := northWest(mask)
+		tmpMask := NorthWest(mask)
 		for blockerMask&tmpMask > 0 && board&tmpMask == 0 {
 			res |= tmpMask
-			tmpMask = northWest(tmpMask)
+			tmpMask = NorthWest(tmpMask)
 		}
 		res |= tmpMask
 	}

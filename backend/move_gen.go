@@ -57,7 +57,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 		}
 		if pos.EpSquare != 0 {
 			epSquareBB := SquareMask[uint(pos.EpSquare)]
-			epBB := (west(epSquareBB) | east(epSquareBB)) & RANK_5_BB
+			epBB := (West(epSquareBB) | East(epSquareBB)) & RANK_5_BB
 			for fromBB = epBB & pos.Pawns & pos.White; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[counter] = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
@@ -116,7 +116,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 		}
 		if pos.EpSquare != 0 {
 			epSquareBB := SquareMask[uint(pos.EpSquare)]
-			epBB := (west(epSquareBB) | east(epSquareBB)) & RANK_4_BB
+			epBB := (West(epSquareBB) | East(epSquareBB)) & RANK_4_BB
 			for fromBB = epBB & pos.Pawns & pos.Black; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[counter] = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
