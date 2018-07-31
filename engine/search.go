@@ -50,6 +50,17 @@ func contempt(pos *Position) int {
 	return 0
 }
 
+// Evals that checks for mate
+func extensiveEval(pos *Position, evaledValue, mate int) int {
+	if len(generateAllLegalMoves(pos)) == 0 {
+		if pos.IsInCheck() {
+			return -mate
+		}
+		return contempt(pos)
+	}
+	return evaledValue
+}
+
 var countPositions int
 
 func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int) int {
@@ -57,7 +68,7 @@ func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int) int {
 	var val int
 	if depth == 0 {
 		countPositions++
-		return evaluation
+		return extensiveEval(pos, evaluation, mate)
 	}
 	evaled := generateAllLegalMoves(pos)
 	if len(evaled) == 0 {
@@ -89,17 +100,6 @@ func moveToFirst(list []EvaledPosition, m Move) {
 			return
 		}
 	}
-}
-
-// Evals that checks for mate
-func extensiveEval(pos *Position, evaledValue, mate int) int {
-	if len(generateAllLegalMoves(pos)) == 0 {
-		if pos.IsInCheck() {
-			return -mate
-		}
-		return contempt(pos)
-	}
-	return evaledValue
 }
 
 func depSearch(pos *Position, depth int, lastBestMove Move, mate int) (Move, bool) {
