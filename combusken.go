@@ -9,12 +9,13 @@ import (
 )
 
 func main() {
-	pos := backend.ParseFen("8/8/8/8/4k3/8/PPPPPPPP/4K3 w - -")
+	pos := backend.InitialPosition
 	var child backend.Position
 	pos.Print()
 	for i := 0; i < 90; i++ {
 		start := time.Now()
-		move := engine.Search(&pos)
+		end := time.After(30 * time.Second)
+		move := engine.Search(&pos, end)
 		move.Inspect()
 		if move == 0 {
 			return

@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	. "github.com/mhib/combusken/backend"
 )
@@ -21,6 +22,8 @@ type EvaledPosition struct {
 type EvaledPositions []EvaledPosition
 
 var generatedMoves [256]Move
+
+var timedOut bool
 
 func (s EvaledPositions) Len() int {
 	return len(s)
@@ -58,6 +61,9 @@ func extensiveEval(pos *Position, evaledValue, mate int) int {
 		}
 		return contempt(pos)
 	}
+	if pos.FiftyMove > 100 {
+		return contempt(pos)
+	}
 	return evaledValue
 }
 
@@ -66,6 +72,9 @@ var countPositions int
 func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int) int {
 	var child Position
 	var val int
+	if timedOut {
+		return 0
+	}
 	if depth == 0 {
 		countPositions++
 		return extensiveEval(pos, evaluation, mate)
@@ -102,7 +111,12 @@ func moveToFirst(list []EvaledPosition, m Move) {
 	}
 }
 
-func depSearch(pos *Position, depth int, lastBestMove Move, mate int) (Move, bool) {
+type result struct {
+	Move
+	bool
+}
+
+func depSearch(pos *Position, depth int, lastBestMove Move, mate int, resultChan chan result) {
 	var child Position
 	var bestMove Move
 	evaled := generateAllLegalMoves(pos)
@@ -119,39 +133,49 @@ func depSearch(pos *Position, depth int, lastBestMove Move, mate int) (Move, boo
 				bestMove = evaled[i].move
 			}
 		}
-		return bestMove, alpha > Mate-500
+		resultChan <- result{bestMove, alpha > Mate-500}
+		return
 	}
 	for i := range evaled {
 		child = evaled[i].position
 		val := -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1)
 		if val >= beta {
-			return bestMove, false
+			resultChan <- result{bestMove, false}
+			return
 		}
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].move
 		}
 	}
-	return bestMove, alpha > Mate-500
+	resultChan <- result{bestMove, alpha > Mate-500}
 }
 
-func Search(pos *Position) Move {
-	var lastBestMove, bestMove Move
-	var mate bool
+func Search(pos *Position, timeoutChan <-chan time.Time) Move {
+	var lastBestMove Move
 	for i := 1; ; i++ {
-		bestMove, mate = depSearch(pos, i, lastBestMove, Mate)
-		if mate {
-			fmt.Println(i, countPositions)
-			return bestMove
-		}
-		if bestMove == 0 {
+		resultChan := make(chan result, 1)
+		timedOut = false
+		go depSearch(pos, i, lastBestMove, Mate, resultChan)
+		select {
+		case <-timeoutChan:
+			fmt.Println(i-1, countPositions)
+			timedOut = true
 			return lastBestMove
-		} else {
-			lastBestMove = bestMove
-		}
-		if countPositions >= 700000 || i > 70 {
-			fmt.Println(i, countPositions)
-			return bestMove
+		case res := <-resultChan:
+			if res.bool {
+				fmt.Println(i, countPositions)
+				return res.Move
+			}
+			if res.Move == 0 {
+				return lastBestMove
+			} else {
+				lastBestMove = res.Move
+			}
+			if i > 70 {
+				fmt.Println(i, countPositions)
+				return res.Move
+			}
 		}
 	}
 }
