@@ -232,6 +232,7 @@ const (
 )
 
 var SquareMask [64]uint64
+var SquareString [64]string
 
 func initSquareMask() {
 	for i := uint(0); i < 64; i++ {
@@ -396,12 +397,22 @@ func QueensAttacks(set uint64, occupancy uint64) uint64 {
 	return res
 }
 
+func squareString(square int) string {
+	var res string
+	res += string(byte(int('a') + (square & 7)))
+	res += string(byte(int('1') + square/8))
+	return res
+}
+
 func init() {
 	initSquareMask()
 	initArray(&KingAttacks, kingAttacks)
 	initArray(&KnightAttacks, KnightsAttacks)
 	initArray(&WhitePawnAttacks, WhitePawnsAttacks)
 	initArray(&BlackPawnAttacks, BlackPawnsAttacks)
+	for i := 0; i < 64; i++ {
+		SquareString[i] = squareString(i)
+	}
 
 	initArray(&rookBlockerMask, generateRookBlockerMask)
 	initRookBlockerBoard()

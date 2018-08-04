@@ -1,9 +1,8 @@
 package engine
 
 import (
-	"fmt"
+	"context"
 	"sort"
-	"time"
 
 	. "github.com/mhib/combusken/backend"
 )
@@ -22,8 +21,6 @@ type EvaledPosition struct {
 type EvaledPositions []EvaledPosition
 
 var generatedMoves [256]Move
-
-var timedOut bool
 
 func (s EvaledPositions) Len() int {
 	return len(s)
@@ -69,10 +66,10 @@ func extensiveEval(pos *Position, evaledValue, mate int) int {
 
 var countPositions int
 
-func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int) int {
+func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int, timedOut *bool) int {
 	var child Position
 	var val int
-	if timedOut {
+	if *timedOut {
 		return 0
 	}
 	if depth == 0 {
@@ -88,7 +85,7 @@ func alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int) int {
 	}
 	for i := range evaled {
 		child = evaled[i].position
-		val = -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1)
+		val = -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
 		if val >= beta {
 			return beta
 		}
@@ -116,7 +113,7 @@ type result struct {
 	bool
 }
 
-func depSearch(pos *Position, depth int, lastBestMove Move, mate int, resultChan chan result) {
+func depSearch(pos *Position, depth int, lastBestMove Move, mate int, resultChan chan result, timedOut *bool) {
 	var child Position
 	var bestMove Move
 	evaled := generateAllLegalMoves(pos)
@@ -138,7 +135,7 @@ func depSearch(pos *Position, depth int, lastBestMove Move, mate int, resultChan
 	}
 	for i := range evaled {
 		child = evaled[i].position
-		val := -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1)
+		val := -alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
 		if val >= beta {
 			resultChan <- result{bestMove, false}
 			return
@@ -151,20 +148,18 @@ func depSearch(pos *Position, depth int, lastBestMove Move, mate int, resultChan
 	resultChan <- result{bestMove, alpha > Mate-500}
 }
 
-func Search(pos *Position, timeoutChan <-chan time.Time) Move {
+func TimeSearch(ctx context.Context, pos *Position) Move {
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		timedOut = false
-		go depSearch(pos, i, lastBestMove, Mate, resultChan)
+		timedOut := false
+		go depSearch(pos, i, lastBestMove, Mate, resultChan, &timedOut)
 		select {
-		case <-timeoutChan:
-			fmt.Println(i-1, countPositions)
+		case <-ctx.Done():
 			timedOut = true
 			return lastBestMove
 		case res := <-resultChan:
 			if res.bool {
-				fmt.Println(i, countPositions)
 				return res.Move
 			}
 			if res.Move == 0 {
@@ -173,9 +168,30 @@ func Search(pos *Position, timeoutChan <-chan time.Time) Move {
 				lastBestMove = res.Move
 			}
 			if i > 70 {
-				fmt.Println(i, countPositions)
 				return res.Move
 			}
 		}
 	}
+}
+
+func DepthSearch(pos *Position, depth int) Move {
+	timedOut := false
+	var lastBestMove Move
+	for i := 1; i < depth; i++ {
+		resultChan := make(chan result, 1)
+		go depSearch(pos, i, lastBestMove, Mate, resultChan, &timedOut)
+		res := <-resultChan
+		if res.bool {
+			return res.Move
+		}
+		if res.Move == 0 {
+			return lastBestMove
+		} else {
+			lastBestMove = res.Move
+		}
+		if i > 70 {
+			return res.Move
+		}
+	}
+	return lastBestMove
 }

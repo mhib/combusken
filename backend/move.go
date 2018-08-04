@@ -83,3 +83,10 @@ func (m Move) Inspect() {
 	fmt.Print(m.Type())
 	fmt.Println("")
 }
+
+func (m Move) String() string {
+	if m == 0 {
+		return "0000"
+	}
+	return SquareString[m.From()] + SquareString[m.To()]
+}

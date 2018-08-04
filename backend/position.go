@@ -300,3 +300,20 @@ func (pos *Position) Print() {
 	}
 	fmt.Print("\n")
 }
+
+func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
+	var buffer [256]Move
+	var ml = p.GenerateAllMoves(buffer[:])
+	for i := range ml {
+		var mv = ml[i]
+		if strings.EqualFold(mv.String(), lan) {
+			var newPosition = Position{}
+			if p.MakeMove(mv, &newPosition) {
+				return newPosition, true
+			} else {
+				return Position{}, false
+			}
+		}
+	}
+	return Position{}, false
+}

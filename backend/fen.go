@@ -6,6 +6,8 @@ import (
 	"unicode"
 )
 
+const InitialPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
 func ParseFen(input string) Position {
 	var res Position
 	slices := strings.Split(input, " ")
