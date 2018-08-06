@@ -44,6 +44,11 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 	} else if searchParams.Limits.Infinite {
 		e.done = ctx.Done()
 		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
+	} else {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 60*time.Second)
+		defer cancel()
+		e.done = ctx.Done()
+		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	}
-	return backend.Move(0)
 }

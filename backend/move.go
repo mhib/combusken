@@ -58,6 +58,10 @@ func (m Move) Type() int {
 	return int(m>>18) & 0xf
 }
 
+func (m Move) Special() int {
+	return int(m>>20) & 0x3
+}
+
 func (m Move) IsPromotion() bool {
 	return m&(1<<19) != 0
 }
@@ -88,5 +92,9 @@ func (m Move) String() string {
 	if m == 0 {
 		return "0000"
 	}
-	return SquareString[m.From()] + SquareString[m.To()]
+	var promo = ""
+	if m.IsPromotion() {
+		promo = string("nbrq"[m.Special()])
+	}
+	return SquareString[m.From()] + SquareString[m.To()] + promo
 }

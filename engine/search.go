@@ -195,3 +195,25 @@ func DepthSearch(pos *Position, depth int) Move {
 	}
 	return lastBestMove
 }
+
+func CountSearch(ctx context.Context, pos *Position, count int) Move {
+	timedOut := false
+	var lastBestMove Move
+	for i := 1; ; i++ {
+		countPositions = 0
+		resultChan := make(chan result, 1)
+		go depSearch(pos, i, lastBestMove, Mate, resultChan, &timedOut)
+		res := <-resultChan
+		if res.bool {
+			return res.Move
+		}
+		if res.Move == 0 {
+			return lastBestMove
+		} else {
+			lastBestMove = res.Move
+		}
+		if i > 70 || countPositions > count {
+			return lastBestMove
+		}
+	}
+}
