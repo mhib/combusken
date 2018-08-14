@@ -96,6 +96,7 @@ func (uci *UciProtocol) thinking(msg interface{}) {
 		}
 	case backend.Move:
 		fmt.Printf("bestmove %s\n", msg.String())
+		uci.engine.TransTable.Clear()
 		uci.state = uci.idle
 	}
 }

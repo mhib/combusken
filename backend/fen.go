@@ -58,6 +58,8 @@ func ParseFen(input string) Position {
 		res.FiftyMove = int32(parsed)
 	}
 
+	HashPosition(&res)
+
 	return res
 }
 

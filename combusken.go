@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	e := engine.Engine{}
+	e := engine.NewEngine()
 	uci := uci.NewUciProtocol(e)
 	uci.Run()
 }

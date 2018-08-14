@@ -30,6 +30,7 @@ type Position struct {
 	WhiteMove                                                   bool
 	FiftyMove                                                   int32
 	LastMove                                                    Move
+	Key                                                         uint64
 }
 
 func (pos *Position) Inspect() string {
@@ -57,7 +58,11 @@ const maxMoves = 256
 var InitialPosition Position = Position{
 	0xff00000000ff00, 0x4200000000000042, 0x2400000000000024,
 	0x8100000000000081, 0x800000000000008, 0x1000000000000010,
-	0xffff, 0xffff000000000000, 0, 0, true, 0, 0}
+	0xffff, 0xffff000000000000, 0, 0, true, 0, 0, 0}
+
+func init() {
+	HashPosition(&InitialPosition)
+}
 
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
 	if squareBB&pos.Pawns != 0 {
@@ -78,20 +83,26 @@ func (pos *Position) TypeOnSquare(squareBB uint64) int {
 
 func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 	var b = SquareMask[from] ^ SquareMask[to]
+	var intSide = 0
 	if side {
 		p.White ^= b
 	} else {
 		p.Black ^= b
+		intSide = 1
 	}
 	switch piece {
 	case Pawn:
 		p.Pawns ^= b
+		p.Key ^= zobrist[0][intSide][from] ^ zobrist[0][intSide][to]
 	case Knight:
 		p.Knights ^= b
+		p.Key ^= zobrist[1][intSide][from] ^ zobrist[1][intSide][to]
 	case Bishop:
 		p.Bishops ^= b
+		p.Key ^= zobrist[2][intSide][from] ^ zobrist[2][intSide][to]
 	case Rook:
 		p.Rooks ^= b
+		p.Key ^= zobrist[3][intSide][from] ^ zobrist[3][intSide][to]
 		if side {
 			if from == H1 {
 				p.Flags |= WhiteKingSideCastleFlag
@@ -107,8 +118,10 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 		}
 	case Queen:
 		p.Queens ^= b
+		p.Key ^= zobrist[4][intSide][from] ^ zobrist[4][intSide][to]
 	case King:
 		p.Kings ^= b
+		p.Key ^= zobrist[5][intSide][from] ^ zobrist[5][intSide][to]
 		if side {
 			p.Flags |= WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag
 		} else {
@@ -119,24 +132,32 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 
 func (p *Position) TogglePiece(piece int, side bool, square int) {
 	var b = SquareMask[square]
+	var intSide = 0
 	if side {
 		p.White ^= b
 	} else {
 		p.Black ^= b
+		intSide = 1
 	}
 	switch piece {
 	case Pawn:
 		p.Pawns ^= b
+		p.Key ^= zobrist[0][intSide][square]
 	case Knight:
 		p.Knights ^= b
+		p.Key ^= zobrist[1][intSide][square]
 	case Bishop:
 		p.Bishops ^= b
+		p.Key ^= zobrist[2][intSide][square]
 	case Rook:
 		p.Rooks ^= b
+		p.Key ^= zobrist[3][intSide][square]
 	case Queen:
 		p.Queens ^= b
+		p.Key ^= zobrist[4][intSide][square]
 	case King:
 		p.Kings ^= b
+		p.Key ^= zobrist[5][intSide][square]
 	}
 }
 
@@ -151,6 +172,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.White = pos.White
 	res.Black = pos.Black
 	res.Flags = pos.Flags
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0
@@ -178,6 +200,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 			switch move.Type() {
 			case DoublePawnPush:
 				res.EpSquare = move.To()
+				res.Key ^= zobristEpSquare[move.To()]
 			case Capture:
 				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
 				if move.CapturedPiece() == Rook {
@@ -224,6 +247,10 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	}
 	if res.IsInCheck() {
 		return false
+	}
+
+	for flag := uint64(res.Flags ^ pos.Flags); flag != 0; flag &= (flag - 1) {
+		res.Key ^= zobristFlags[BitScan(flag)]
 	}
 	res.WhiteMove = !pos.WhiteMove
 	res.LastMove = move

@@ -6,6 +6,7 @@ import "github.com/mhib/combusken/backend"
 
 type Engine struct {
 	done <-chan struct{}
+	TransTable
 }
 
 type LimitsType struct {
@@ -28,7 +29,12 @@ type SearchParams struct {
 }
 
 func (e *Engine) GetInfo() (name, version, author string) {
-	return "Combusken", "0.0.1", "Marcin Henryk Bartkowiak"
+	return "Combusken", "0.0.2", "Marcin Henryk Bartkowiak"
+}
+
+func NewEngine() (ret Engine) {
+	ret.TransTable = NewTransTable()
+	return
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
@@ -37,18 +43,18 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(searchParams.Limits.MoveTime)*time.Millisecond)
 		defer cancel()
 		e.done = ctx.Done()
-		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
+		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable)
 	} else if searchParams.Limits.Depth > 0 {
 		e.done = ctx.Done()
-		return DepthSearch(&searchParams.Positions[len(searchParams.Positions)-1], searchParams.Limits.Depth)
+		return DepthSearch(&searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable, searchParams.Limits.Depth)
 	} else if searchParams.Limits.Infinite {
 		e.done = ctx.Done()
-		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
+		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable)
 	} else {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 		e.done = ctx.Done()
-		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
+		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable)
 	}
 }
