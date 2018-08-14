@@ -18,11 +18,10 @@ const (
 )
 
 var (
-	rookBlockerBoard, bishopBlockerBoard [64][]uint64
-	rookMoveBoard                        [64][1 << 12]uint64
-	bishopMoveBoard                      [64][1 << 9]uint64
-	bishopBlockerMask, rookBlockerMask   [64]uint64
-	rookMagicIndex, bishopMagicIndex     [64]uint64
+	rookMoveBoard                      [64][1 << 12]uint64
+	bishopMoveBoard                    [64][1 << 9]uint64
+	bishopBlockerMask, rookBlockerMask [64]uint64
+	rookMagicIndex, bishopMagicIndex   [64]uint64
 )
 
 func generateRookBlockerMask(mask uint64) uint64 {
@@ -92,19 +91,21 @@ func sortedCombinations(x uint64) []uint64 {
 	return res
 }
 
-func initRookBlockerBoard() {
-	for idx, val := range rookBlockerMask {
-		rookBlockerBoard[idx] = sortedCombinations(val)
+func initRookBlockerBoard() (rookBlockerBoard [][]uint64) {
+	for _, val := range rookBlockerMask {
+		rookBlockerBoard = append(rookBlockerBoard, sortedCombinations(val))
 	}
+	return
 }
 
-func initBishopBlockerBoard() {
-	for idx, val := range bishopBlockerMask {
-		bishopBlockerBoard[idx] = sortedCombinations(val)
+func initBishopBlockerBoard() (bishopBlockerBoard [][]uint64) {
+	for _, val := range bishopBlockerMask {
+		bishopBlockerBoard = append(bishopBlockerBoard, sortedCombinations(val))
 	}
+	return
 }
 
-func initRookMoveBoard() {
+func initRookMoveBoard(rookBlockerBoard [][]uint64) {
 	for y, position := range rookBlockerBoard {
 		for x, board := range position {
 			rookMoveBoard[y][x] = generateRookMoveBoard(y, board)
@@ -195,7 +196,7 @@ func generateBishopMoveBoard(idx int, board uint64) uint64 {
 	return res
 }
 
-func initBishopMoveBoard() {
+func initBishopMoveBoard(bishopBlockerBoard [][]uint64) {
 	for y, position := range bishopBlockerBoard {
 		for x, board := range position {
 			bishopMoveBoard[y][x] = generateBishopMoveBoard(y, board)
@@ -203,7 +204,7 @@ func initBishopMoveBoard() {
 	}
 }
 
-func initRookMagicIndex() {
+func initRookMagicIndex(rookBlockerBoard [][]uint64) {
 	var wg sync.WaitGroup
 	for idx, _ := range rookBlockerMask {
 		wg.Add(1)
@@ -216,7 +217,7 @@ func initRookMagicIndex() {
 	wg.Wait()
 }
 
-func initBishopMagicIndex() {
+func initBishopMagicIndex(bishopBlockerBoard [][]uint64) {
 	var wg sync.WaitGroup
 	for idx, _ := range bishopBlockerMask {
 		wg.Add(1)
@@ -259,7 +260,7 @@ func findMagic(array []uint64, cmpArray []uint64, bits uint) uint64 {
 	}
 }
 
-func initRookAttacks() {
+func initRookAttacks(rookBlockerBoard [][]uint64) {
 	var rookAttacks [64][1 << 12]uint64
 	for idx, magic := range rookMagicIndex {
 		for innerIdx, el := range rookBlockerBoard[idx] {
@@ -270,7 +271,7 @@ func initRookAttacks() {
 	rookMoveBoard = rookAttacks
 }
 
-func initBishopAttacks() {
+func initBishopAttacks(bishopBlockerBoard [][]uint64) {
 	var bishopAttacks [64][1 << 9]uint64
 	for idx, magic := range bishopMagicIndex {
 		for innerIdx, el := range bishopBlockerBoard[idx] {

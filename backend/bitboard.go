@@ -415,14 +415,14 @@ func init() {
 	}
 
 	initArray(&rookBlockerMask, generateRookBlockerMask)
-	initRookBlockerBoard()
-	initRookMoveBoard()
-	initRookMagicIndex()
-	initRookAttacks()
+	rookBlockerBoard := initRookBlockerBoard()
+	initRookMoveBoard(rookBlockerBoard)
+	initRookMagicIndex(rookBlockerBoard)
+	initRookAttacks(rookBlockerBoard)
 
 	initArray(&bishopBlockerMask, generateBishopBlockerMask)
-	initBishopBlockerBoard()
-	initBishopMoveBoard()
-	initBishopMagicIndex()
-	initBishopAttacks()
+	bishopBlockerBoard := initBishopBlockerBoard()
+	initBishopMoveBoard(bishopBlockerBoard)
+	initBishopMagicIndex(bishopBlockerBoard)
+	initBishopAttacks(bishopBlockerBoard)
 }
