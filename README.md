@@ -4,7 +4,7 @@
 - [x] Basic evaluation
 - [x] Alpha beta
 - [x] Uci ingration (CounterGO's copy)
-- [ ] Transposition tables
+- [x] Transposition tables
 - [ ] Improved move ordering
 - [ ] Quiescent search
 - [ ] Three move repetition
