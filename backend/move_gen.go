@@ -14,26 +14,26 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 			if from&RANK_7_BB != 0 {
 				to = from << 8
 				if allOccupation&to == 0 {
-					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 0))
-					counter++
-					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 1))
+					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
 					counter++
 					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 0))
 					counter++
-					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
+					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 1))
+					counter++
+					buffer[counter] = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 0))
 					counter++
 				}
 				for toBB = WhitePawnAttacks[fromId] & pos.Black; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
 					captureType := pos.TypeOnSquare(to)
-					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
-					counter++
-					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
 					counter++
 					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
 					counter++
-					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
+					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					counter++
+					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
 					counter++
 				}
 			} else {
@@ -73,26 +73,26 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 			if from&RANK_2_BB != 0 {
 				to = from >> 8
 				if allOccupation&to == 0 {
-					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 0))
-					counter++
-					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 1))
+					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
 					counter++
 					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 0))
 					counter++
-					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
+					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 1))
+					counter++
+					buffer[counter] = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 0))
 					counter++
 				}
 				for toBB = BlackPawnAttacks[fromId] & pos.White; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
 					captureType := pos.TypeOnSquare(to)
-					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
-					counter++
-					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
 					counter++
 					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
 					counter++
-					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
+					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					counter++
+					buffer[counter] = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
 					counter++
 				}
 			} else {
@@ -124,6 +124,7 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 			}
 		}
 	}
+
 	// Knights
 	for fromBB = pos.Knights & ourOccupation; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
