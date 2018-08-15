@@ -96,7 +96,6 @@ func (uci *UciProtocol) thinking(msg interface{}) {
 		}
 	case backend.Move:
 		fmt.Printf("bestmove %s\n", msg.String())
-		uci.engine.TransTable.Clear()
 		uci.state = uci.idle
 	}
 }
@@ -212,6 +211,7 @@ func parseLimits(args []string) (result LimitsType) {
 }
 
 func (uci *UciProtocol) uciNewGameCommand() {
+	uci.engine.TransTable.Clear()
 }
 
 func (uci *UciProtocol) ponderhitCommand() {
