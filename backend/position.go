@@ -161,6 +161,24 @@ func (p *Position) TogglePiece(piece int, side bool, square int) {
 	}
 }
 
+func (pos *Position) MakeNullMove(res *Position) {
+	res.WhiteMove = !pos.WhiteMove
+	res.Pawns = pos.Pawns
+	res.Knights = pos.Knights
+	res.Bishops = pos.Bishops
+	res.Rooks = pos.Rooks
+	res.Kings = pos.Kings
+	res.Queens = pos.Queens
+	res.White = pos.White
+	res.Black = pos.Black
+	res.Flags = pos.Flags
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
+
+	res.FiftyMove = pos.FiftyMove
+	res.LastMove = NullMove
+	res.EpSquare = 0
+}
+
 func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.WhiteMove = pos.WhiteMove
 	res.Pawns = pos.Pawns

@@ -120,6 +120,11 @@ func isEndGame(pos *Position) bool {
 	return PopCount(pos.White|pos.Black) < 16
 }
 
+// Only pawns and kings left
+func isLateEndGame(pos *Position) bool {
+	return PopCount(pos.White|pos.Black)-2 == PopCount(pos.Pawns)
+}
+
 func Evaluate(pos *Position) int {
 	var result = 0
 	var fromId int

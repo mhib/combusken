@@ -94,6 +94,15 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 		transTable.Set(depth, val, TransExact, pos.Key)
 		return val
 	}
+
+	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
+		pos.MakeNullMove(&child)
+		val = -alphaBeta(&child, transTable, depth-3, -beta, -beta+1, -evaluation, mate, timedOut)
+		if val >= beta {
+			return beta
+		}
+	}
+
 	evaled := generateAllLegalMoves(pos)
 	if len(evaled) == 0 {
 		countPositions++
