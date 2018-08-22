@@ -120,9 +120,14 @@ func isEndGame(pos *Position) bool {
 	return PopCount(pos.White|pos.Black) < 16
 }
 
-// Only pawns and kings left
+// CounterGO's version
 func isLateEndGame(pos *Position) bool {
-	return PopCount(pos.White|pos.Black)-2 == PopCount(pos.Pawns)
+	if pos.WhiteMove {
+		return ((pos.Rooks|pos.Queens)&pos.White) == 0 && !MoreThanOne((pos.Knights|pos.Bishops)&pos.White)
+
+	} else {
+		return ((pos.Rooks|pos.Queens)&pos.Black) == 0 && !MoreThanOne((pos.Knights|pos.Bishops)&pos.Black)
+	}
 }
 
 func Evaluate(pos *Position) int {

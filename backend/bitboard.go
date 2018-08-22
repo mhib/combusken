@@ -265,6 +265,10 @@ func BitScan(bb uint64) int {
 	return index64[((bb^(bb-1))*debruijn64)>>58]
 }
 
+func MoreThanOne(bb uint64) bool {
+       return bb != 0 && ((bb-1)&bb) != 0
+}
+
 func NorthWest(set uint64) uint64 {
 	return set << 7
 }
