@@ -1,5 +1,7 @@
 package engine
 
+import "github.com/mhib/combusken/backend"
+
 const (
 	TransExact = iota + 1
 	TransAlpha
@@ -9,31 +11,33 @@ const (
 const ValUnknown = 1000002
 
 type TransEntry struct {
-	key   uint64
-	depth int32
-	flag  int32
-	value int
+	key      uint64
+	depth    int32
+	flag     int32
+	bestMove backend.Move
+	value    int
 }
 
 type TransTable struct {
 	Entries []TransEntry
-	Length  uint64
+	Mask    uint64
 }
 
 func NewTransTable() TransTable {
-	return TransTable{make([]TransEntry, 1<<21), 1 << 21}
+	return TransTable{make([]TransEntry, 1<<18), (1 << 18) - 1}
 }
 
 func (t *TransTable) Get(key uint64) *TransEntry {
-	return &t.Entries[key%t.Length]
+	return &t.Entries[key&t.Mask]
 }
 
-func (t *TransTable) Set(depth, value, flag int, key uint64) {
+func (t *TransTable) Set(depth, value, flag int, key uint64, bestMove backend.Move) {
 	var element = t.Get(key)
 	element.key = key
 	element.value = value
 	element.flag = int32(flag)
 	element.depth = int32(depth)
+	element.bestMove = bestMove
 }
 
 func (t *TransTable) Clear() {

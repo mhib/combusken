@@ -42,12 +42,21 @@ func generateAllLegalMoves(pos *Position) EvaledPositions {
 			evaledPositions = append(evaledPositions, EvaledPosition{child, move, -Evaluate(&child)})
 		}
 	}
-	sort.Sort(evaledPositions)
 	return evaledPositions
 }
 
 func contempt(pos *Position) int {
 	return 0
+}
+
+func maxToFirst(positions EvaledPositions) {
+	maxIdx := 0
+	for i := 1; i < len(positions); i++ {
+		if positions[i].value > positions[maxIdx].value {
+			maxIdx = i
+		}
+	}
+	positions[0], positions[maxIdx] = positions[maxIdx], positions[0]
 }
 
 // Evals that checks for mate
@@ -73,6 +82,7 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 		return 0
 	}
 	var alphaOrig = alpha
+	hashMove := NullMove
 	ttEntry := transTable.Get(pos.Key)
 	if ttEntry.key == pos.Key && ttEntry.depth >= int32(depth) {
 		if ttEntry.flag == TransExact {
@@ -87,11 +97,12 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 		if alpha >= beta {
 			return ttEntry.value
 		}
+		hashMove = ttEntry.bestMove
 	}
 	if depth == 0 {
 		countPositions++
 		val = extensiveEval(pos, evaluation, mate)
-		transTable.Set(depth, val, TransExact, pos.Key)
+		transTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
 
@@ -108,20 +119,28 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 		countPositions++
 		if pos.IsInCheck() {
 			val = -mate
-			transTable.Set(depth, val, TransExact, pos.Key)
+			transTable.Set(depth, val, TransExact, pos.Key, NullMove)
 			return val
 		}
 		val = contempt(pos)
-		transTable.Set(depth, val, TransExact, pos.Key)
+		transTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
 	val = MinInt
 	var tmpVal int
+	if hashMove != 0 {
+		moveToFirst(evaled, hashMove)
+		sort.Sort(evaled[1:])
+	} else {
+		sort.Sort(evaled)
+	}
+	bestMove := NullMove
 	for i := range evaled {
 		child = evaled[i].position
 		tmpVal = -alphaBeta(&child, transTable, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
 		if tmpVal > val {
 			val = tmpVal
+			bestMove = evaled[i].move
 		}
 		if tmpVal > alpha {
 			alpha = tmpVal
@@ -139,6 +158,7 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 	}
 	ttEntry.depth = int32(depth)
 	ttEntry.value = val
+	ttEntry.bestMove = bestMove
 	return alpha
 }
 
@@ -163,7 +183,12 @@ func depSearch(pos *Position, transTable *TransTable, depth int, lastBestMove Mo
 	var child Position
 	var bestMove Move
 	evaled := generateAllLegalMoves(pos)
-	moveToFirst(evaled, lastBestMove)
+	if lastBestMove != 0 {
+		moveToFirst(evaled, lastBestMove)
+		sort.Sort(evaled[1:])
+	} else {
+		sort.Sort(evaled)
+	}
 	var alpha = -MaxInt
 	var beta = MaxInt
 	countPositions = 0
@@ -176,7 +201,7 @@ func depSearch(pos *Position, transTable *TransTable, depth int, lastBestMove Mo
 				bestMove = evaled[i].move
 			}
 		}
-		transTable.Set(1, alpha, TransExact, pos.Key)
+		transTable.Set(1, alpha, TransExact, pos.Key, bestMove)
 		resultChan <- result{bestMove, alpha > Mate-500}
 		return
 	}
@@ -188,7 +213,7 @@ func depSearch(pos *Position, transTable *TransTable, depth int, lastBestMove Mo
 			bestMove = evaled[i].move
 		}
 	}
-	transTable.Set(depth, alpha, TransExact, pos.Key)
+	transTable.Set(depth, alpha, TransExact, pos.Key, bestMove)
 	resultChan <- result{bestMove, alpha > Mate-500}
 }
 
