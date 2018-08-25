@@ -43,18 +43,18 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(searchParams.Limits.MoveTime)*time.Millisecond)
 		defer cancel()
 		e.done = ctx.Done()
-		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable)
+		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	} else if searchParams.Limits.Depth > 0 {
 		e.done = ctx.Done()
-		return DepthSearch(&searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable, searchParams.Limits.Depth)
+		return e.DepthSearch(&searchParams.Positions[len(searchParams.Positions)-1], searchParams.Limits.Depth)
 	} else if searchParams.Limits.Infinite {
 		e.done = ctx.Done()
-		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable)
+		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	} else {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, 60*time.Second)
 		defer cancel()
 		e.done = ctx.Done()
-		return TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1], &e.TransTable)
+		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	}
 }

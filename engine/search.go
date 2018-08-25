@@ -75,7 +75,7 @@ func extensiveEval(pos *Position, evaledValue, mate int) int {
 
 var countPositions int
 
-func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evaluation, mate int, timedOut *bool) int {
+func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int, timedOut *bool) int {
 	var child Position
 	var val int
 	if *timedOut {
@@ -83,7 +83,7 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 	}
 	var alphaOrig = alpha
 	hashMove := NullMove
-	ttEntry := transTable.Get(pos.Key)
+	ttEntry := e.TransTable.Get(pos.Key)
 	if ttEntry.key == pos.Key && ttEntry.depth >= int32(depth) {
 		if ttEntry.flag == TransExact {
 			return ttEntry.value
@@ -102,13 +102,13 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 	if depth == 0 {
 		countPositions++
 		val = extensiveEval(pos, evaluation, mate)
-		transTable.Set(depth, val, TransExact, pos.Key, NullMove)
+		e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
 
 	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
 		pos.MakeNullMove(&child)
-		val = -alphaBeta(&child, transTable, depth-3, -beta, -beta+1, -evaluation, mate, timedOut)
+		val = -e.alphaBeta(&child, depth-3, -beta, -beta+1, -evaluation, mate, timedOut)
 		if val >= beta {
 			return beta
 		}
@@ -119,11 +119,11 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 		countPositions++
 		if pos.IsInCheck() {
 			val = -mate
-			transTable.Set(depth, val, TransExact, pos.Key, NullMove)
+			e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
 			return val
 		}
 		val = contempt(pos)
-		transTable.Set(depth, val, TransExact, pos.Key, NullMove)
+		e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
 	val = MinInt
@@ -137,7 +137,7 @@ func alphaBeta(pos *Position, transTable *TransTable, depth, alpha, beta, evalua
 	bestMove := NullMove
 	for i := range evaled {
 		child = evaled[i].position
-		tmpVal = -alphaBeta(&child, transTable, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
+		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
 		if tmpVal > val {
 			val = tmpVal
 			bestMove = evaled[i].move
@@ -179,7 +179,7 @@ type result struct {
 	bool
 }
 
-func depSearch(pos *Position, transTable *TransTable, depth int, lastBestMove Move, mate int, resultChan chan result, timedOut *bool) {
+func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, mate int, resultChan chan result, timedOut *bool) {
 	var child Position
 	var bestMove Move
 	evaled := generateAllLegalMoves(pos)
@@ -201,28 +201,28 @@ func depSearch(pos *Position, transTable *TransTable, depth int, lastBestMove Mo
 				bestMove = evaled[i].move
 			}
 		}
-		transTable.Set(1, alpha, TransExact, pos.Key, bestMove)
+		e.TransTable.Set(1, alpha, TransExact, pos.Key, bestMove)
 		resultChan <- result{bestMove, alpha > Mate-500}
 		return
 	}
 	for i := range evaled {
 		child = evaled[i].position
-		val := -alphaBeta(&child, transTable, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
+		val := -e.alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].move
 		}
 	}
-	transTable.Set(depth, alpha, TransExact, pos.Key, bestMove)
+	e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove)
 	resultChan <- result{bestMove, alpha > Mate-500}
 }
 
-func TimeSearch(ctx context.Context, pos *Position, transTable *TransTable) Move {
+func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
 		timedOut := false
-		go depSearch(pos, transTable, i, lastBestMove, Mate, resultChan, &timedOut)
+		go e.depSearch(pos, i, lastBestMove, Mate, resultChan, &timedOut)
 		select {
 		case <-ctx.Done():
 			timedOut = true
@@ -243,12 +243,12 @@ func TimeSearch(ctx context.Context, pos *Position, transTable *TransTable) Move
 	}
 }
 
-func DepthSearch(pos *Position, transTable *TransTable, depth int) Move {
+func (e *Engine) DepthSearch(pos *Position, depth int) Move {
 	timedOut := false
 	var lastBestMove Move
 	for i := 1; i < depth; i++ {
 		resultChan := make(chan result, 1)
-		go depSearch(pos, transTable, i, lastBestMove, Mate, resultChan, &timedOut)
+		go e.depSearch(pos, i, lastBestMove, Mate, resultChan, &timedOut)
 		res := <-resultChan
 		if res.bool {
 			return res.Move
@@ -265,13 +265,13 @@ func DepthSearch(pos *Position, transTable *TransTable, depth int) Move {
 	return lastBestMove
 }
 
-func CountSearch(ctx context.Context, pos *Position, transTable *TransTable, count int) Move {
+func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move {
 	timedOut := false
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		countPositions = 0
 		resultChan := make(chan result, 1)
-		go depSearch(pos, transTable, i, lastBestMove, Mate, resultChan, &timedOut)
+		go e.depSearch(pos, i, lastBestMove, Mate, resultChan, &timedOut)
 		res := <-resultChan
 		if res.bool {
 			return res.Move
