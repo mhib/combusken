@@ -1,5 +1,21 @@
 package backend
 
+const (
+	PawnValue   = 100
+	KnightValue = 320
+	BishopValue = 330
+	RookValue   = 500
+	QueenValue  = 900
+	KingValue   = 2000
+)
+
+var PieceValues = []int{0, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, KingValue}
+
+type EvaledMove struct {
+	Move
+	Value int
+}
+
 func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 	var counter = 0
 	allOccupation := pos.White | pos.Black
@@ -231,6 +247,173 @@ func (pos *Position) GenerateAllMoves(buffer []Move) []Move {
 
 	}
 	// end of Castling
+
+	return buffer[:counter]
+}
+
+func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
+	var fromBB, toBB, to, ourOccupation, theirOccupation uint64
+	var fromId, toId, what int
+
+	allOccupation := pos.White | pos.Black
+
+	if pos.WhiteMove {
+		ourOccupation = pos.White
+		theirOccupation = pos.Black
+	} else {
+		ourOccupation = pos.Black
+		theirOccupation = pos.White
+	}
+
+	var counter = 0
+
+	// PAWNS
+	if pos.WhiteMove {
+		if pos.EpSquare != 0 {
+			epSquareBB := SquareMask[uint(pos.EpSquare)]
+			epBB := (West(epSquareBB) | East(epSquareBB)) & RANK_5_BB
+			for fromBB = epBB & pos.Pawns & pos.White; fromBB > 0; fromBB &= (fromBB - 1) {
+				fromId = BitScan(fromBB)
+				buffer[counter] = EvaledMove{NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1)), 0}
+				counter++
+			}
+		}
+		for fromBB = (BlackPawnsAttacks(theirOccupation) | RANK_7_BB) & pos.Pawns & pos.White; fromBB != 0; fromBB &= fromBB - 1 {
+			fromId = BitScan(fromBB)
+			if rank(fromId) == RANK_7 {
+				if SquareMask[fromId+8]&allOccupation == 0 {
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1)), QueenValue}
+					counter++
+				}
+				if file(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId+7])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 1, 1, 1)), Queen + PieceValues[what] - PawnValue}
+					counter++
+				}
+				if file(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId+9])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 1, 1, 1)), Queen + PieceValues[what] - PawnValue}
+					counter++
+				}
+			} else {
+				if file(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId+7])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					counter++
+				}
+				if file(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId+9])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					counter++
+				}
+			}
+		}
+	} else {
+		if pos.EpSquare != 0 {
+			epSquareBB := SquareMask[uint(pos.EpSquare)]
+			epBB := (West(epSquareBB) | East(epSquareBB)) & RANK_4_BB
+			for fromBB = epBB & pos.Pawns & pos.Black; fromBB > 0; fromBB &= (fromBB - 1) {
+				fromId = BitScan(fromBB)
+				buffer[counter] = EvaledMove{NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1)), 0}
+				counter++
+			}
+		}
+		for fromBB = (WhitePawnsAttacks(theirOccupation) | RANK_7_BB) & pos.Pawns & pos.Black; fromBB != 0; fromBB &= fromBB - 1 {
+			fromId = BitScan(fromBB)
+			if rank(fromId) == RANK_2 {
+				if SquareMask[fromId-8]&allOccupation == 0 {
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1)), QueenValue}
+					counter++
+				}
+				if file(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId-9])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 1, 1, 1)), QueenValue + PieceValues[what] - PawnValue}
+					counter++
+				}
+				if file(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId-7])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 1, 1, 1)), QueenValue + PieceValues[what] - PawnValue}
+					counter++
+				}
+			} else {
+				if file(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId-9])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					counter++
+				}
+				if file(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
+					what = pos.TypeOnSquare(SquareMask[fromId-7])
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					counter++
+				}
+			}
+		}
+	}
+	// end of pawns
+
+	// Knights
+	for fromBB = pos.Knights & ourOccupation; fromBB != 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+		for toBB = KnightAttacks[fromId] & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
+			toId = BitScan(toBB)
+			to = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(to)
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Knight, what, NewType(1, 0, 0, 0)), PieceValues[what] - KnightValue}
+			counter++
+		}
+	}
+	// end of knights
+
+	// Bishops
+	for fromBB = pos.Bishops & ourOccupation; fromBB != 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+		for toBB = BishopAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
+			toId = BitScan(toBB)
+			to = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(to)
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Bishop, what, NewType(1, 0, 0, 0)), PieceValues[what] - BishopValue}
+			counter++
+		}
+	}
+	// end of Bishops
+
+	// Rooks
+	for fromBB = pos.Rooks & ourOccupation; fromBB != 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+		for toBB = RookAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
+			toId = BitScan(toBB)
+			to = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(to)
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Rook, what, NewType(1, 0, 0, 0)), PieceValues[what] - RookValue}
+			counter++
+		}
+	}
+	// end of Rooks
+
+	// Queens
+	for fromBB = pos.Queens & ourOccupation; fromBB != 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+		for toBB = QueenAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
+			toId = BitScan(toBB)
+			to = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(to)
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Queen, what, NewType(1, 0, 0, 0)), PieceValues[what] - QueenValue}
+			counter++
+		}
+	}
+	// end of Queens
+
+	// Kings
+	fromBB = pos.Kings & ourOccupation
+	fromId = BitScan(fromBB)
+	for toBB = KingAttacks[fromId] & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
+		toId = BitScan(toBB)
+		to = SquareMask[uint(toId)]
+		what = pos.TypeOnSquare(to)
+		buffer[counter] = EvaledMove{NewMove(fromId, toId, King, what, NewType(1, 0, 0, 0)), PieceValues[what] - KingValue}
+		counter++
+	}
+	// end of Kings
 
 	return buffer[:counter]
 }

@@ -4,15 +4,6 @@ import . "github.com/mhib/combusken/backend"
 
 // For now as in https://chessprogramming.wikispaces.com/Simplified+evaluation+function
 
-const (
-	pawnValue   = 100
-	knightValue = 320
-	bishopValue = 330
-	rookValue   = 500
-	queenValue  = 900
-	kingValue   = 2000
-)
-
 var blackPawnsPos = [64]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
 	50, 50, 50, 50, 50, 50, 50, 50,
@@ -137,60 +128,60 @@ func Evaluate(pos *Position) int {
 
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result += pawnValue + whitePawnsPos[fromId]
+		result += PawnValue + whitePawnsPos[fromId]
 	}
 	result -= PopCount(pos.Pawns&pos.White&South(pos.Pawns&pos.White)) * 12
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result += knightValue + whiteKnightsPos[fromId]
+		result += KnightValue + whiteKnightsPos[fromId]
 	}
 	for fromBB = pos.Bishops & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result += bishopValue + whiteBishopsPos[fromId]
+		result += BishopValue + whiteBishopsPos[fromId]
 	}
-	if PopCount(pos.Bishops&pos.White) > 1 {
+	if MoreThanOne(pos.Bishops & pos.White) {
 		result += 50
 	}
 	for fromBB = pos.Rooks & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result += rookValue + whiteRooksPos[fromId]
+		result += RookValue + whiteRooksPos[fromId]
 	}
 	for fromBB = pos.Queens & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result += queenValue + whiteQueensPos[fromId]
+		result += QueenValue + whiteQueensPos[fromId]
 	}
 
 	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result -= pawnValue + blackPawnsPos[fromId]
+		result -= PawnValue + blackPawnsPos[fromId]
 	}
 	result += PopCount((pos.Pawns&pos.Black)&North(pos.Pawns&pos.Black)) * 12
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result -= knightValue + blackKnightsPos[fromId]
+		result -= KnightValue + blackKnightsPos[fromId]
 	}
 	for fromBB = pos.Bishops & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result -= bishopValue + blackBishopsPos[fromId]
+		result -= BishopValue + blackBishopsPos[fromId]
 	}
-	if PopCount(pos.Bishops&pos.Black) > 1 {
+	if MoreThanOne(pos.Bishops & pos.Black) {
 		result -= 50
 	}
 	for fromBB = pos.Rooks & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result -= rookValue + blackRooksPos[fromId]
+		result -= RookValue + blackRooksPos[fromId]
 	}
 	for fromBB = pos.Queens & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
-		result -= queenValue + blackQueensPos[fromId]
+		result -= QueenValue + blackQueensPos[fromId]
 	}
 
 	if isEndGame(pos) {
-		result += kingValue + whiteKingEndGamePos[BitScan(pos.Kings&pos.White)]
-		result -= kingValue + blackKingEndGamePos[BitScan(pos.Kings&pos.Black)]
+		result += KingValue + whiteKingEndGamePos[BitScan(pos.Kings&pos.White)]
+		result -= KingValue + blackKingEndGamePos[BitScan(pos.Kings&pos.Black)]
 	} else {
-		result += kingValue + whiteKingMiddleGamePos[BitScan(pos.Kings&pos.White)]
-		result -= kingValue + blackKingMiddleGamePos[BitScan(pos.Kings&pos.Black)]
+		result += KingValue + whiteKingMiddleGamePos[BitScan(pos.Kings&pos.White)]
+		result -= KingValue + blackKingMiddleGamePos[BitScan(pos.Kings&pos.Black)]
 	}
 
 	if pos.WhiteMove {

@@ -20,8 +20,6 @@ type EvaledPosition struct {
 
 type EvaledPositions []EvaledPosition
 
-var generatedMoves [256]Move
-
 func (s EvaledPositions) Len() int {
 	return len(s)
 }
@@ -35,9 +33,10 @@ func (s EvaledPositions) Swap(i, j int) {
 }
 
 func generateAllLegalMoves(pos *Position) EvaledPositions {
+	var buffer [256]Move
 	var evaledPositions = EvaledPositions(make([]EvaledPosition, 0, 40))
 	var child Position
-	for _, move := range pos.GenerateAllMoves(generatedMoves[:]) {
+	for _, move := range pos.GenerateAllMoves(buffer[:]) {
 		if pos.MakeMove(move, &child) {
 			evaledPositions = append(evaledPositions, EvaledPosition{child, move, -Evaluate(&child)})
 		}
@@ -45,8 +44,73 @@ func generateAllLegalMoves(pos *Position) EvaledPositions {
 	return evaledPositions
 }
 
+func (e *Engine) quiescence(pos *Position, alpha, beta, mate, evaluation int, timedOut *bool) int {
+	if *timedOut {
+		return evaluation
+	}
+
+	var buffer [40]EvaledMove
+	val := extensiveEval(pos, evaluation, mate)
+
+	if pos.IsInCheck() {
+		evaled := generateAllLegalMoves(pos)
+		sort.Sort(evaled)
+		moveCount := 0
+		for i := range evaled {
+			child := evaled[i].position
+			val := -extensiveEval(&child, -evaled[i].value, mate-1)
+			moveCount++
+			if val > alpha {
+				alpha = val
+			}
+			if val >= beta {
+				return beta
+			}
+		}
+		if moveCount > 0 {
+			return alpha
+		}
+		return val
+	}
+
+	moves := pos.GenerateAllCaptures(buffer[:])
+
+	moveCount := 0
+	var child Position
+
+	for i := range moves {
+		maxMoveToFirst(moves[i:])
+		if pos.MakeMove(moves[i].Move, &child) {
+			val = -e.quiescence(&child, -beta, -alpha, mate-1, Evaluate(&child), timedOut)
+			moveCount++
+		}
+		if val > alpha {
+			alpha = val
+			if val >= beta {
+				return beta
+			}
+		}
+	}
+
+	if moveCount == 0 {
+		return val
+	}
+
+	return alpha
+}
+
 func contempt(pos *Position) int {
 	return 0
+}
+
+func maxMoveToFirst(moves []EvaledMove) {
+	maxIdx := 0
+	for i := 1; i < len(moves); i++ {
+		if moves[i].Value > moves[maxIdx].Value {
+			maxIdx = i
+		}
+	}
+	moves[0], moves[maxIdx] = moves[maxIdx], moves[0]
 }
 
 func maxToFirst(positions EvaledPositions) {
@@ -101,8 +165,8 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate i
 	}
 	if depth == 0 {
 		countPositions++
-		val = extensiveEval(pos, evaluation, mate)
-		e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
+		val = e.quiescence(pos, alpha, beta, mate, evaluation, timedOut)
+		//e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
 

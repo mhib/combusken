@@ -266,7 +266,7 @@ func BitScan(bb uint64) int {
 }
 
 func MoreThanOne(bb uint64) bool {
-       return bb != 0 && ((bb-1)&bb) != 0
+	return bb != 0 && ((bb-1)&bb) != 0
 }
 
 func NorthWest(set uint64) uint64 {
