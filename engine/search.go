@@ -52,6 +52,13 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, mate, evaluation int, ti
 	var buffer [40]EvaledMove
 	val := extensiveEval(pos, evaluation, mate)
 
+	if val >= beta {
+		return beta
+	}
+	if alpha < val {
+		alpha = val
+	}
+
 	if pos.IsInCheck() {
 		evaled := generateAllLegalMoves(pos)
 		sort.Sort(evaled)
