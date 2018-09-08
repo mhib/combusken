@@ -347,10 +347,10 @@ func (pos *Position) Print() {
 }
 
 func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
-	var buffer [256]Move
+	var buffer [256]EvaledMove
 	var ml = p.GenerateAllMoves(buffer[:])
 	for i := range ml {
-		var mv = ml[i]
+		var mv = ml[i].Move
 		if strings.EqualFold(mv.String(), lan) {
 			var newPosition = Position{}
 			if p.MakeMove(mv, &newPosition) {

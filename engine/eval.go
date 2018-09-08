@@ -107,7 +107,7 @@ func init() {
 	rotateArray(&blackKingEndGamePos, &whiteKingEndGamePos)
 }
 
-func isEndGame(pos *Position) bool {
+func IsEndGame(pos *Position) bool {
 	return PopCount(pos.White|pos.Black) < 16
 }
 
@@ -119,6 +119,49 @@ func isLateEndGame(pos *Position) bool {
 	} else {
 		return ((pos.Rooks|pos.Queens)&pos.Black) == 0 && !MoreThanOne((pos.Knights|pos.Bishops)&pos.Black)
 	}
+}
+
+func EvaluateMove(m Move, whiteMove, endGame bool) int {
+	if whiteMove {
+		switch m.MovedPiece() {
+		case Pawn:
+			return whitePawnsPos[(m.From())] - whitePawnsPos[(m.To())]
+		case Knight:
+			return whiteKnightsPos[(m.From())] - whiteKnightsPos[(m.To())]
+		case Bishop:
+			return whiteBishopsPos[(m.From())] - whiteBishopsPos[(m.To())]
+		case Rook:
+			return whiteRooksPos[(m.From())] - whiteRooksPos[(m.To())]
+		case Queen:
+			return whiteQueensPos[(m.From())] - whiteQueensPos[(m.To())]
+		case King:
+			if endGame {
+				return whiteKingEndGamePos[(m.From())] - whiteKingEndGamePos[(m.To())]
+			} else {
+				return whiteKingMiddleGamePos[(m.From())] - whiteKingMiddleGamePos[(m.To())]
+			}
+		}
+	} else {
+		switch m.MovedPiece() {
+		case Pawn:
+			return blackPawnsPos[(m.From())] - blackPawnsPos[(m.To())]
+		case Knight:
+			return blackKnightsPos[(m.From())] - blackKnightsPos[(m.To())]
+		case Bishop:
+			return blackBishopsPos[(m.From())] - blackBishopsPos[(m.To())]
+		case Rook:
+			return blackRooksPos[(m.From())] - blackRooksPos[(m.To())]
+		case Queen:
+			return blackQueensPos[(m.From())] - blackQueensPos[(m.To())]
+		case King:
+			if endGame {
+				return blackKingEndGamePos[(m.From())] - blackKingEndGamePos[(m.To())]
+			} else {
+				return blackKingMiddleGamePos[(m.From())] - blackKingMiddleGamePos[(m.To())]
+			}
+		}
+	}
+	return 0
 }
 
 func Evaluate(pos *Position) int {
@@ -176,7 +219,7 @@ func Evaluate(pos *Position) int {
 		result -= QueenValue + blackQueensPos[fromId]
 	}
 
-	if isEndGame(pos) {
+	if IsEndGame(pos) {
 		result += KingValue + whiteKingEndGamePos[BitScan(pos.Kings&pos.White)]
 		result -= KingValue + blackKingEndGamePos[BitScan(pos.Kings&pos.Black)]
 	} else {

@@ -33,24 +33,54 @@ func (s EvaledPositions) Swap(i, j int) {
 }
 
 func generateAllLegalMoves(pos *Position) EvaledPositions {
-	var buffer [256]Move
+	var buffer [256]EvaledMove
 	var evaledPositions = EvaledPositions(make([]EvaledPosition, 0, 40))
 	var child Position
 	for _, move := range pos.GenerateAllMoves(buffer[:]) {
-		if pos.MakeMove(move, &child) {
-			evaledPositions = append(evaledPositions, EvaledPosition{child, move, -Evaluate(&child)})
+		if pos.MakeMove(move.Move, &child) {
+			evaledPositions = append(evaledPositions, EvaledPosition{child, move.Move, -Evaluate(&child)})
 		}
 	}
 	return evaledPositions
 }
 
-func (e *Engine) quiescence(pos *Position, alpha, beta, mate, evaluation int, timedOut *bool) int {
+func areAnyLegalMoves(pos *Position) bool {
+	var buffer [256]EvaledMove
+	var child Position
+	for _, move := range pos.GenerateAllMoves(buffer[:]) {
+		if pos.MakeMove(move.Move, &child) {
+			return true
+		}
+	}
+	return false
+}
+
+func EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move) {
+	endGame := IsEndGame(pos)
+	for i := range moves {
+		if moves[i].Move == fromTrans {
+			moves[i].Value = 3000
+		} else if moves[i].Move.IsPromotion() {
+			moves[i].Value = 2800
+		} else if moves[i].Move.IsCapture() {
+			if moves[i].Move.MovedPiece() < moves[i].Move.CapturedPiece() {
+				moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()] + EvaluateMove(moves[i].Move, pos.WhiteMove, endGame)
+			} else {
+				moves[i].Value = EvaluateMove(moves[i].Move, pos.WhiteMove, endGame)
+			}
+		} else {
+			moves[i].Value = EvaluateMove(moves[i].Move, pos.WhiteMove, endGame)
+		}
+	}
+}
+
+func (e *Engine) quiescence(pos *Position, alpha, beta, mate int, timedOut *bool) int {
 	if *timedOut {
-		return evaluation
+		return 0
 	}
 
-	var buffer [40]EvaledMove
-	val := extensiveEval(pos, evaluation, mate)
+	var buffer [200]EvaledMove
+	val := extensiveEval(pos, Evaluate(pos), mate)
 
 	if val >= beta {
 		return beta
@@ -59,14 +89,17 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, mate, evaluation int, ti
 		alpha = val
 	}
 
+	var child Position
+	var moveCount = 0
+
 	if pos.IsInCheck() {
-		evaled := generateAllLegalMoves(pos)
-		sort.Sort(evaled)
-		moveCount := 0
+		evaled := pos.GenerateAllMoves(buffer[:])
 		for i := range evaled {
-			child := evaled[i].position
-			val := -extensiveEval(&child, -evaled[i].value, mate-1)
-			moveCount++
+			maxMoveToFirst(evaled[i:])
+			if pos.MakeMove(evaled[i].Move, &child) {
+				val = -extensiveEval(&child, Evaluate(&child), mate-1)
+				moveCount++
+			}
 			if val > alpha {
 				alpha = val
 			}
@@ -80,17 +113,15 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, mate, evaluation int, ti
 		return val
 	}
 
-	moves := pos.GenerateAllCaptures(buffer[:])
+	evaled := pos.GenerateAllCaptures(buffer[:])
 
-	moveCount := 0
-	var child Position
-
-	for i := range moves {
-		maxMoveToFirst(moves[i:])
-		if pos.MakeMove(moves[i].Move, &child) {
-			val = -e.quiescence(&child, -beta, -alpha, mate-1, Evaluate(&child), timedOut)
-			moveCount++
+	for i := range evaled {
+		maxMoveToFirst(evaled[i:])
+		if !pos.MakeMove(evaled[i].Move, &child) {
+			continue
 		}
+		moveCount++
+		val = -e.quiescence(&child, -beta, -alpha, mate-1, timedOut)
 		if val > alpha {
 			alpha = val
 			if val >= beta {
@@ -132,7 +163,7 @@ func maxToFirst(positions EvaledPositions) {
 
 // Evals that checks for mate
 func extensiveEval(pos *Position, evaledValue, mate int) int {
-	if len(generateAllLegalMoves(pos)) == 0 {
+	if !areAnyLegalMoves(pos) {
 		if pos.IsInCheck() {
 			return -mate
 		}
@@ -143,7 +174,7 @@ func extensiveEval(pos *Position, evaledValue, mate int) int {
 
 var countPositions int
 
-func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate int, timedOut *bool) int {
+func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, mate int, timedOut *bool) int {
 	var child Position
 	var val int
 	if *timedOut {
@@ -174,21 +205,46 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate i
 	}
 	if depth == 0 {
 		countPositions++
-		val = e.quiescence(pos, alpha, beta, mate, evaluation, timedOut)
-		//e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
+		val = e.quiescence(pos, alpha, beta, mate, timedOut)
 		return val
 	}
 
 	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
 		pos.MakeNullMove(&child)
-		val = -e.alphaBeta(&child, depth-3, -beta, -beta+1, -evaluation, mate, timedOut)
+		val = -e.alphaBeta(&child, depth-3, -beta, -beta+1, mate, timedOut)
 		if val >= beta {
 			return beta
 		}
 	}
 
-	evaled := generateAllLegalMoves(pos)
-	if len(evaled) == 0 {
+	var buffer [256]EvaledMove
+
+	evaled := pos.GenerateAllMoves(buffer[:])
+	val = MinInt
+	var tmpVal int
+	EvaluateMoves(pos, evaled, hashMove)
+	bestMove := NullMove
+	moveCount := 0
+	for i := range evaled {
+		maxMoveToFirst(evaled[i:])
+		if !pos.MakeMove(evaled[i].Move, &child) {
+			continue
+		}
+		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, mate-1, timedOut)
+		moveCount++
+		if tmpVal > val {
+			val = tmpVal
+			bestMove = evaled[i].Move
+		}
+		if tmpVal > alpha {
+			alpha = tmpVal
+		}
+		if alpha >= beta {
+			break
+		}
+	}
+
+	if moveCount == 0 {
 		countPositions++
 		if pos.IsInCheck() {
 			val = -mate
@@ -199,29 +255,7 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate i
 		e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
-	val = MinInt
-	var tmpVal int
-	if hashMove != 0 {
-		moveToFirst(evaled, hashMove)
-		sort.Sort(evaled[1:])
-	} else {
-		sort.Sort(evaled)
-	}
-	bestMove := NullMove
-	for i := range evaled {
-		child = evaled[i].position
-		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
-		if tmpVal > val {
-			val = tmpVal
-			bestMove = evaled[i].move
-		}
-		if tmpVal > alpha {
-			alpha = tmpVal
-		}
-		if alpha >= beta {
-			break
-		}
-	}
+
 	if val <= alphaOrig {
 		ttEntry.flag = TransBeta
 	} else if val >= beta {
@@ -301,7 +335,7 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, mate int
 	}
 	for i := range evaled {
 		child = evaled[i].position
-		val := -e.alphaBeta(&child, depth-1, -beta, -alpha, -evaled[i].value, mate-1, timedOut)
+		val := -e.alphaBeta(&child, depth-1, -beta, -alpha, mate-1, timedOut)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].move
