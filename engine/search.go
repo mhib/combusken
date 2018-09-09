@@ -138,9 +138,6 @@ func extensiveEval(pos *Position, evaledValue, mate int) int {
 		}
 		return contempt(pos)
 	}
-	if pos.FiftyMove > 100 {
-		return contempt(pos)
-	}
 	return evaledValue
 }
 
@@ -152,6 +149,11 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate i
 	if *timedOut {
 		return 0
 	}
+
+	if e.isDraw(pos) {
+		return contempt(pos)
+	}
+
 	var alphaOrig = alpha
 	hashMove := NullMove
 	ttEntry := e.TransTable.Get(pos.Key)
@@ -233,6 +235,18 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, evaluation, mate i
 	return alpha
 }
 
+func (e *Engine) isDraw(pos *Position) bool {
+	if pos.FiftyMove > 100 {
+		return true
+	}
+
+	if e.History[pos.Key] >= 2 {
+		return true
+	}
+
+	return false
+}
+
 func moveToFirst(list []EvaledPosition, m Move) {
 	if m == 0 {
 		return
@@ -266,7 +280,12 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, mate int
 	if depth == 1 {
 		for i := range evaled {
 			child = evaled[i].position
-			val := -extensiveEval(&child, -evaled[i].value, mate-1)
+			var val int
+			if e.isDraw(&child) {
+				val = contempt(pos)
+			} else {
+				val = -extensiveEval(&child, -evaled[i].value, mate-1)
+			}
 			if val > alpha {
 				alpha = val
 				bestMove = evaled[i].move
