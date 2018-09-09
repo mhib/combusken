@@ -4,10 +4,10 @@
 - [x] Move generation
 - [x] Basic evaluation
 - [x] Alpha beta
-- [x] Uci ingration (CounterGO's copy)
+- [x] UCI implementation (CounterGO's copy)
 - [x] Transposition tables
 - [ ] Improved move ordering
-- [ ] Quiescent search
-- [ ] Three move repetition
+- [x] Quiescent search
+- [x] Three move repetition(Only checks for in game history for now)
 - [ ] Memory and performance improvements
 - [ ] Improved evaluation
