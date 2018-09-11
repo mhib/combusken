@@ -240,6 +240,10 @@ func (e *Engine) isDraw(pos *Position) bool {
 		return true
 	}
 
+	if (pos.Pawns|pos.Rooks|pos.Queens) == 0 && !MoreThanOne(pos.Knights|pos.Bishops) {
+		return true
+	}
+
 	if e.History[pos.Key] >= 2 {
 		return true
 	}
