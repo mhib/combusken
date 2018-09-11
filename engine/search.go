@@ -55,21 +55,16 @@ func areAnyLegalMoves(pos *Position) bool {
 	return false
 }
 
-func EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move) {
-	endGame := IsEndGame(pos)
+func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move) {
 	for i := range moves {
 		if moves[i].Move == fromTrans {
-			moves[i].Value = 3000
+			moves[i].Value = 10000
 		} else if moves[i].Move.IsPromotion() {
-			moves[i].Value = 2800
+			moves[i].Value = 8000
 		} else if moves[i].Move.IsCapture() {
-			if moves[i].Move.MovedPiece() < moves[i].Move.CapturedPiece() {
-				moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()] + EvaluateMove(moves[i].Move, pos.WhiteMove, endGame)
-			} else {
-				moves[i].Value = EvaluateMove(moves[i].Move, pos.WhiteMove, endGame)
-			}
+			moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()] + 10000
 		} else {
-			moves[i].Value = EvaluateMove(moves[i].Move, pos.WhiteMove, endGame)
+			moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
 		}
 	}
 }
@@ -222,7 +217,7 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, mate int, timedOut
 	evaled := pos.GenerateAllMoves(buffer[:])
 	val = MinInt
 	var tmpVal int
-	EvaluateMoves(pos, evaled, hashMove)
+	e.EvaluateMoves(pos, evaled, hashMove)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
@@ -237,6 +232,7 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, mate int, timedOut
 			bestMove = evaled[i].Move
 		}
 		if tmpVal > alpha {
+			e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 			alpha = tmpVal
 		}
 		if alpha >= beta {
@@ -278,7 +274,7 @@ func (e *Engine) isDraw(pos *Position) bool {
 		return true
 	}
 
-	if e.History[pos.Key] >= 2 {
+	if e.MoveHistory[pos.Key] >= 2 {
 		return true
 	}
 

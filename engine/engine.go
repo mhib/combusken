@@ -7,7 +7,8 @@ import "github.com/mhib/combusken/backend"
 type Engine struct {
 	done <-chan struct{}
 	TransTable
-	History map[uint64]int
+	MoveHistory map[uint64]int
+	EvalHistory [64][64]int
 }
 
 type LimitsType struct {
@@ -39,7 +40,7 @@ func NewEngine() (ret Engine) {
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
-	e.fillHistory(searchParams.Positions)
+	e.fillMoveHistory(searchParams.Positions)
 	if searchParams.Limits.MoveTime > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(searchParams.Limits.MoveTime)*time.Millisecond)
@@ -61,13 +62,20 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 	}
 }
 
-func (e *Engine) fillHistory(positions []backend.Position) {
-	e.History = make(map[uint64]int)
+func (e *Engine) fillMoveHistory(positions []backend.Position) {
+	e.MoveHistory = make(map[uint64]int)
 	for i := len(positions) - 1; i >= 0; i-- {
-		e.History[positions[i].Key]++
+		e.MoveHistory[positions[i].Key]++
 		if positions[i].FiftyMove == 0 {
 			break
 		}
 	}
+}
 
+func (e *Engine) cleanEvalHistory() {
+	for y := 0; y < 64; y++ {
+		for x := 0; x < 64; x++ {
+			e.EvalHistory[y][x] = 0
+		}
+	}
 }
