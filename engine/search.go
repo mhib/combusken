@@ -232,10 +232,15 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, mate int, timedOut
 			bestMove = evaled[i].Move
 		}
 		if tmpVal > alpha {
-			e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
+			if depth > 5 {
+				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
+			}
 			alpha = tmpVal
 		}
 		if alpha >= beta {
+			if depth > 5 {
+				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth * depth
+			}
 			break
 		}
 	}
