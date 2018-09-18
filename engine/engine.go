@@ -40,6 +40,7 @@ func NewEngine() (ret Engine) {
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
+	e.cleanEvalHistory()
 	e.fillMoveHistory(searchParams.Positions)
 	if searchParams.Limits.MoveTime > 0 {
 		var cancel context.CancelFunc
