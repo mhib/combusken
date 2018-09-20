@@ -180,24 +180,33 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		return contempt(pos)
 	}
 
+	val = MinInt
+
 	var alphaOrig = alpha
 	hashMove := NullMove
 	ttEntry := e.TransTable.Get(pos.Key)
-	if ttEntry.key == pos.Key && ttEntry.depth >= int32(depth) {
-		if ttEntry.flag == TransExact {
-			return ttEntry.value
-		}
-		if ttEntry.flag == TransAlpha && ttEntry.value > alpha {
-			alpha = ttEntry.value
-		}
-		if ttEntry.flag == TransBeta && ttEntry.value < beta {
-			beta = ttEntry.value
-		}
-		if alpha >= beta {
-			return ttEntry.value
-		}
+	if ttEntry.key == pos.Key {
 		hashMove = ttEntry.bestMove
+		if ttEntry.depth >= int32(depth) {
+			val = ttEntry.value
+			if val >= Mate-500 {
+				val -= height + 1
+			} else if val <= -Mate+500 {
+				val += height - 1
+			}
+			if ttEntry.flag == TransExact {
+				e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
+				return val
+			}
+			if ttEntry.flag == TransAlpha && ttEntry.value <= alpha {
+				return alpha
+			}
+			if ttEntry.flag == TransBeta && ttEntry.value >= beta {
+				return beta
+			}
+		}
 	}
+
 	if depth == 0 {
 		countPositions++
 		val = e.quiescence(pos, alpha, beta, height, timedOut)
@@ -215,7 +224,6 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	var buffer [256]EvaledMove
 
 	evaled := pos.GenerateAllMoves(buffer[:])
-	val = MinInt
 	var tmpVal int
 	e.EvaluateMoves(pos, evaled, hashMove)
 	bestMove := NullMove
@@ -236,9 +244,11 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 			}
 			alpha = tmpVal
-		}
-		if alpha >= beta {
-			break
+
+			if alpha >= beta {
+				e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move)
+				return beta
+			}
 		}
 	}
 
@@ -254,16 +264,11 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		return val
 	}
 
-	if val <= alphaOrig {
-		ttEntry.flag = TransBeta
-	} else if val >= beta {
-		ttEntry.flag = TransAlpha
+	if alpha == alphaOrig {
+		e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove)
 	} else {
-		ttEntry.flag = TransExact
+		e.TransTable.Set(depth, val, TransExact, pos.Key, bestMove)
 	}
-	ttEntry.depth = int32(depth)
-	ttEntry.value = val
-	ttEntry.bestMove = bestMove
 	return alpha
 }
 
