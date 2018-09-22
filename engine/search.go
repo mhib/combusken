@@ -55,16 +55,22 @@ func areAnyLegalMoves(pos *Position) bool {
 	return false
 }
 
-func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move) {
+func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height int) {
 	for i := range moves {
 		if moves[i].Move == fromTrans {
-			moves[i].Value = 10000
+			moves[i].Value = 100000
 		} else if moves[i].Move.IsPromotion() {
-			moves[i].Value = 8000
+			moves[i].Value = 80000
 		} else if moves[i].Move.IsCapture() {
 			moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()] + 10000
 		} else {
-			moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
+			if moves[i].Move == e.KillerMoves[height][0] {
+				moves[i].Value = 9000
+			} else if moves[i].Move == e.KillerMoves[height][1] {
+				moves[i].Value = 8000
+			} else {
+				moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
+			}
 		}
 	}
 }
@@ -88,22 +94,21 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bo
 	var moveCount = 0
 
 	if pos.IsInCheck() {
+		if val <= -Mate+500 {
+			return val
+		}
 		evaled := pos.GenerateAllMoves(buffer[:])
 		for i := range evaled {
 			maxMoveToFirst(evaled[i:])
 			if pos.MakeMove(evaled[i].Move, &child) {
 				val = -extensiveEval(&child, Evaluate(&child), height+1)
-				moveCount++
 			}
 			if val > alpha {
 				alpha = val
+				if alpha >= beta {
+					return beta
+				}
 			}
-			if val >= beta {
-				return beta
-			}
-		}
-		if moveCount > 0 {
-			return alpha
 		}
 		return val
 	}
@@ -187,15 +192,17 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	ttEntry := e.TransTable.Get(pos.Key)
 	if ttEntry.key == pos.Key {
 		hashMove = ttEntry.bestMove
-		if ttEntry.depth >= int32(depth) {
+		if ttEntry.depth >= int32(depth+e.MovesCount) {
 			val = ttEntry.value
-			if val >= Mate-500 {
-				val -= height + 1
-			} else if val <= -Mate+500 {
-				val += height - 1
-			}
 			if ttEntry.flag == TransExact {
-				e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
+				if val >= Mate-500 {
+					val -= height
+				} else if val <= -Mate+500 {
+					val += height
+				}
+				if !hashMove.IsCapture() {
+					e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
+				}
 				return val
 			}
 			if ttEntry.flag == TransAlpha && ttEntry.value <= alpha {
@@ -225,7 +232,7 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 
 	evaled := pos.GenerateAllMoves(buffer[:])
 	var tmpVal int
-	e.EvaluateMoves(pos, evaled, hashMove)
+	e.EvaluateMoves(pos, evaled, hashMove, height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
@@ -246,7 +253,8 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 			alpha = tmpVal
 
 			if alpha >= beta {
-				e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move)
+				e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
+				e.TransTable.Set(depth+e.MovesCount, beta, TransBeta, pos.Key, evaled[i].Move, height)
 				return beta
 			}
 		}
@@ -255,19 +263,17 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	if moveCount == 0 {
 		countPositions++
 		if pos.IsInCheck() {
-			val = -Mate + height
-			e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
+			val = -Mate + height + e.MovesCount
 			return val
 		}
 		val = contempt(pos)
-		e.TransTable.Set(depth, val, TransExact, pos.Key, NullMove)
 		return val
 	}
 
 	if alpha == alphaOrig {
-		e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove)
+		e.TransTable.Set(depth+e.MovesCount, alpha, TransAlpha, pos.Key, bestMove, height)
 	} else {
-		e.TransTable.Set(depth, val, TransExact, pos.Key, bestMove)
+		e.TransTable.Set(depth+e.MovesCount, val, TransExact, pos.Key, bestMove, height)
 	}
 	return alpha
 }
@@ -316,7 +322,6 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultCh
 		sort.Sort(evaled)
 	}
 	var alpha = -MaxInt
-	var beta = MaxInt
 	countPositions = 0
 	if depth == 1 {
 		for i := range evaled {
@@ -332,19 +337,19 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultCh
 				bestMove = evaled[i].move
 			}
 		}
-		e.TransTable.Set(1, alpha, TransExact, pos.Key, bestMove)
+		e.TransTable.Set(e.MovesCount+1, alpha, TransExact, pos.Key, bestMove, 1)
 		resultChan <- result{bestMove, alpha > Mate-500}
 		return
 	}
 	for i := range evaled {
 		child = evaled[i].position
-		val := -e.alphaBeta(&child, depth-1, -beta, -alpha, 1, timedOut)
+		val := -e.alphaBeta(&child, depth-1, -MaxInt, -alpha, 1, timedOut)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].move
 		}
 	}
-	e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove)
+	e.TransTable.Set(depth+e.MovesCount, alpha, TransExact, pos.Key, bestMove, 0)
 	resultChan <- result{bestMove, alpha > Mate-500}
 }
 

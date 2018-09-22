@@ -31,9 +31,15 @@ func (t *TransTable) Get(key uint64) *TransEntry {
 	return &t.Entries[key&t.Mask]
 }
 
-func (t *TransTable) Set(depth, value, flag int, key uint64, bestMove backend.Move) {
+func (t *TransTable) Set(depth, value, flag int, key uint64, bestMove backend.Move, height int) {
 	var element = t.Get(key)
 	element.key = key
+	if value >= Mate-500 {
+		value -= height
+
+	} else if value <= -Mate+500 {
+		value += height
+	}
 	element.value = value
 	element.flag = int32(flag)
 	element.depth = int32(depth)

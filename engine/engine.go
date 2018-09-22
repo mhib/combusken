@@ -4,11 +4,15 @@ import "context"
 import "time"
 import "github.com/mhib/combusken/backend"
 
+const MAX_HEIGHT = 128
+
 type Engine struct {
 	done <-chan struct{}
 	TransTable
 	MoveHistory map[uint64]int
 	EvalHistory [64][64]int
+	MovesCount  int
+	KillerMoves [MAX_HEIGHT][2]backend.Move
 }
 
 type LimitsType struct {
@@ -40,7 +44,7 @@ func NewEngine() (ret Engine) {
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
-	e.cleanEvalHistory()
+	e.cleanBeforeSearch()
 	e.fillMoveHistory(searchParams.Positions)
 	if searchParams.Limits.MoveTime > 0 {
 		var cancel context.CancelFunc
@@ -56,7 +60,7 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	} else {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, 60*time.Second)
+		ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 		e.done = ctx.Done()
 		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
@@ -64,6 +68,7 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 }
 
 func (e *Engine) fillMoveHistory(positions []backend.Position) {
+	e.MovesCount = len(positions) - 1
 	e.MoveHistory = make(map[uint64]int)
 	for i := len(positions) - 1; i >= 0; i-- {
 		e.MoveHistory[positions[i].Key]++
@@ -73,10 +78,16 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 	}
 }
 
-func (e *Engine) cleanEvalHistory() {
+func (e *Engine) cleanBeforeSearch() {
+	e.TransTable.Clear()
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
 			e.EvalHistory[y][x] = 0
+		}
+	}
+	for y := 0; y < MAX_HEIGHT; y++ {
+		for x := 0; x < 2; x++ {
+			e.KillerMoves[y][x] = backend.NullMove
 		}
 	}
 }
