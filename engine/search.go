@@ -205,15 +205,17 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 			bestMove = evaled[i].Move
 		}
 		if tmpVal > alpha {
-			if !evaled[i].Move.IsCapture() {
-				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
-			}
 			alpha = tmpVal
-
 			if alpha >= beta {
-				e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
+				if !evaled[i].Move.IsCapture() {
+					e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
+				}
 				e.TransTable.Set(depth+e.MovesCount, beta, TransBeta, pos.Key, evaled[i].Move, height)
 				return beta
+			}
+
+			if !evaled[i].Move.IsCapture() {
+				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 			}
 		}
 	}
