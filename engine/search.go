@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"sort"
 
 	. "github.com/mhib/combusken/backend"
 )
@@ -11,38 +10,6 @@ const MaxUint = ^uint(0)
 const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const Mate = 1000000
-
-type EvaledPosition struct {
-	position Position
-	move     Move
-	value    int
-}
-
-type EvaledPositions []EvaledPosition
-
-func (s EvaledPositions) Len() int {
-	return len(s)
-}
-
-func (s EvaledPositions) Less(i, j int) bool {
-	return s[i].value > s[j].value
-}
-
-func (s EvaledPositions) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func generateAllLegalMoves(pos *Position) EvaledPositions {
-	var buffer [256]EvaledMove
-	var evaledPositions = EvaledPositions(make([]EvaledPosition, 0, 40))
-	var child Position
-	for _, move := range pos.GenerateAllMoves(buffer[:]) {
-		if pos.MakeMove(move.Move, &child) {
-			evaledPositions = append(evaledPositions, EvaledPosition{child, move.Move, -Evaluate(&child)})
-		}
-	}
-	return evaledPositions
-}
 
 func areAnyLegalMoves(pos *Position) bool {
 	var buffer [256]EvaledMove
@@ -151,16 +118,6 @@ func maxMoveToFirst(moves []EvaledMove) {
 	moves[0], moves[maxIdx] = moves[maxIdx], moves[0]
 }
 
-func maxToFirst(positions EvaledPositions) {
-	maxIdx := 0
-	for i := 1; i < len(positions); i++ {
-		if positions[i].value > positions[maxIdx].value {
-			maxIdx = i
-		}
-	}
-	positions[0], positions[maxIdx] = positions[maxIdx], positions[0]
-}
-
 // Evals that checks for mate
 func extensiveEval(pos *Position, evaledValue, height int) int {
 	if !areAnyLegalMoves(pos) {
@@ -192,23 +149,24 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	ttEntry := e.TransTable.Get(pos.Key)
 	if ttEntry.key == pos.Key {
 		hashMove = ttEntry.bestMove
+		val = ttEntry.value
+		if val >= Mate-500 {
+			val -= height
+		} else if val <= -Mate+500 {
+			val += height
+		}
 		if ttEntry.depth >= int32(depth+e.MovesCount) {
 			val = ttEntry.value
 			if ttEntry.flag == TransExact {
-				if val >= Mate-500 {
-					val -= height
-				} else if val <= -Mate+500 {
-					val += height
-				}
 				if !hashMove.IsCapture() {
 					e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
 				}
 				return val
 			}
-			if ttEntry.flag == TransAlpha && ttEntry.value <= alpha {
+			if ttEntry.flag == TransAlpha && val <= alpha {
 				return alpha
 			}
-			if ttEntry.flag == TransBeta && ttEntry.value >= beta {
+			if ttEntry.flag == TransBeta && val >= beta {
 				return beta
 			}
 		}
@@ -294,47 +252,34 @@ func (e *Engine) isDraw(pos *Position) bool {
 	return false
 }
 
-func moveToFirst(list []EvaledPosition, m Move) {
-	if m == 0 {
-		return
-	}
-	for i := range list {
-		if list[i].move == m {
-			list[i], list[0] = list[0], list[i]
-			return
-		}
-	}
-}
-
 type result struct {
 	Move
 	bool
 }
 
 func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultChan chan result, timedOut *bool) {
+	var buffer [256]EvaledMove
 	var child Position
-	var bestMove Move
-	evaled := generateAllLegalMoves(pos)
-	if lastBestMove != 0 {
-		moveToFirst(evaled, lastBestMove)
-		sort.Sort(evaled[1:])
-	} else {
-		sort.Sort(evaled)
-	}
+	var bestMove = NullMove
+	evaled := pos.GenerateAllMoves(buffer[:])
+	e.EvaluateMoves(pos, evaled, lastBestMove, 0)
 	var alpha = -MaxInt
 	countPositions = 0
 	if depth == 1 {
+		var val int
 		for i := range evaled {
-			child = evaled[i].position
-			var val int
+			maxMoveToFirst(evaled[i:])
+			if !pos.MakeMove(evaled[i].Move, &child) {
+				continue
+			}
 			if e.isDraw(&child) {
 				val = contempt(pos)
 			} else {
-				val = -extensiveEval(&child, -evaled[i].value, 1)
+				val = -extensiveEval(&child, Evaluate(&child), 1)
 			}
 			if val > alpha {
 				alpha = val
-				bestMove = evaled[i].move
+				bestMove = evaled[i].Move
 			}
 		}
 		e.TransTable.Set(e.MovesCount+1, alpha, TransExact, pos.Key, bestMove, 1)
@@ -342,11 +287,14 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultCh
 		return
 	}
 	for i := range evaled {
-		child = evaled[i].position
+		maxMoveToFirst(evaled[i:])
+		if !pos.MakeMove(evaled[i].Move, &child) {
+			continue
+		}
 		val := -e.alphaBeta(&child, depth-1, -MaxInt, -alpha, 1, timedOut)
 		if val > alpha {
 			alpha = val
-			bestMove = evaled[i].move
+			bestMove = evaled[i].Move
 		}
 	}
 	e.TransTable.Set(depth+e.MovesCount, alpha, TransExact, pos.Key, bestMove, 0)
@@ -369,9 +317,8 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 			}
 			if res.Move == 0 {
 				return lastBestMove
-			} else {
-				lastBestMove = res.Move
 			}
+			lastBestMove = res.Move
 			if i > 70 {
 				return res.Move
 			}
@@ -391,9 +338,8 @@ func (e *Engine) DepthSearch(pos *Position, depth int) Move {
 		}
 		if res.Move == 0 {
 			return lastBestMove
-		} else {
-			lastBestMove = res.Move
 		}
+		lastBestMove = res.Move
 		if i > 70 {
 			return res.Move
 		}
@@ -414,9 +360,8 @@ func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move
 		}
 		if res.Move == 0 {
 			return lastBestMove
-		} else {
-			lastBestMove = res.Move
 		}
+		lastBestMove = res.Move
 		if i > 70 || countPositions > count {
 			return lastBestMove
 		}

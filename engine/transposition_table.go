@@ -24,7 +24,7 @@ type TransTable struct {
 }
 
 func NewTransTable() TransTable {
-	return TransTable{make([]TransEntry, 1<<18), (1 << 18) - 1}
+	return TransTable{make([]TransEntry, 1<<19), (1 << 19) - 1}
 }
 
 func (t *TransTable) Get(key uint64) *TransEntry {
@@ -36,7 +36,6 @@ func (t *TransTable) Set(depth, value, flag int, key uint64, bestMove backend.Mo
 	element.key = key
 	if value >= Mate-500 {
 		value -= height
-
 	} else if value <= -Mate+500 {
 		value += height
 	}

@@ -79,7 +79,7 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 }
 
 func (e *Engine) cleanBeforeSearch() {
-	e.TransTable.Clear()
+	//e.TransTable.Clear()
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
 			e.EvalHistory[y][x] = 0
