@@ -42,9 +42,19 @@ func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move
 	}
 }
 
+func (e *Engine) EvaluateQsMoves(pos *Position, moves []EvaledMove) {
+	for i := range moves {
+		moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
+	}
+}
+
 func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bool) int {
 	if *timedOut {
 		return 0
+	}
+
+	if e.isDraw(pos) {
+		return contempt(pos)
 	}
 
 	var buffer [200]EvaledMove
@@ -66,7 +76,6 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bo
 		}
 		evaled := pos.GenerateAllMoves(buffer[:])
 		for i := range evaled {
-			maxMoveToFirst(evaled[i:])
 			if pos.MakeMove(evaled[i].Move, &child) {
 				val = -extensiveEval(&child, Evaluate(&child), height+1)
 			}
@@ -81,6 +90,7 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bo
 	}
 
 	evaled := pos.GenerateAllCaptures(buffer[:])
+	e.EvaluateQsMoves(pos, evaled)
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
