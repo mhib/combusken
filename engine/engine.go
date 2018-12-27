@@ -9,10 +9,11 @@ const MAX_HEIGHT = 128
 type Engine struct {
 	done <-chan struct{}
 	TransTable
-	MoveHistory map[uint64]int
-	EvalHistory [64][64]int
-	MovesCount  int
-	KillerMoves [MAX_HEIGHT][2]backend.Move
+	MoveHistory  map[uint64]int
+	EvalHistory  [64][64]int
+	MovesCount   int
+	KillerMoves  [MAX_HEIGHT][2]backend.Move
+	CounterMoves [64][64]backend.Move
 }
 
 type LimitsType struct {
@@ -88,6 +89,11 @@ func (e *Engine) cleanBeforeSearch() {
 	for y := 0; y < MAX_HEIGHT; y++ {
 		for x := 0; x < 2; x++ {
 			e.KillerMoves[y][x] = backend.NullMove
+		}
+	}
+	for y := 0; y < 64; y++ {
+		for x := 0; x < 64; x++ {
+			e.CounterMoves[y][x] = backend.NullMove
 		}
 	}
 }

@@ -24,7 +24,7 @@ type TransTable struct {
 }
 
 func NewTransTable() TransTable {
-	return TransTable{make([]TransEntry, 1<<19), (1 << 19) - 1}
+	return TransTable{make([]TransEntry, 1<<21), (1 << 21) - 1}
 }
 
 func (t *TransTable) Get(key uint64) *TransEntry {

@@ -23,18 +23,29 @@ func areAnyLegalMoves(pos *Position) bool {
 }
 
 func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height int) {
+	var counter Move
+	if pos.LastMove != NullMove {
+		counter = e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()]
+	}
 	for i := range moves {
 		if moves[i].Move == fromTrans {
 			moves[i].Value = 100000
 		} else if moves[i].Move.IsPromotion() {
 			moves[i].Value = 80000
 		} else if moves[i].Move.IsCapture() {
-			moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()] + 10000
+			diff := PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
+			if diff >= 0 {
+				moves[i].Value = 10000 + diff
+			} else {
+				moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
+			}
 		} else {
 			if moves[i].Move == e.KillerMoves[height][0] {
 				moves[i].Value = 9000
 			} else if moves[i].Move == e.KillerMoves[height][1] {
 				moves[i].Value = 8000
+			} else if moves[i].Move == counter {
+				moves[i].Value = 7999
 			} else {
 				moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
 			}
@@ -219,6 +230,9 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 			if alpha >= beta {
 				if !evaled[i].Move.IsCapture() {
 					e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
+					if pos.LastMove != NullMove {
+						e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
+					}
 				}
 				e.TransTable.Set(depth+e.MovesCount, beta, TransBeta, pos.Key, evaled[i].Move, height)
 				return beta
