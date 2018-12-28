@@ -10,6 +10,7 @@ const (
 )
 
 var PieceValues = []int{0, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, KingValue}
+var SEEValues = []int{0, 1, 3, 3, 5, 9, 20}
 
 type EvaledMove struct {
 	Move

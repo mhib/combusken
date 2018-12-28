@@ -31,14 +31,9 @@ func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move
 		if moves[i].Move == fromTrans {
 			moves[i].Value = 100000
 		} else if moves[i].Move.IsPromotion() {
-			moves[i].Value = 80000
+			moves[i].Value = 70000 + SEEValues[moves[i].Move.CapturedPiece()]
 		} else if moves[i].Move.IsCapture() {
-			diff := PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
-			if diff >= 0 {
-				moves[i].Value = 10000 + diff
-			} else {
-				moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
-			}
+			moves[i].Value = SEEValues[moves[i].Move.CapturedPiece()]*8 - SEEValues[moves[i].Move.MovedPiece()] + 10000
 		} else {
 			if moves[i].Move == e.KillerMoves[height][0] {
 				moves[i].Value = 9000

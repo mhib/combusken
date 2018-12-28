@@ -121,49 +121,6 @@ func isLateEndGame(pos *Position) bool {
 	}
 }
 
-func EvaluateMove(m Move, whiteMove, endGame bool) int {
-	if whiteMove {
-		switch m.MovedPiece() {
-		case Pawn:
-			return whitePawnsPos[(m.From())] - whitePawnsPos[(m.To())]
-		case Knight:
-			return whiteKnightsPos[(m.From())] - whiteKnightsPos[(m.To())]
-		case Bishop:
-			return whiteBishopsPos[(m.From())] - whiteBishopsPos[(m.To())]
-		case Rook:
-			return whiteRooksPos[(m.From())] - whiteRooksPos[(m.To())]
-		case Queen:
-			return whiteQueensPos[(m.From())] - whiteQueensPos[(m.To())]
-		case King:
-			if endGame {
-				return whiteKingEndGamePos[(m.From())] - whiteKingEndGamePos[(m.To())]
-			} else {
-				return whiteKingMiddleGamePos[(m.From())] - whiteKingMiddleGamePos[(m.To())]
-			}
-		}
-	} else {
-		switch m.MovedPiece() {
-		case Pawn:
-			return blackPawnsPos[(m.From())] - blackPawnsPos[(m.To())]
-		case Knight:
-			return blackKnightsPos[(m.From())] - blackKnightsPos[(m.To())]
-		case Bishop:
-			return blackBishopsPos[(m.From())] - blackBishopsPos[(m.To())]
-		case Rook:
-			return blackRooksPos[(m.From())] - blackRooksPos[(m.To())]
-		case Queen:
-			return blackQueensPos[(m.From())] - blackQueensPos[(m.To())]
-		case King:
-			if endGame {
-				return blackKingEndGamePos[(m.From())] - blackKingEndGamePos[(m.To())]
-			} else {
-				return blackKingMiddleGamePos[(m.From())] - blackKingMiddleGamePos[(m.To())]
-			}
-		}
-	}
-	return 0
-}
-
 func Evaluate(pos *Position) int {
 	var result = 0
 	var fromId int
