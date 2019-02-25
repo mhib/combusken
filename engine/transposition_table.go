@@ -35,9 +35,9 @@ func (t *TransTable) Set(depth, value, flag int, key uint64, bestMove backend.Mo
 	var element = t.Get(key)
 	element.key = key
 	if value >= Mate-500 {
-		value -= height
-	} else if value <= -Mate+500 {
 		value += height
+	} else if value <= -Mate+500 {
+		value -= height
 	}
 	element.value = value
 	element.flag = int32(flag)
@@ -49,4 +49,16 @@ func (t *TransTable) Clear() {
 	for i := range t.Entries {
 		t.Entries[i] = TransEntry{}
 	}
+}
+
+func valueFromTrans(value, height int) int {
+	if value >= Mate-500 {
+		return value - height
+
+	}
+	if value <= -Mate+500 {
+		return value + height
+	}
+
+	return value
 }
