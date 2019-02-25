@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/mhib/combusken/backend"
 )
@@ -27,7 +26,6 @@ func depthToMate(val int) int {
 	if val <= -Mate+500 {
 		return val - Mate
 	}
-	fmt.Println(Mate - val)
 	return Mate - val
 }
 
@@ -255,7 +253,7 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	if alpha == alphaOrig {
 		e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove, height)
 	} else {
-		e.TransTable.Set(depth, val, TransExact, pos.Key, bestMove, height)
+		e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, height)
 	}
 	return alpha
 }
@@ -322,7 +320,6 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultCh
 		}
 	}
 	e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, 0)
-	fmt.Println(alpha)
 	resultChan <- result{bestMove, alpha}
 }
 
