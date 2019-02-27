@@ -334,6 +334,7 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 			timedOut = true
 			return lastBestMove
 		case res := <-resultChan:
+			e.callUpdate(SearchInfo{res.int, i})
 			if res.int > Mate-500 && depthToMate(res.int) <= i {
 				return res.Move
 			}
@@ -355,6 +356,7 @@ func (e *Engine) DepthSearch(pos *Position, depth int) Move {
 		resultChan := make(chan result, 1)
 		go e.depSearch(pos, i, lastBestMove, resultChan, &timedOut)
 		res := <-resultChan
+		e.callUpdate(SearchInfo{res.int, i})
 		if res.int > Mate-500 && depthToMate(res.int) <= i {
 			return res.Move
 		}
@@ -377,6 +379,7 @@ func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move
 		resultChan := make(chan result, 1)
 		go e.depSearch(pos, i, lastBestMove, resultChan, &timedOut)
 		res := <-resultChan
+		e.callUpdate(SearchInfo{res.int, i})
 		if res.int > Mate-500 && depthToMate(res.int) <= i {
 			return res.Move
 		}

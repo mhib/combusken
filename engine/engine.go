@@ -14,6 +14,12 @@ type Engine struct {
 	MovesCount   int
 	KillerMoves  [MAX_HEIGHT][2]backend.Move
 	CounterMoves [64][64]backend.Move
+	Update       func(SearchInfo)
+}
+
+type SearchInfo struct {
+	Score int
+	Depth int
 }
 
 type LimitsType struct {
@@ -95,5 +101,11 @@ func (e *Engine) cleanBeforeSearch() {
 		for x := 0; x < 64; x++ {
 			e.CounterMoves[y][x] = backend.NullMove
 		}
+	}
+}
+
+func (e *Engine) callUpdate(s SearchInfo) {
+	if e.Update != nil {
+		e.Update(s)
 	}
 }

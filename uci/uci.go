@@ -25,6 +25,7 @@ type UciProtocol struct {
 
 func NewUciProtocol(e Engine) *UciProtocol {
 	var initPosition = backend.InitialPosition
+	e.Update = updateUci
 	var uci = &UciProtocol{
 		messages:  make(chan interface{}),
 		engine:    e,
@@ -226,6 +227,10 @@ func (uci *UciProtocol) stopCommand() {
 type Uci struct {
 	engine Engine
 	cancel context.CancelFunc
+}
+
+func updateUci(s SearchInfo) {
+	fmt.Printf("info depth %d score cp %d\n", s.Depth, s.Score)
 }
 
 func (u *Uci) uciCommand() {
