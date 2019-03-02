@@ -168,38 +168,38 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	}
 
 	val = MinInt
+	var tmpVal int
 
 	var alphaOrig = alpha
 	hashMove := NullMove
 	ttEntry := e.TransTable.Get(pos.Key)
 	if ttEntry.key == pos.Key {
 		hashMove = ttEntry.bestMove
-		val = valueFromTrans(ttEntry.value, height)
+		tmpVal = valueFromTrans(ttEntry.value, height)
 		if ttEntry.depth >= int32(depth) {
 			if ttEntry.flag == TransExact {
 				if !hashMove.IsCapture() {
 					e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
 				}
-				return val
+				return tmpVal
 			}
-			if ttEntry.flag == TransAlpha && val <= alpha {
+			if ttEntry.flag == TransAlpha && tmpVal <= alpha {
 				return alpha
 			}
-			if ttEntry.flag == TransBeta && val >= beta {
+			if ttEntry.flag == TransBeta && tmpVal >= beta {
 				return beta
 			}
 		}
 	}
 
 	if depth == 0 {
-		val = e.quiescence(pos, alpha, beta, height, timedOut)
-		return val
+		return e.quiescence(pos, alpha, beta, height, timedOut)
 	}
 
 	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
 		pos.MakeNullMove(&child)
-		val = -e.alphaBeta(&child, depth-3, -beta, -beta+1, height+1, timedOut)
-		if val >= beta {
+		tmpVal = -e.alphaBeta(&child, depth-3, -beta, -beta+1, height+1, timedOut)
+		if tmpVal >= beta {
 			return beta
 		}
 	}
@@ -207,7 +207,6 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	var buffer [256]EvaledMove
 
 	evaled := pos.GenerateAllMoves(buffer[:])
-	var tmpVal int
 	e.EvaluateMoves(pos, evaled, hashMove, height)
 	bestMove := NullMove
 	moveCount := 0
@@ -222,24 +221,24 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		if tmpVal > val {
 			val = tmpVal
 			bestMove = evaled[i].Move
-		}
+			if val > alpha {
+				alpha = val
 
-		if tmpVal > alpha {
-			alpha = tmpVal
-
-			// Maybe move this out of loop?
-			if !evaled[i].Move.IsCapture() {
-				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
-			}
-
-			if alpha >= beta {
-				if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
-					e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
-					e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
+				// Maybe move this out of loop?
+				if !evaled[i].Move.IsCapture() {
+					e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 				}
-				e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move, height)
-				return beta
+
+				if alpha >= beta {
+					if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
+						e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
+						e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
+					}
+					e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move, height)
+					return beta
+				}
 			}
+
 		}
 	}
 
