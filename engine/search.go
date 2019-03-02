@@ -101,7 +101,7 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bo
 				}
 			}
 		}
-		return val
+		return alpha
 	}
 
 	evaled := pos.GenerateAllCaptures(buffer[:])
