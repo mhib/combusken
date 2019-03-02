@@ -15,6 +15,7 @@ type Engine struct {
 	KillerMoves  [MAX_HEIGHT][2]backend.Move
 	CounterMoves [64][64]backend.Move
 	Update       func(SearchInfo)
+	Nodes        int
 }
 
 type SearchInfo struct {

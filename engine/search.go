@@ -66,6 +66,8 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bo
 		return 0
 	}
 
+	e.Nodes++
+
 	if e.isDraw(pos) {
 		return contempt(pos)
 	}
@@ -152,14 +154,14 @@ func extensiveEval(pos *Position, evaledValue, height int) int {
 	return evaledValue
 }
 
-var countPositions int
-
 func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedOut *bool) int {
 	var child Position
 	var val int
 	if *timedOut {
 		return 0
 	}
+
+	e.Nodes++
 
 	if e.isDraw(pos) {
 		return contempt(pos)
@@ -190,7 +192,6 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	}
 
 	if depth == 0 {
-		countPositions++
 		val = e.quiescence(pos, alpha, beta, height, timedOut)
 		return val
 	}
@@ -217,31 +218,32 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		}
 		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, height+1, timedOut)
 		moveCount++
+
 		if tmpVal > val {
 			val = tmpVal
 			bestMove = evaled[i].Move
 		}
+
 		if tmpVal > alpha {
 			alpha = tmpVal
+
+			// Maybe move this out of loop?
+			if !evaled[i].Move.IsCapture() {
+				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
+			}
+
 			if alpha >= beta {
-				if !evaled[i].Move.IsCapture() {
+				if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
 					e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
-					if pos.LastMove != NullMove {
-						e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
-					}
+					e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
 				}
 				e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move, height)
 				return beta
-			}
-
-			if !evaled[i].Move.IsCapture() {
-				e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 			}
 		}
 	}
 
 	if moveCount == 0 {
-		countPositions++
 		if pos.IsInCheck() {
 			val = -Mate + height
 			return val
@@ -280,13 +282,13 @@ type result struct {
 }
 
 func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultChan chan result, timedOut *bool) {
+	e.Nodes = 0
 	var buffer [256]EvaledMove
 	var child Position
 	var bestMove = NullMove
 	evaled := pos.GenerateAllMoves(buffer[:])
 	e.EvaluateMoves(pos, evaled, lastBestMove, 0)
 	var alpha = -MaxInt
-	countPositions = 0
 	if depth == 1 {
 		var val int
 		for i := range evaled {
@@ -375,7 +377,6 @@ func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move
 	timedOut := false
 	var lastBestMove Move
 	for i := 1; ; i++ {
-		countPositions = 0
 		resultChan := make(chan result, 1)
 		go e.depSearch(pos, i, lastBestMove, resultChan, &timedOut)
 		res := <-resultChan
@@ -387,7 +388,7 @@ func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move
 			return lastBestMove
 		}
 		lastBestMove = res.Move
-		if i > 70 || countPositions > count {
+		if i > 70 || e.Nodes >= count {
 			return lastBestMove
 		}
 	}
