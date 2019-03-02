@@ -156,7 +156,6 @@ func extensiveEval(pos *Position, evaledValue, height int) int {
 
 func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedOut *bool) int {
 	var child Position
-	var val int
 	if *timedOut {
 		return 0
 	}
@@ -167,7 +166,6 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		return contempt(pos)
 	}
 
-	val = MinInt
 	var tmpVal int
 
 	var alphaOrig = alpha
@@ -206,6 +204,8 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 
 	var buffer [256]EvaledMove
 
+	var val = MinInt
+
 	evaled := pos.GenerateAllMoves(buffer[:])
 	e.EvaluateMoves(pos, evaled, hashMove, height)
 	bestMove := NullMove
@@ -222,6 +222,9 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 			val = tmpVal
 			bestMove = evaled[i].Move
 			if val > alpha {
+				if *timedOut {
+					return 0
+				}
 				alpha = val
 
 				// Maybe move this out of loop?
@@ -251,10 +254,12 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		return val
 	}
 
-	if alpha == alphaOrig {
-		e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove, height)
-	} else {
-		e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, height)
+	if !*timedOut {
+		if alpha == alphaOrig {
+			e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove, height)
+		} else {
+			e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, height)
+		}
 	}
 	return alpha
 }
