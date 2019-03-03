@@ -2,12 +2,16 @@ package engine
 
 import "context"
 import "time"
+import "errors"
 import "github.com/mhib/combusken/backend"
 
 const MAX_HEIGHT = 128
 
+var errTimeout = errors.New("Search timeout")
+
 type Engine struct {
-	done <-chan struct{}
+	done     <-chan struct{}
+	timedOut chan bool
 	TransTable
 	MoveHistory  map[uint64]int
 	EvalHistory  [64][64]int
@@ -53,6 +57,7 @@ func NewEngine() (ret Engine) {
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
 	e.cleanBeforeSearch()
+	e.timedOut = make(chan bool)
 	e.fillMoveHistory(searchParams.Positions)
 	if searchParams.Limits.MoveTime > 0 {
 		var cancel context.CancelFunc
@@ -108,5 +113,16 @@ func (e *Engine) cleanBeforeSearch() {
 func (e *Engine) callUpdate(s SearchInfo) {
 	if e.Update != nil {
 		e.Update(s)
+	}
+}
+
+func (e *Engine) incNodes() {
+	e.Nodes++
+	if (e.Nodes % 255) == 0 {
+		select {
+		case <-e.timedOut:
+			panic(errTimeout)
+		default:
+		}
 	}
 }

@@ -61,12 +61,8 @@ func (e *Engine) EvaluateQsMoves(pos *Position, moves []EvaledMove) {
 	}
 }
 
-func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bool) int {
-	if *timedOut {
-		return 0
-	}
-
-	e.Nodes++
+func (e *Engine) quiescence(pos *Position, alpha, beta, height int) int {
+	e.incNodes()
 
 	if e.isDraw(pos) {
 		return contempt(pos)
@@ -113,7 +109,7 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int, timedOut *bo
 			continue
 		}
 		moveCount++
-		val = -e.quiescence(&child, -beta, -alpha, height+1, timedOut)
+		val = -e.quiescence(&child, -beta, -alpha, height+1)
 		if val > alpha {
 			alpha = val
 			if val >= beta {
@@ -154,13 +150,9 @@ func extensiveEval(pos *Position, evaledValue, height int) int {
 	return evaledValue
 }
 
-func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedOut *bool) int {
+func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int) int {
 	var child Position
-	if *timedOut {
-		return 0
-	}
-
-	e.Nodes++
+	e.incNodes()
 
 	if e.isDraw(pos) {
 		return contempt(pos)
@@ -191,12 +183,12 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 	}
 
 	if depth == 0 {
-		return e.quiescence(pos, alpha, beta, height, timedOut)
+		return e.quiescence(pos, alpha, beta, height)
 	}
 
 	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
 		pos.MakeNullMove(&child)
-		tmpVal = -e.alphaBeta(&child, depth-3, -beta, -beta+1, height+1, timedOut)
+		tmpVal = -e.alphaBeta(&child, depth-3, -beta, -beta+1, height+1)
 		if tmpVal >= beta {
 			return beta
 		}
@@ -215,16 +207,13 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		if !pos.MakeMove(evaled[i].Move, &child) {
 			continue
 		}
-		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, height+1, timedOut)
+		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, height+1)
 		moveCount++
 
 		if tmpVal > val {
 			val = tmpVal
 			bestMove = evaled[i].Move
 			if val > alpha {
-				if *timedOut {
-					return 0
-				}
 				alpha = val
 
 				// Maybe move this out of loop?
@@ -254,12 +243,10 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int, timedO
 		return val
 	}
 
-	if !*timedOut {
-		if alpha == alphaOrig {
-			e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove, height)
-		} else {
-			e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, height)
-		}
+	if alpha == alphaOrig {
+		e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove, height)
+	} else {
+		e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, height)
 	}
 	return alpha
 }
@@ -285,7 +272,8 @@ type result struct {
 	int
 }
 
-func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultChan chan result, timedOut *bool) {
+func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultChan chan result) {
+	defer recoverFromTimeout()
 	e.Nodes = 0
 	var buffer [256]EvaledMove
 	var child Position
@@ -319,7 +307,7 @@ func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultCh
 		if !pos.MakeMove(evaled[i].Move, &child) {
 			continue
 		}
-		val := -e.alphaBeta(&child, depth-1, -MaxInt, -alpha, 1, timedOut)
+		val := -e.alphaBeta(&child, depth-1, -MaxInt, -alpha, 1)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].Move
@@ -333,11 +321,10 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		timedOut := false
-		go e.depSearch(pos, i, lastBestMove, resultChan, &timedOut)
+		go e.depSearch(pos, i, lastBestMove, resultChan)
 		select {
 		case <-ctx.Done():
-			timedOut = true
+			e.timedOut <- true
 			return lastBestMove
 		case res := <-resultChan:
 			e.callUpdate(SearchInfo{res.int, i})
@@ -356,33 +343,18 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 }
 
 func (e *Engine) DepthSearch(pos *Position, depth int) Move {
-	timedOut := false
-	var lastBestMove Move
-	for i := 1; i < depth; i++ {
-		resultChan := make(chan result, 1)
-		go e.depSearch(pos, i, lastBestMove, resultChan, &timedOut)
-		res := <-resultChan
-		e.callUpdate(SearchInfo{res.int, i})
-		if res.int > Mate-500 && depthToMate(res.int) <= i {
-			return res.Move
-		}
-		if res.Move == 0 {
-			return lastBestMove
-		}
-		lastBestMove = res.Move
-		if i > 70 {
-			return res.Move
-		}
-	}
-	return lastBestMove
+	resultChan := make(chan result, 1)
+	go e.depSearch(pos, depth, NullMove, resultChan)
+	res := <-resultChan
+	e.callUpdate(SearchInfo{res.int, depth})
+	return res.Move
 }
 
 func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move {
-	timedOut := false
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		go e.depSearch(pos, i, lastBestMove, resultChan, &timedOut)
+		go e.depSearch(pos, i, lastBestMove, resultChan)
 		res := <-resultChan
 		e.callUpdate(SearchInfo{res.int, i})
 		if res.int > Mate-500 && depthToMate(res.int) <= i {
@@ -395,5 +367,12 @@ func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move
 		if i > 70 || e.Nodes >= count {
 			return lastBestMove
 		}
+	}
+}
+
+func recoverFromTimeout() {
+	var err = recover()
+	if err != nil && err != errTimeout {
+		panic(err)
 	}
 }
