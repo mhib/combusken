@@ -230,13 +230,14 @@ type Uci struct {
 }
 
 func updateUci(s SearchInfo) {
-	fmt.Printf("info depth %d nodes %d score cp %d pv ", s.Depth, s.Nodes, s.Score)
 	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("info depth %d nodes %d score cp %d pv ", s.Depth, s.Nodes, s.Score))
 	for _, move := range s.PV.Moves() {
 		sb.WriteString(move.String())
 		sb.WriteString(" ")
 	}
-	fmt.Printf("%s\n", sb.String())
+	sb.WriteString("\n")
+	fmt.Print(sb.String())
 }
 
 func (u *Uci) uciCommand() {
