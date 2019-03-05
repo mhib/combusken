@@ -18,8 +18,8 @@ const (
 )
 
 var (
-	rookMoveBoard                      [64][1 << 12]uint64
-	bishopMoveBoard                    [64][1 << 9]uint64
+	rookMoveBoard                      [64][1 << MAX_ROOK_BITS]uint64
+	bishopMoveBoard                    [64][1 << MAX_BISHOP_BITS]uint64
 	bishopBlockerMask, rookBlockerMask [64]uint64
 	rookMagicIndex, bishopMagicIndex   [64]uint64
 )
@@ -76,11 +76,11 @@ func combinations(x uint64) []uint64 {
 	if x == 0 {
 		return []uint64{0}
 	}
-	right_hand_bit := x & -x
-	tmp := combinations(x & ^right_hand_bit)
+	rightHandBit := x & -x
+	tmp := combinations(x & ^rightHandBit)
 	res := append([]uint64{}, tmp...)
 	for _, el := range tmp {
-		res = append(res, el|right_hand_bit)
+		res = append(res, el|rightHandBit)
 	}
 	return res
 }
@@ -206,7 +206,7 @@ func initBishopMoveBoard(bishopBlockerBoard [][]uint64) {
 
 func initRookMagicIndex(rookBlockerBoard [][]uint64) {
 	var wg sync.WaitGroup
-	for idx, _ := range rookBlockerMask {
+	for idx := range rookBlockerMask {
 		wg.Add(1)
 		go func(i int) {
 			val := findMagic(rookBlockerBoard[i], rookMoveBoard[i][:], rookShift)
@@ -219,7 +219,7 @@ func initRookMagicIndex(rookBlockerBoard [][]uint64) {
 
 func initBishopMagicIndex(bishopBlockerBoard [][]uint64) {
 	var wg sync.WaitGroup
-	for idx, _ := range bishopBlockerMask {
+	for idx := range bishopBlockerMask {
 		wg.Add(1)
 		go func(i int) {
 			bishopMagicIndex[i] = findMagic(bishopBlockerBoard[i], bishopMoveBoard[i][:], bishopShift)
@@ -228,6 +228,7 @@ func initBishopMagicIndex(bishopBlockerBoard [][]uint64) {
 	}
 	wg.Wait()
 }
+
 func u64rand() uint64 {
 	return (uint64(0xFFFF&rand.Uint32()) << 48) |
 		(uint64(0xFFFF&rand.Uint32()) << 32) |

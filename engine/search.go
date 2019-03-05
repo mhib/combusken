@@ -16,16 +16,6 @@ func lossIn(height int) int {
 	return -Mate + height
 }
 
-func areAnyLegalMoves(pos *Position, moves []EvaledMove) bool {
-	var child Position
-	for _, move := range moves {
-		if pos.MakeMove(move.Move, &child) {
-			return true
-		}
-	}
-	return false
-}
-
 func depthToMate(val int) int {
 	if val >= ValueWin {
 		return Mate - val
@@ -140,7 +130,7 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 
 	var tmpVal int
 
-	var alphaOrig = alpha
+	alphaOrig := alpha
 	hashMove := NullMove
 	ttEntry := e.TransTable.Get(pos.Key)
 	if ttEntry.key == pos.Key {
@@ -176,7 +166,7 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 		}
 	}
 
-	var val = MinInt
+	val := MinInt
 
 	evaled := pos.GenerateAllMoves(e.Stack[height].moves[:])
 	e.EvaluateMoves(evaled, hashMove, height)
@@ -196,7 +186,6 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 			if val > alpha {
 				alpha = val
 
-				// Maybe move this out of loop?
 				if !evaled[i].Move.IsCapture() {
 					e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 				}
@@ -240,11 +229,11 @@ func (e *Engine) isDraw(height int) bool {
 	}
 
 	for i := height - 1; i >= 0; i-- {
-		desc := &e.Stack[i].position
-		if desc.Key == pos.Key {
+		descendant := &e.Stack[i].position
+		if descendant.Key == pos.Key {
 			return true
 		}
-		if desc.FiftyMove == 0 || desc.LastMove == NullMove {
+		if descendant.FiftyMove == 0 || descendant.LastMove == NullMove {
 			return false
 		}
 	}
@@ -262,47 +251,34 @@ type result struct {
 }
 
 func (e *Engine) depSearch(depth int, lastBestMove Move, resultChan chan result) {
-	var pos = &e.Stack[0].position
 	defer recoverFromTimeout()
-	e.Nodes = 0
-	var child = &e.Stack[1].position
-	var bestMove = NullMove
+	var pos *Position = &e.Stack[0].position
+	e.Nodes = 1
+	var child *Position = &e.Stack[1].position
+	var bestMove Move = NullMove
 	evaled := pos.GenerateAllMoves(e.Stack[0].moves[:])
 	e.EvaluateMoves(evaled, lastBestMove, 0)
-	var alpha = -MaxInt
-	if depth == 1 {
-		e.Stack[0].PV.clear()
-		var val int
-		for i := range evaled {
-			maxMoveToFirst(evaled[i:])
-			if !pos.MakeMove(evaled[i].Move, child) {
-				continue
-			}
-			if e.isDraw(1) {
-				val = contempt(pos)
-			} else {
-				val = -Evaluate(child)
-			}
-			if val > alpha {
-				alpha = val
-				bestMove = evaled[i].Move
-			}
-		}
-		e.Stack[0].PV.assign(bestMove, &e.Stack[1].PV)
-		e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, 1)
-		resultChan <- result{bestMove, alpha}
-		return
-	}
+	alpha := -MaxInt
+	moveCount := 0
+	e.Stack[0].PV.clear()
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
+		moveCount++
 		val := -e.alphaBeta(depth-1, -MaxInt, -alpha, 1)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].Move
 			e.Stack[0].PV.assign(evaled[i].Move, &e.Stack[1].PV)
+		}
+	}
+	if moveCount == 0 {
+		if pos.IsInCheck() {
+			alpha = lossIn(0)
+		} else {
+			alpha = contempt(pos)
 		}
 	}
 	e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, 0)
