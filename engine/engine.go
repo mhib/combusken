@@ -5,7 +5,8 @@ import "time"
 import "errors"
 import "github.com/mhib/combusken/backend"
 
-const MAX_HEIGHT = 128
+const MAX_HEIGHT = 127
+const STACK_SIZE = MAX_HEIGHT + 1
 
 var errTimeout = errors.New("Search timeout")
 
@@ -16,15 +17,29 @@ type Engine struct {
 	MoveHistory  map[uint64]int
 	EvalHistory  [64][64]int
 	MovesCount   int
-	KillerMoves  [MAX_HEIGHT][2]backend.Move
+	KillerMoves  [STACK_SIZE][2]backend.Move
 	CounterMoves [64][64]backend.Move
 	Update       func(SearchInfo)
 	Nodes        int
+	Stack        [STACK_SIZE]StackEntry
 }
 
 type SearchInfo struct {
 	Score int
 	Depth int
+	Nodes int
+	PV
+}
+
+type StackEntry struct {
+	position backend.Position
+	PV
+	moves [256]backend.EvaledMove
+}
+
+type PV struct {
+	size  int
+	items [STACK_SIZE]backend.Move
 }
 
 type LimitsType struct {
@@ -57,7 +72,7 @@ func NewEngine() (ret Engine) {
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
 	e.cleanBeforeSearch()
-	e.timedOut = make(chan bool)
+	e.timedOut = make(chan bool, 1)
 	e.fillMoveHistory(searchParams.Positions)
 	if searchParams.Limits.MoveTime > 0 {
 		var cancel context.CancelFunc
@@ -125,4 +140,18 @@ func (e *Engine) incNodes() {
 		default:
 		}
 	}
+}
+
+func (pv *PV) clear() {
+	pv.size = 0
+}
+
+func (pv *PV) assign(m backend.Move, child *PV) {
+	pv.size = 1 + child.size
+	pv.items[0] = m
+	copy(pv.items[1:], child.Moves())
+}
+
+func (pv *PV) Moves() []backend.Move {
+	return pv.items[:pv.size]
 }

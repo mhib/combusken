@@ -10,11 +10,15 @@ const MaxUint = ^uint(0)
 const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const Mate = 1000000
+const ValueWin = Mate - 150
 
-func areAnyLegalMoves(pos *Position) bool {
-	var buffer [256]EvaledMove
+func lossIn(height int) int {
+	return -Mate + height
+}
+
+func areAnyLegalMoves(pos *Position, moves []EvaledMove) bool {
 	var child Position
-	for _, move := range pos.GenerateAllMoves(buffer[:]) {
+	for _, move := range moves {
 		if pos.MakeMove(move.Move, &child) {
 			return true
 		}
@@ -23,13 +27,14 @@ func areAnyLegalMoves(pos *Position) bool {
 }
 
 func depthToMate(val int) int {
-	if val <= -Mate+500 {
-		return val - Mate
+	if val >= ValueWin {
+		return Mate - val
 	}
-	return Mate - val
+	return val - Mate
 }
 
-func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height int) {
+func (e *Engine) EvaluateMoves(moves []EvaledMove, fromTrans Move, height int) {
+	var pos *Position = &e.Stack[height].position
 	var counter Move
 	if pos.LastMove != NullMove {
 		counter = e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()]
@@ -55,21 +60,26 @@ func (e *Engine) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move
 	}
 }
 
-func (e *Engine) EvaluateQsMoves(pos *Position, moves []EvaledMove) {
+func (e *Engine) EvaluateQsMoves(moves []EvaledMove) {
 	for i := range moves {
 		moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
 	}
 }
 
-func (e *Engine) quiescence(pos *Position, alpha, beta, height int) int {
+func (e *Engine) quiescence(alpha, beta, height int) int {
 	e.incNodes()
+	e.Stack[height].PV.clear()
+	var pos = &e.Stack[height].position
 
-	if e.isDraw(pos) {
+	if height >= MAX_HEIGHT {
 		return contempt(pos)
 	}
+	var val int
 
-	var buffer [200]EvaledMove
-	val := extensiveEval(pos, Evaluate(pos), height)
+	var child = &e.Stack[height+1].position
+	var moveCount = 0
+
+	val = Evaluate(pos)
 
 	if val >= beta {
 		return beta
@@ -78,43 +88,22 @@ func (e *Engine) quiescence(pos *Position, alpha, beta, height int) int {
 		alpha = val
 	}
 
-	var child Position
-	var moveCount = 0
-
-	if pos.IsInCheck() {
-		if val <= -Mate+500 {
-			return val
-		}
-		evaled := pos.GenerateAllMoves(buffer[:])
-		for i := range evaled {
-			if pos.MakeMove(evaled[i].Move, &child) {
-				val = -extensiveEval(&child, Evaluate(&child), height+1)
-			}
-			if val > alpha {
-				alpha = val
-				if alpha >= beta {
-					return beta
-				}
-			}
-		}
-		return alpha
-	}
-
-	evaled := pos.GenerateAllCaptures(buffer[:])
-	e.EvaluateQsMoves(pos, evaled)
+	evaled := pos.GenerateAllCaptures(e.Stack[height].moves[:])
+	e.EvaluateQsMoves(evaled)
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
-		if !pos.MakeMove(evaled[i].Move, &child) {
+		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
 		moveCount++
-		val = -e.quiescence(&child, -beta, -alpha, height+1)
+		val = -e.quiescence(-beta, -alpha, height+1)
 		if val > alpha {
 			alpha = val
 			if val >= beta {
 				return beta
 			}
+			e.Stack[height].PV.assign(evaled[i].Move, &e.Stack[height+1].PV)
 		}
 	}
 
@@ -139,22 +128,13 @@ func maxMoveToFirst(moves []EvaledMove) {
 	moves[0], moves[maxIdx] = moves[maxIdx], moves[0]
 }
 
-// Evals that checks for mate
-func extensiveEval(pos *Position, evaledValue, height int) int {
-	if !areAnyLegalMoves(pos) {
-		if pos.IsInCheck() {
-			return -Mate + height
-		}
-		return contempt(pos)
-	}
-	return evaledValue
-}
-
-func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int) int {
-	var child Position
+func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 	e.incNodes()
+	e.Stack[height].PV.clear()
 
-	if e.isDraw(pos) {
+	var pos = &e.Stack[height].position
+
+	if e.isDraw(height) {
 		return contempt(pos)
 	}
 
@@ -183,31 +163,31 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int) int {
 	}
 
 	if depth == 0 {
-		return e.quiescence(pos, alpha, beta, height)
+		return e.quiescence(alpha, beta, height)
 	}
 
+	var child = &e.Stack[height+1].position
+
 	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
-		pos.MakeNullMove(&child)
-		tmpVal = -e.alphaBeta(&child, depth-3, -beta, -beta+1, height+1)
+		pos.MakeNullMove(child)
+		tmpVal = -e.alphaBeta(depth-3, -beta, -beta+1, height+1)
 		if tmpVal >= beta {
 			return beta
 		}
 	}
 
-	var buffer [256]EvaledMove
-
 	var val = MinInt
 
-	evaled := pos.GenerateAllMoves(buffer[:])
-	e.EvaluateMoves(pos, evaled, hashMove, height)
+	evaled := pos.GenerateAllMoves(e.Stack[height].moves[:])
+	e.EvaluateMoves(evaled, hashMove, height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
-		if !pos.MakeMove(evaled[i].Move, &child) {
+		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
-		tmpVal = -e.alphaBeta(&child, depth-1, -beta, -alpha, height+1)
+		tmpVal = -e.alphaBeta(depth-1, -beta, -alpha, height+1)
 		moveCount++
 
 		if tmpVal > val {
@@ -230,17 +210,15 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int) int {
 					return beta
 				}
 			}
-
+			e.Stack[height].PV.assign(evaled[i].Move, &e.Stack[height+1].PV)
 		}
 	}
 
 	if moveCount == 0 {
 		if pos.IsInCheck() {
-			val = -Mate + height
-			return val
+			return lossIn(height)
 		}
-		val = contempt(pos)
-		return val
+		return contempt(pos)
 	}
 
 	if alpha == alphaOrig {
@@ -251,13 +229,24 @@ func (e *Engine) alphaBeta(pos *Position, depth, alpha, beta, height int) int {
 	return alpha
 }
 
-func (e *Engine) isDraw(pos *Position) bool {
+func (e *Engine) isDraw(height int) bool {
+	var pos *Position = &e.Stack[height].position
 	if pos.FiftyMove > 100 {
 		return true
 	}
 
 	if (pos.Pawns|pos.Rooks|pos.Queens) == 0 && !MoreThanOne(pos.Knights|pos.Bishops) {
 		return true
+	}
+
+	for i := height - 1; i >= 0; i-- {
+		desc := &e.Stack[i].position
+		if desc.Key == pos.Key {
+			return true
+		}
+		if desc.FiftyMove == 0 || desc.LastMove == NullMove {
+			return false
+		}
 	}
 
 	if e.MoveHistory[pos.Key] >= 2 {
@@ -272,45 +261,48 @@ type result struct {
 	int
 }
 
-func (e *Engine) depSearch(pos *Position, depth int, lastBestMove Move, resultChan chan result) {
+func (e *Engine) depSearch(depth int, lastBestMove Move, resultChan chan result) {
+	var pos = &e.Stack[0].position
 	defer recoverFromTimeout()
 	e.Nodes = 0
-	var buffer [256]EvaledMove
-	var child Position
+	var child = &e.Stack[1].position
 	var bestMove = NullMove
-	evaled := pos.GenerateAllMoves(buffer[:])
-	e.EvaluateMoves(pos, evaled, lastBestMove, 0)
+	evaled := pos.GenerateAllMoves(e.Stack[0].moves[:])
+	e.EvaluateMoves(evaled, lastBestMove, 0)
 	var alpha = -MaxInt
 	if depth == 1 {
+		e.Stack[0].PV.clear()
 		var val int
 		for i := range evaled {
 			maxMoveToFirst(evaled[i:])
-			if !pos.MakeMove(evaled[i].Move, &child) {
+			if !pos.MakeMove(evaled[i].Move, child) {
 				continue
 			}
-			if e.isDraw(&child) {
+			if e.isDraw(1) {
 				val = contempt(pos)
 			} else {
-				val = -extensiveEval(&child, Evaluate(&child), 1)
+				val = -Evaluate(child)
 			}
 			if val > alpha {
 				alpha = val
 				bestMove = evaled[i].Move
 			}
 		}
+		e.Stack[0].PV.assign(bestMove, &e.Stack[1].PV)
 		e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, 1)
 		resultChan <- result{bestMove, alpha}
 		return
 	}
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
-		if !pos.MakeMove(evaled[i].Move, &child) {
+		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
-		val := -e.alphaBeta(&child, depth-1, -MaxInt, -alpha, 1)
+		val := -e.alphaBeta(depth-1, -MaxInt, -alpha, 1)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].Move
+			e.Stack[0].PV.assign(evaled[i].Move, &e.Stack[1].PV)
 		}
 	}
 	e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, 0)
@@ -321,21 +313,24 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		go e.depSearch(pos, i, lastBestMove, resultChan)
+		e.Stack[0].position = *pos
+		go e.depSearch(i, lastBestMove, resultChan)
 		select {
 		case <-ctx.Done():
 			e.timedOut <- true
 			return lastBestMove
 		case res := <-resultChan:
-			e.callUpdate(SearchInfo{res.int, i})
-			if res.int > Mate-500 && depthToMate(res.int) <= i {
+			if i >= 3 {
+				e.callUpdate(SearchInfo{res.int, i, e.Nodes, e.Stack[0].PV})
+			}
+			if res.int >= ValueWin && depthToMate(res.int) <= i {
 				return res.Move
 			}
 			if res.Move == 0 {
 				return lastBestMove
 			}
 			lastBestMove = res.Move
-			if i > 70 {
+			if i >= MAX_HEIGHT {
 				return res.Move
 			}
 		}
@@ -344,9 +339,10 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 
 func (e *Engine) DepthSearch(pos *Position, depth int) Move {
 	resultChan := make(chan result, 1)
-	go e.depSearch(pos, depth, NullMove, resultChan)
+	e.Stack[0].position = *pos
+	go e.depSearch(depth, NullMove, resultChan)
 	res := <-resultChan
-	e.callUpdate(SearchInfo{res.int, depth})
+	e.callUpdate(SearchInfo{res.int, depth, e.Nodes, e.Stack[0].PV})
 	return res.Move
 }
 
@@ -354,10 +350,11 @@ func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move
 	var lastBestMove Move
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		go e.depSearch(pos, i, lastBestMove, resultChan)
+		e.Stack[0].position = *pos
+		go e.depSearch(i, lastBestMove, resultChan)
 		res := <-resultChan
-		e.callUpdate(SearchInfo{res.int, i})
-		if res.int > Mate-500 && depthToMate(res.int) <= i {
+		e.callUpdate(SearchInfo{res.int, i, e.Nodes, e.Stack[0].PV})
+		if res.int >= ValueWin && depthToMate(res.int) <= i {
 			return res.Move
 		}
 		if res.Move == 0 {
