@@ -1,6 +1,7 @@
 package engine
 
 import "github.com/mhib/combusken/backend"
+import "unsafe"
 
 const (
 	TransExact = iota + 1
@@ -12,10 +13,10 @@ const ValUnknown = 1000002
 
 type TransEntry struct {
 	key      uint64
-	depth    int32
-	flag     int32
 	bestMove backend.Move
-	value    int
+	value    int16
+	flag     int8
+	depth    uint8
 }
 
 type TransTable struct {
@@ -23,8 +24,17 @@ type TransTable struct {
 	Mask    uint64
 }
 
-func NewTransTable() TransTable {
-	return TransTable{make([]TransEntry, 1<<21), (1 << 21) - 1}
+func nearestPowerOfTwo(input int) uint64 {
+	res := uint64(1)
+	for int((res << 1)) <= input {
+		res <<= 1
+	}
+	return res
+}
+
+func NewTransTable(megabytes int) TransTable {
+	size := nearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(TransEntry{})))
+	return TransTable{make([]TransEntry, size), size - 1}
 }
 
 func (t *TransTable) Get(key uint64) *TransEntry {
@@ -39,9 +49,9 @@ func (t *TransTable) Set(depth, value, flag int, key uint64, bestMove backend.Mo
 	} else if value <= -Mate+500 {
 		value -= height
 	}
-	element.value = value
-	element.flag = int32(flag)
-	element.depth = int32(depth)
+	element.value = int16(value)
+	element.flag = int8(flag)
+	element.depth = uint8(depth)
 	element.bestMove = bestMove
 }
 

@@ -39,6 +39,7 @@ func NewUciProtocol(e Engine) *UciProtocol {
 		"ucinewgame": uci.uciNewGameCommand,
 		"ponderhit":  uci.ponderhitCommand,
 		"stop":       uci.stopCommand,
+		"setoption":  uci.setOptionCommand,
 	}
 	return uci
 }
@@ -109,6 +110,10 @@ func (uci *UciProtocol) uciCommand() {
 	var name, version, author = uci.engine.GetInfo()
 	fmt.Printf("id name %s %s\n", name, version)
 	fmt.Printf("id author %s\n", author)
+	for _, option := range uci.engine.GetOptions() {
+		fmt.Printf("option name %v type %v default %v min %v max %v\n",
+			option.Name, "spin", option.Val, option.Min, option.Max)
+	}
 	fmt.Println("uciok")
 }
 
@@ -212,7 +217,7 @@ func parseLimits(args []string) (result LimitsType) {
 }
 
 func (uci *UciProtocol) uciNewGameCommand() {
-	uci.engine.TransTable.Clear()
+	uci.engine.TransTable = NewTransTable(uci.engine.Hash.Val)
 }
 
 func (uci *UciProtocol) ponderhitCommand() {
@@ -240,9 +245,26 @@ func updateUci(s SearchInfo) {
 	fmt.Print(sb.String())
 }
 
-func (u *Uci) uciCommand() {
-	var name, version, author = u.engine.GetInfo()
-	fmt.Printf("id name %s %s\n", name, version)
-	fmt.Printf("id author %s\n", author)
-	fmt.Println("uciok")
+func (uci *UciProtocol) setOptionCommand() {
+	if len(uci.fields) < 4 {
+		debugUci("invalid setoption arguments")
+		return
+	}
+	var name, value = uci.fields[1], uci.fields[3]
+	for _, option := range uci.engine.GetOptions() {
+		if strings.EqualFold(option.Name, name) {
+			v, err := strconv.Atoi(value)
+			if err != nil {
+				debugUci("invalid setoption arguments")
+				return
+			}
+			if v < option.Min || v > option.Max {
+				debugUci("argument out of range")
+				return
+			}
+			option.Val = v
+			return
+		}
+	}
+	debugUci("unhandled option")
 }

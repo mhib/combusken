@@ -10,7 +10,15 @@ const STACK_SIZE = MAX_HEIGHT + 1
 
 var errTimeout = errors.New("Search timeout")
 
+type IntUciOption struct {
+	Name string
+	Min  int
+	Max  int
+	Val  int
+}
+
 type Engine struct {
+	Hash     IntUciOption
 	done     <-chan struct{}
 	timedOut chan bool
 	TransTable
@@ -22,6 +30,7 @@ type Engine struct {
 	Update       func(SearchInfo)
 	Nodes        int
 	Stack        [STACK_SIZE]StackEntry
+	timeManager
 }
 
 type SearchInfo struct {
@@ -65,8 +74,13 @@ func (e *Engine) GetInfo() (name, version, author string) {
 	return "Combusken", "0.0.2", "Marcin Henryk Bartkowiak"
 }
 
+func (e *Engine) GetOptions() []*IntUciOption {
+	return []*IntUciOption{&e.Hash}
+}
+
 func NewEngine() (ret Engine) {
-	ret.TransTable = NewTransTable()
+	ret.Hash = IntUciOption{"Hash", 4, 1024, 64}
+	ret.TransTable = NewTransTable(ret.Hash.Val)
 	return
 }
 
@@ -74,6 +88,7 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 	e.cleanBeforeSearch()
 	e.timedOut = make(chan bool, 1)
 	e.fillMoveHistory(searchParams.Positions)
+	e.timeManager = newBlankTimeManager()
 	if searchParams.Limits.MoveTime > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(searchParams.Limits.MoveTime)*time.Millisecond)
@@ -86,9 +101,16 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 	} else if searchParams.Limits.Infinite {
 		e.done = ctx.Done()
 		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
+	} else if searchParams.Limits.WhiteTime > 0 {
+		var cancel context.CancelFunc
+		e.timeManager = newTimeManager(searchParams.Limits, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove)
+		ctx, cancel = context.WithTimeout(ctx, e.hardTimeout)
+		defer cancel()
+		e.done = ctx.Done()
+		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	} else {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
+		ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		e.done = ctx.Done()
 		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])

@@ -9,7 +9,7 @@ import (
 const MaxUint = ^uint(0)
 const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
-const Mate = 1000000
+const Mate = 32000
 const ValueWin = Mate - 150
 
 func lossIn(height int) int {
@@ -135,8 +135,8 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 	ttEntry := e.TransTable.Get(pos.Key)
 	if ttEntry.key == pos.Key {
 		hashMove = ttEntry.bestMove
-		tmpVal = valueFromTrans(ttEntry.value, height)
-		if ttEntry.depth >= int32(depth) {
+		tmpVal = valueFromTrans(int(ttEntry.value), height)
+		if ttEntry.depth >= uint8(depth) {
 			if ttEntry.flag == TransExact {
 				if !hashMove.IsCapture() {
 					e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
@@ -305,10 +305,13 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 			if res.Move == 0 {
 				return lastBestMove
 			}
-			lastBestMove = res.Move
 			if i >= MAX_HEIGHT {
 				return res.Move
 			}
+			if e.isSoftTimeout() {
+				return res.Move
+			}
+			lastBestMove = res.Move
 		}
 	}
 }
