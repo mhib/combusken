@@ -152,13 +152,19 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 		}
 	}
 
+	inCheck := pos.IsInCheck()
+
+	// check extension
 	if depth == 0 {
-		return e.quiescence(alpha, beta, height)
+		if !inCheck {
+			return e.quiescence(alpha, beta, height)
+		}
+		depth = 1
 	}
 
 	var child = &e.Stack[height+1].position
 
-	if pos.LastMove != NullMove && depth >= 4 && !pos.IsInCheck() && !isLateEndGame(pos) {
+	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		tmpVal = -e.alphaBeta(depth-3, -beta, -beta+1, height+1)
 		if tmpVal >= beta {
@@ -204,7 +210,7 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 	}
 
 	if moveCount == 0 {
-		if pos.IsInCheck() {
+		if inCheck {
 			return lossIn(height)
 		}
 		return contempt(pos)
