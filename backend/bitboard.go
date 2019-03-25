@@ -72,12 +72,12 @@ func getFile(mask uint64) uint64 {
 	return 0
 }
 
-func file(id int) int {
+func File(id int) int {
 
 	return id & 7
 }
 
-func rank(id int) int {
+func Rank(id int) int {
 	return id >> 3
 }
 
@@ -403,8 +403,8 @@ func QueensAttacks(set uint64, occupancy uint64) uint64 {
 
 func squareString(square int) string {
 	var res string
-	res += string(byte(int('a') + (square & 7)))
-	res += string(byte(int('1') + square/8))
+	res += string(byte(int('a') + File(square)))
+	res += string(byte(int('1') + Rank(square)))
 	return res
 }
 

@@ -262,7 +262,7 @@ func (uci *UciProtocol) setOptionCommand() {
 				debugUci("argument out of range")
 				return
 			}
-			option.Val = v
+			//option.Val = v
 			return
 		}
 	}

@@ -281,28 +281,28 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		}
 		for fromBB = (BlackPawnsAttacks(theirOccupation) | RANK_7_BB) & pos.Pawns & pos.White; fromBB != 0; fromBB &= fromBB - 1 {
 			fromId = BitScan(fromBB)
-			if rank(fromId) == RANK_7 {
+			if Rank(fromId) == RANK_7 {
 				if SquareMask[fromId+8]&allOccupation == 0 {
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1)), QueenValue}
 					counter++
 				}
-				if file(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
+				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+7])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 1, 1, 1)), Queen + PieceValues[what] - PawnValue}
 					counter++
 				}
-				if file(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
+				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+9])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 1, 1, 1)), Queen + PieceValues[what] - PawnValue}
 					counter++
 				}
 			} else {
-				if file(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
+				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+7])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
 					counter++
 				}
-				if file(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
+				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+9])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
 					counter++
@@ -321,28 +321,28 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		}
 		for fromBB = (WhitePawnsAttacks(theirOccupation) | RANK_7_BB) & pos.Pawns & pos.Black; fromBB != 0; fromBB &= fromBB - 1 {
 			fromId = BitScan(fromBB)
-			if rank(fromId) == RANK_2 {
+			if Rank(fromId) == RANK_2 {
 				if SquareMask[fromId-8]&allOccupation == 0 {
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1)), QueenValue}
 					counter++
 				}
-				if file(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
+				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-9])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 1, 1, 1)), QueenValue + PieceValues[what] - PawnValue}
 					counter++
 				}
-				if file(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
+				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-7])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 1, 1, 1)), QueenValue + PieceValues[what] - PawnValue}
 					counter++
 				}
 			} else {
-				if file(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
+				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-9])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
 					counter++
 				}
-				if file(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
+				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-7])
 					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
 					counter++

@@ -5,7 +5,17 @@ import "math"
 
 // For now as in https://chessprogramming.wikispaces.com/Simplified+evaluation+function
 
-var mobilityBonus [64]int
+const knightMobilityScore = 1
+const bishopMobilityScore = 3
+const rookMobilityScore = 2
+const queenMobilityScore = 1
+const bishopPair = 30
+
+var mobilityBonus [28]int
+var whitePassedMask [64]uint64
+var blackPassedMask [64]uint64
+
+var passedPawnBonus = [8]int{0, 5, 10, 15, 20, 30, 40, 50}
 
 var blackPawnsPos = [64]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
@@ -110,7 +120,29 @@ func init() {
 	rotateArray(&blackKingEndGamePos, &whiteKingEndGamePos)
 
 	for i := range mobilityBonus {
-		mobilityBonus[i] = int(math.Round(5 * math.Sqrt(float64(i))))
+		mobilityBonus[i] = int(math.Round(2 * math.Sqrt(float64(i))))
+	}
+	for i := 8; i <= 55; i++ {
+		whitePassedMask[i] = 0
+		for file := File(i) - 1; file <= File(i)+1; file++ {
+			if file < FILE_A || file > FILE_H {
+				continue
+			}
+			for rank := Rank(i) + 1; rank < RANK_8; rank++ {
+				whitePassedMask[i] |= 1 << uint(rank*8+file)
+			}
+		}
+	}
+	for i := 55; i >= 8; i-- {
+		blackPassedMask[i] = 0
+		for file := File(i) - 1; file <= File(i)+1; file++ {
+			if file < FILE_A || file > FILE_H {
+				continue
+			}
+			for rank := Rank(i) - 1; rank > RANK_1; rank-- {
+				blackPassedMask[i] |= 1 << uint(rank*8+file)
+			}
+		}
 	}
 }
 
@@ -139,6 +171,9 @@ func Evaluate(pos *Position) int {
 
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 {
+			result += passedPawnBonus[Rank(fromId)]
+		}
 		result += PawnValue + whitePawnsPos[fromId]
 	}
 
@@ -146,40 +181,43 @@ func Evaluate(pos *Position) int {
 	result -= PopCount(pos.Pawns&pos.White&South(pos.Pawns&pos.White)) * 12
 
 	// white knights
-	result += (mobilityBonus[PopCount(whiteMobilityArea&KnightsAttacks(pos.Knights&pos.White))])
+	result += mobilityBonus[PopCount(whiteMobilityArea&KnightsAttacks(pos.Knights&pos.White))] * knightMobilityScore
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result += KnightValue + whiteKnightsPos[fromId]
 	}
 
 	// white bishops
-	result += (mobilityBonus[PopCount(whiteMobilityArea&BishopsAttacks(pos.Bishops&pos.White, allOccupation))])
 	for fromBB = pos.Bishops & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		result += mobilityBonus[PopCount(whiteMobilityArea&BishopAttacks(fromId, allOccupation))] * bishopMobilityScore
 		result += BishopValue + whiteBishopsPos[fromId]
 	}
 	// bishop pair bonus
 	if MoreThanOne(pos.Bishops & pos.White) {
-		result += 50
+		result += bishopPair
 	}
 
 	// white rooks
-	result += (mobilityBonus[PopCount(whiteMobilityArea&RooksAttacks(pos.Rooks&pos.White, allOccupation))])
 	for fromBB = pos.Rooks & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		result += mobilityBonus[PopCount(whiteMobilityArea&RookAttacks(fromId, allOccupation))] * rookMobilityScore
 		result += RookValue + whiteRooksPos[fromId]
 	}
 
 	//white queens
-	result += (mobilityBonus[PopCount(whiteMobilityArea&QueensAttacks(pos.Queens&pos.White, allOccupation))])
 	for fromBB = pos.Queens & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		result += mobilityBonus[PopCount(whiteMobilityArea&QueenAttacks(fromId, allOccupation))] * queenMobilityScore
 		result += QueenValue + whiteQueensPos[fromId]
 	}
 
 	// black pawns
 	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 {
+			result += passedPawnBonus[7-Rank(fromId)]
+		}
 		result -= PawnValue + blackPawnsPos[fromId]
 	}
 
@@ -187,33 +225,33 @@ func Evaluate(pos *Position) int {
 	result += PopCount(((pos.Pawns & pos.Black) & North(pos.Pawns&pos.Black)) * 12)
 
 	// black knights
-	result -= mobilityBonus[PopCount(blackMobilityArea&KnightsAttacks(pos.Knights&pos.Black))]
+	result -= mobilityBonus[PopCount(blackMobilityArea&KnightsAttacks(pos.Knights&pos.Black))] * knightMobilityScore
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		result -= KnightValue + blackKnightsPos[fromId]
 	}
 
 	// black bishops
-	result -= mobilityBonus[PopCount(blackMobilityArea&BishopsAttacks(pos.Bishops&pos.Black, allOccupation))]
 	for fromBB = pos.Bishops & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		result -= mobilityBonus[PopCount(blackMobilityArea&BishopAttacks(fromId, allOccupation))] * bishopMobilityScore
 		result -= BishopValue + blackBishopsPos[fromId]
 	}
 	if MoreThanOne(pos.Bishops & pos.Black) {
-		result -= 50
+		result -= bishopPair
 	}
 
 	// black rooks
-	result -= mobilityBonus[PopCount(blackMobilityArea&RooksAttacks(pos.Rooks&pos.Black, allOccupation))]
 	for fromBB = pos.Rooks & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		result -= mobilityBonus[PopCount(blackMobilityArea&RookAttacks(fromId, allOccupation))] * rookMobilityScore
 		result -= RookValue + blackRooksPos[fromId]
 	}
 
 	// black queens
-	result -= mobilityBonus[PopCount(blackMobilityArea&QueensAttacks(pos.Queens&pos.Black, allOccupation))]
 	for fromBB = pos.Queens & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		result -= mobilityBonus[PopCount(blackMobilityArea&QueenAttacks(fromId, allOccupation))] * queenMobilityScore
 		result -= QueenValue + blackQueensPos[fromId]
 	}
 
@@ -229,4 +267,8 @@ func Evaluate(pos *Position) int {
 		return result
 	}
 	return -result
+}
+
+func init() {
+
 }
