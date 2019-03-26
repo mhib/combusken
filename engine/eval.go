@@ -15,7 +15,7 @@ var mobilityBonus [28]int
 var whitePassedMask [64]uint64
 var blackPassedMask [64]uint64
 
-var passedPawnBonus = [8]int{0, 5, 10, 15, 20, 30, 40, 50}
+var passedPawnBonus = [8]int{0, 15, 20, 25, 30, 50, 60, 70}
 
 var blackPawnsPos = [64]int{
 	0, 0, 0, 0, 0, 0, 0, 0,
@@ -267,8 +267,4 @@ func Evaluate(pos *Position) int {
 		return result
 	}
 	return -result
-}
-
-func init() {
-
 }
