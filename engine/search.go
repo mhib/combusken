@@ -204,8 +204,8 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 					e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move, height)
 					return beta
 				}
+				e.Stack[height].PV.assign(evaled[i].Move, &e.Stack[height+1].PV)
 			}
-			e.Stack[height].PV.assign(evaled[i].Move, &e.Stack[height+1].PV)
 		}
 	}
 
