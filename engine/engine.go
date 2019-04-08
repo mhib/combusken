@@ -1,8 +1,8 @@
 package engine
 
 import "context"
-import "time"
 import "errors"
+import "runtime"
 import "github.com/mhib/combusken/backend"
 
 const MAX_HEIGHT = 127
@@ -17,27 +17,42 @@ type IntUciOption struct {
 	Val  int
 }
 
+type TransTable interface {
+	Get(key uint64, height int) (ok bool, value int16, depth uint8, move backend.Move, flag uint8)
+	Set(key uint64, value, depth int, move backend.Move, flag, height int)
+	Clear()
+}
+
 type Engine struct {
-	Hash     IntUciOption
-	done     <-chan struct{}
-	timedOut chan bool
+	Hash    IntUciOption
+	Threads IntUciOption
+	done    <-chan struct{}
 	TransTable
-	MoveHistory  map[uint64]int
-	EvalHistory  [64][64]int
-	MovesCount   int
+	MoveHistory map[uint64]int
+	MovesCount  int
+	Update      func(SearchInfo)
+	timeManager
+	threads []thread
+}
+
+type thread struct {
+	engine *Engine
+	MoveEvaluator
+	nodes int
+	stack [STACK_SIZE]StackEntry
+}
+
+type MoveEvaluator struct {
 	KillerMoves  [STACK_SIZE][2]backend.Move
 	CounterMoves [64][64]backend.Move
-	Update       func(SearchInfo)
-	Nodes        int
-	Stack        [STACK_SIZE]StackEntry
-	timeManager
+	EvalHistory  [64][64]int
 }
 
 type SearchInfo struct {
 	Score int
 	Depth int
 	Nodes int
-	PV
+	Moves []backend.Move
 }
 
 type StackEntry struct {
@@ -79,42 +94,24 @@ func (e *Engine) GetOptions() []*IntUciOption {
 }
 
 func NewEngine() (ret Engine) {
-	ret.Hash = IntUciOption{"Hash", 4, 1024, 64}
-	ret.TransTable = NewTransTable(ret.Hash.Val)
+	ret.Hash = IntUciOption{"Hash", 4, 2048, 1024}
+	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 4}
+	ret.threads = make([]thread, 1)
 	return
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
 	e.cleanBeforeSearch()
-	e.timedOut = make(chan bool, 1)
 	e.fillMoveHistory(searchParams.Positions)
-	e.timeManager = newBlankTimeManager()
-	if searchParams.Limits.MoveTime > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(searchParams.Limits.MoveTime)*time.Millisecond)
-		defer cancel()
-		e.done = ctx.Done()
-		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
-	} else if searchParams.Limits.Depth > 0 {
-		e.done = ctx.Done()
-		return e.DepthSearch(&searchParams.Positions[len(searchParams.Positions)-1], searchParams.Limits.Depth)
-	} else if searchParams.Limits.Infinite {
-		e.done = ctx.Done()
-		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
-	} else if searchParams.Limits.WhiteTime > 0 {
-		var cancel context.CancelFunc
-		e.timeManager = newTimeManager(searchParams.Limits, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove)
+	e.timeManager = newTimeManager(searchParams.Limits, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove)
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
+	if e.hardTimeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, e.hardTimeout)
-		defer cancel()
-		e.done = ctx.Done()
-		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
-	} else {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		e.done = ctx.Done()
-		return e.TimeSearch(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 	}
+	defer cancel()
+	e.done = ctx.Done()
+	return e.bestMove(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
 }
 
 func (e *Engine) fillMoveHistory(positions []backend.Position) {
@@ -129,21 +126,41 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 }
 
 func (e *Engine) cleanBeforeSearch() {
-	//e.TransTable.Clear()
+	for i := range e.threads {
+		e.threads[i].MoveEvaluator.Clear()
+		e.threads[i].nodes = 0
+	}
+}
+
+func (mv *MoveEvaluator) Clear() {
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
-			e.EvalHistory[y][x] = 0
+			mv.EvalHistory[y][x] = 0
 		}
 	}
 	for y := 0; y < MAX_HEIGHT; y++ {
 		for x := 0; x < 2; x++ {
-			e.KillerMoves[y][x] = backend.NullMove
+			mv.KillerMoves[y][x] = backend.NullMove
 		}
 	}
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
-			e.CounterMoves[y][x] = backend.NullMove
+			mv.CounterMoves[y][x] = backend.NullMove
 		}
+	}
+}
+
+func (e *Engine) NewGame() {
+	if e.Threads.Val == 1 {
+		e.TransTable = NewSingleThreadTransTable(e.Hash.Val)
+	} else {
+		e.TransTable = NewAtomicTransTable(e.Hash.Val)
+	}
+	e.threads = make([]thread, e.Threads.Val)
+	for i := range e.threads {
+		e.threads[i].MoveEvaluator = MoveEvaluator{}
+		e.threads[i].MoveEvaluator.Clear()
+		e.threads[i].engine = e
 	}
 }
 
@@ -153,11 +170,18 @@ func (e *Engine) callUpdate(s SearchInfo) {
 	}
 }
 
-func (e *Engine) incNodes() {
-	e.Nodes++
-	if (e.Nodes % 255) == 0 {
+func (e *Engine) nodes() (sum int) {
+	for i := range e.threads {
+		sum += e.threads[i].nodes
+	}
+	return
+}
+
+func (t *thread) incNodes() {
+	t.nodes++
+	if (t.nodes % 255) == 0 {
 		select {
-		case <-e.timedOut:
+		case <-t.engine.done:
 			panic(errTimeout)
 		default:
 		}

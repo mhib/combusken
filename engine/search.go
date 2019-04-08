@@ -2,6 +2,9 @@ package engine
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
+	"sync"
 
 	. "github.com/mhib/combusken/backend"
 )
@@ -9,8 +12,11 @@ import (
 const MaxUint = ^uint(0)
 const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
-const Mate = 32000
 const ValueWin = Mate - 150
+const SMPCycles = 16
+
+var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
+var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
 func lossIn(height int) int {
 	return -Mate + height
@@ -23,11 +29,11 @@ func depthToMate(val int) int {
 	return val - Mate
 }
 
-func (e *Engine) EvaluateMoves(moves []EvaledMove, fromTrans Move, height int) {
-	var pos *Position = &e.Stack[height].position
+func (t *thread) EvaluateMoves(moves []EvaledMove, fromTrans Move, height int) {
+	var pos *Position = &t.stack[height].position
 	var counter Move
 	if pos.LastMove != NullMove {
-		counter = e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()]
+		counter = t.CounterMoves[pos.LastMove.From()][pos.LastMove.To()]
 	}
 	for i := range moves {
 		if moves[i].Move == fromTrans {
@@ -37,39 +43,38 @@ func (e *Engine) EvaluateMoves(moves []EvaledMove, fromTrans Move, height int) {
 		} else if moves[i].Move.IsCapture() {
 			moves[i].Value = SEEValues[moves[i].Move.CapturedPiece()]*8 - SEEValues[moves[i].Move.MovedPiece()] + 10000
 		} else {
-			if moves[i].Move == e.KillerMoves[height][0] {
+			if moves[i].Move == t.KillerMoves[height][0] {
 				moves[i].Value = 9000
-			} else if moves[i].Move == e.KillerMoves[height][1] {
+			} else if moves[i].Move == t.KillerMoves[height][1] {
 				moves[i].Value = 8000
 			} else if moves[i].Move == counter {
 				moves[i].Value = 7999
 			} else {
-				moves[i].Value = e.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
+				moves[i].Value = t.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
 			}
 		}
 	}
 }
 
-func (e *Engine) EvaluateQsMoves(moves []EvaledMove) {
+func (t *thread) EvaluateQsMoves(moves []EvaledMove) {
 	for i := range moves {
 		moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
 	}
 }
 
-func (e *Engine) quiescence(alpha, beta, height int) int {
-	e.incNodes()
-	e.Stack[height].PV.clear()
-	var pos = &e.Stack[height].position
+func (t *thread) quiescence(alpha, beta, height int) int {
+	t.incNodes()
+	t.stack[height].PV.clear()
+	pos := &t.stack[height].position
 
 	if height >= MAX_HEIGHT {
 		return contempt(pos)
 	}
-	var val int
 
-	var child = &e.Stack[height+1].position
-	var moveCount = 0
+	child := &t.stack[height+1].position
+	moveCount := 0
 
-	val = Evaluate(pos)
+	val := Evaluate(pos)
 
 	if val >= beta {
 		return beta
@@ -78,8 +83,8 @@ func (e *Engine) quiescence(alpha, beta, height int) int {
 		alpha = val
 	}
 
-	evaled := pos.GenerateAllCaptures(e.Stack[height].moves[:])
-	e.EvaluateQsMoves(evaled)
+	evaled := pos.GenerateAllCaptures(t.stack[height].moves[:])
+	t.EvaluateQsMoves(evaled)
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
@@ -87,13 +92,13 @@ func (e *Engine) quiescence(alpha, beta, height int) int {
 			continue
 		}
 		moveCount++
-		val = -e.quiescence(-beta, -alpha, height+1)
+		val = -t.quiescence(-beta, -alpha, height+1)
 		if val > alpha {
 			alpha = val
 			if val >= beta {
 				return beta
 			}
-			e.Stack[height].PV.assign(evaled[i].Move, &e.Stack[height+1].PV)
+			t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 		}
 	}
 
@@ -118,35 +123,33 @@ func maxMoveToFirst(moves []EvaledMove) {
 	moves[0], moves[maxIdx] = moves[maxIdx], moves[0]
 }
 
-func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
-	e.incNodes()
-	e.Stack[height].PV.clear()
+func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
+	t.incNodes()
+	t.stack[height].PV.clear()
 
-	var pos = &e.Stack[height].position
+	var pos = &t.stack[height].position
 
-	if e.isDraw(height) {
+	if t.isDraw(height) {
 		return contempt(pos)
 	}
 
 	var tmpVal int
 
 	alphaOrig := alpha
-	hashMove := NullMove
-	ttEntry := e.TransTable.Get(pos.Key)
-	if ttEntry.key == pos.Key {
-		hashMove = ttEntry.bestMove
-		tmpVal = valueFromTrans(int(ttEntry.value), height)
-		if ttEntry.depth >= uint8(depth) {
-			if ttEntry.flag == TransExact {
+	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	if hashOk {
+		tmpVal = int(hashValue)
+		if hashDepth >= uint8(depth) {
+			if hashFlag == TransExact {
 				if !hashMove.IsCapture() {
-					e.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
+					t.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
 				}
 				return tmpVal
 			}
-			if ttEntry.flag == TransAlpha && tmpVal <= alpha {
+			if hashFlag == TransAlpha && tmpVal <= alpha {
 				return alpha
 			}
-			if ttEntry.flag == TransBeta && tmpVal >= beta {
+			if hashFlag == TransBeta && tmpVal >= beta {
 				return beta
 			}
 		}
@@ -157,16 +160,16 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 	// check extension
 	if depth == 0 {
 		if !inCheck {
-			return e.quiescence(alpha, beta, height)
+			return t.quiescence(alpha, beta, height)
 		}
 		depth = 1
 	}
 
-	var child = &e.Stack[height+1].position
+	var child = &t.stack[height+1].position
 
 	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
 		pos.MakeNullMove(child)
-		tmpVal = -e.alphaBeta(depth-3, -beta, -beta+1, height+1)
+		tmpVal = -t.alphaBeta(depth-3, -beta, -beta+1, height+1)
 		if tmpVal >= beta {
 			return beta
 		}
@@ -174,8 +177,8 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 
 	val := MinInt
 
-	evaled := pos.GenerateAllMoves(e.Stack[height].moves[:])
-	e.EvaluateMoves(evaled, hashMove, height)
+	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
+	t.EvaluateMoves(evaled, hashMove, height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
@@ -183,7 +186,7 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
-		tmpVal = -e.alphaBeta(depth-1, -beta, -alpha, height+1)
+		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1)
 		moveCount++
 
 		if tmpVal > val {
@@ -193,18 +196,18 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 				alpha = val
 
 				if !evaled[i].Move.IsCapture() {
-					e.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
+					t.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 				}
 
 				if alpha >= beta {
 					if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
-						e.KillerMoves[height][0], e.KillerMoves[height][1] = evaled[i].Move, e.KillerMoves[height][0]
-						e.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
+						t.KillerMoves[height][0], t.KillerMoves[height][1] = evaled[i].Move, t.KillerMoves[height][0]
+						t.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
 					}
-					e.TransTable.Set(depth, beta, TransBeta, pos.Key, evaled[i].Move, height)
+					t.engine.TransTable.Set(pos.Key, beta, depth, evaled[i].Move, TransBeta, height)
 					return beta
 				}
-				e.Stack[height].PV.assign(evaled[i].Move, &e.Stack[height+1].PV)
+				t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 			}
 		}
 	}
@@ -217,15 +220,15 @@ func (e *Engine) alphaBeta(depth, alpha, beta, height int) int {
 	}
 
 	if alpha == alphaOrig {
-		e.TransTable.Set(depth, alpha, TransAlpha, pos.Key, bestMove, height)
+		t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, TransAlpha, height)
 	} else {
-		e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, height)
+		t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, TransExact, height)
 	}
 	return alpha
 }
 
-func (e *Engine) isDraw(height int) bool {
-	var pos *Position = &e.Stack[height].position
+func (t *thread) isDraw(height int) bool {
+	var pos *Position = &t.stack[height].position
 	if pos.FiftyMove > 100 {
 		return true
 	}
@@ -235,7 +238,7 @@ func (e *Engine) isDraw(height int) bool {
 	}
 
 	for i := height - 1; i >= 0; i-- {
-		descendant := &e.Stack[i].position
+		descendant := &t.stack[i].position
 		if descendant.Key == pos.Key {
 			return true
 		}
@@ -244,7 +247,7 @@ func (e *Engine) isDraw(height int) bool {
 		}
 	}
 
-	if e.MoveHistory[pos.Key] >= 2 {
+	if t.engine.MoveHistory[pos.Key] >= 2 {
 		return true
 	}
 
@@ -253,31 +256,41 @@ func (e *Engine) isDraw(height int) bool {
 
 type result struct {
 	Move
-	int
+	value int
+	depth int
+	moves []Move
 }
 
-func (e *Engine) depSearch(depth int, lastBestMove Move, resultChan chan result) {
-	defer recoverFromTimeout()
-	var pos *Position = &e.Stack[0].position
-	e.Nodes = 1
-	var child *Position = &e.Stack[1].position
+func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result, mainThread bool) {
+	var pos *Position = &t.stack[0].position
+	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
-	evaled := pos.GenerateAllMoves(e.Stack[0].moves[:])
-	e.EvaluateMoves(evaled, lastBestMove, 0)
+	if mainThread {
+		hashOk, _, _, hashMove, _ := t.engine.TransTable.Get(pos.Key, 0)
+		lastBestMove := NullMove
+		if hashOk {
+			lastBestMove = hashMove
+		}
+		t.EvaluateMoves(moves, lastBestMove, 0)
+	}
 	alpha := -MaxInt
 	moveCount := 0
-	e.Stack[0].PV.clear()
-	for i := range evaled {
-		maxMoveToFirst(evaled[i:])
-		if !pos.MakeMove(evaled[i].Move, child) {
+	t.stack[0].PV.clear()
+	bestMoveIdx := -1
+	for i := range moves {
+		if mainThread {
+			maxMoveToFirst(moves[i:])
+		}
+		if !pos.MakeMove(moves[i].Move, child) {
 			continue
 		}
 		moveCount++
-		val := -e.alphaBeta(depth-1, -MaxInt, -alpha, 1)
+		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1)
 		if val > alpha {
+			bestMoveIdx = i
 			alpha = val
-			bestMove = evaled[i].Move
-			e.Stack[0].PV.assign(evaled[i].Move, &e.Stack[1].PV)
+			bestMove = moves[i].Move
+			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
 	if moveCount == 0 {
@@ -287,25 +300,44 @@ func (e *Engine) depSearch(depth int, lastBestMove Move, resultChan chan result)
 			alpha = contempt(pos)
 		}
 	}
-	e.TransTable.Set(depth, alpha, TransExact, pos.Key, bestMove, 0)
-	resultChan <- result{bestMove, alpha}
+	if !mainThread && bestMoveIdx != -1 {
+		moveToFirst(moves, bestMoveIdx)
+	}
+	fmt.Println(depth, mainThread)
+	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, TransExact, 0)
+	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
-func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
+func moveToFirst(moves []EvaledMove, idx int) {
+	if idx == 0 {
+		return
+	}
+	move := moves[idx]
+	for i := idx; idx > 0; idx-- {
+		moves[i] = moves[i-1]
+	}
+	moves[0] = move
+}
+
+func (e *Engine) singleThreadBestMove(ctx context.Context, pos *Position) Move {
 	var lastBestMove Move
+	thread := e.threads[0]
+	thread.stack[0].position = *pos
+	moves := pos.GenerateAllMoves(e.threads[0].stack[0].moves[:])
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		e.Stack[0].position = *pos
-		go e.depSearch(i, lastBestMove, resultChan)
+		go func(d int) {
+			defer recoverFromTimeout()
+			thread.depSearch(d, moves, resultChan, true)
+		}(i)
 		select {
 		case <-ctx.Done():
-			e.timedOut <- true
 			return lastBestMove
 		case res := <-resultChan:
 			if i >= 3 {
-				e.callUpdate(SearchInfo{res.int, i, e.Nodes, e.Stack[0].PV})
+				e.callUpdate(SearchInfo{res.value, i, thread.nodes, res.moves})
 			}
-			if res.int >= ValueWin && depthToMate(res.int) <= i {
+			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}
 			if res.Move == 0 {
@@ -314,7 +346,7 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 			if i >= MAX_HEIGHT {
 				return res.Move
 			}
-			if e.isSoftTimeout() {
+			if e.isSoftTimeout(i, thread.nodes) {
 				return res.Move
 			}
 			lastBestMove = res.Move
@@ -322,38 +354,85 @@ func (e *Engine) TimeSearch(ctx context.Context, pos *Position) Move {
 	}
 }
 
-func (e *Engine) DepthSearch(pos *Position, depth int) Move {
-	resultChan := make(chan result, 1)
-	e.Stack[0].position = *pos
-	go e.depSearch(depth, NullMove, resultChan)
-	res := <-resultChan
-	e.callUpdate(SearchInfo{res.int, depth, e.Nodes, e.Stack[0].PV})
-	return res.Move
-}
-
-func (e *Engine) CountSearch(ctx context.Context, pos *Position, count int) Move {
-	var lastBestMove Move
-	for i := 1; ; i++ {
-		resultChan := make(chan result, 1)
-		e.Stack[0].position = *pos
-		go e.depSearch(i, lastBestMove, resultChan)
-		res := <-resultChan
-		e.callUpdate(SearchInfo{res.int, i, e.Nodes, e.Stack[0].PV})
-		if res.int >= ValueWin && depthToMate(res.int) <= i {
-			return res.Move
-		}
-		if res.Move == 0 {
-			return lastBestMove
-		}
-		lastBestMove = res.Move
-		if i > 70 || e.Nodes >= count {
-			return lastBestMove
+func (t *thread) iterativeDeepening(resultChan chan result, idx int) {
+	mainThread := idx == 0
+	moves := t.stack[0].position.GenerateAllMoves(t.stack[0].moves[:])
+	if !mainThread {
+		rand.Shuffle(len(moves), func(i, j int) {
+			moves[i], moves[j] = moves[j], moves[i]
+		})
+	}
+	cycle := idx % SMPCycles
+	for depth := 1; depth < MAX_HEIGHT; depth++ {
+		t.depSearch(depth, moves, resultChan, mainThread)
+		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
+			depth += SkipSize[cycle]
 		}
 	}
 }
 
+func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
+	if e.Threads.Val == 1 {
+		return e.singleThreadBestMove(ctx, pos)
+	}
+	for i := range e.threads {
+		e.threads[i].stack[0].position = *pos
+	}
+
+	var wg = &sync.WaitGroup{}
+	resultChan := make(chan result)
+	for i := range e.threads {
+		wg.Add(1)
+		go func(idx int) {
+			defer recoverFromTimeout()
+			e.threads[idx].iterativeDeepening(resultChan, idx)
+			wg.Done()
+		}(i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	prevDepth := 0
+	var lastBestMove Move
+	for {
+		select {
+		case <-e.done:
+			return lastBestMove
+		case res := <-resultChan:
+			if res.depth <= prevDepth {
+				continue
+			}
+			nodes := e.nodes()
+			e.callUpdate(SearchInfo{res.value, res.depth, nodes, res.moves})
+			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
+				return res.Move
+			}
+			if res.Move == 0 {
+				return lastBestMove
+			}
+			if res.depth >= MAX_HEIGHT {
+				return res.Move
+			}
+			if e.isSoftTimeout(res.depth, nodes) {
+				return res.Move
+			}
+			lastBestMove = res.Move
+			prevDepth = res.depth
+		}
+	}
+}
+
+func cloneMoves(src []Move) []Move {
+	dst := make([]Move, len(src))
+	copy(dst, src)
+	return dst
+}
+
 func recoverFromTimeout() {
-	var err = recover()
+	err := recover()
 	if err != nil && err != errTimeout {
 		panic(err)
 	}

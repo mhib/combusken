@@ -12,7 +12,7 @@ type timeManager struct {
 	hardTimeout time.Duration
 }
 
-type timeoutStrategy func(*timeManager) bool
+type timeoutStrategy func(manager *timeManager, depth, nodes int) bool
 
 func min(a, b int) int {
 	if a < b {
@@ -28,15 +28,47 @@ func max(a, b int) int {
 	return a
 }
 
-func (manager *timeManager) isSoftTimeout() bool {
-	return manager.timeoutStrategy(manager)
+func (manager *timeManager) isSoftTimeout(depth, nodes int) bool {
+	return manager.timeoutStrategy(manager, depth, nodes)
 }
 
-func compareSoftTimeout(manager *timeManager) bool {
+func compareSoftTimeout(manager *timeManager, depth, nodes int) bool {
 	return time.Now().Sub(manager.startedAt) >= manager.softTimeout
 }
 
-func newTimeManager(limits LimitsType, whiteMove bool) (res timeManager) {
+func neverSoftTimeout(manager *timeManager, depth, nodes int) bool {
+	return false
+}
+
+func newTimeManager(limits LimitsType, whiteMove bool) timeManager {
+	if limits.MoveTime > 0 {
+		return newMoveTimeManager(limits.MoveTime)
+	} else if limits.Depth > 0 {
+		return newDepthTimeManager(limits.Depth)
+	} else if limits.Infinite {
+		return timeManager{timeoutStrategy: neverSoftTimeout}
+	} else if limits.WhiteTime > 0 || limits.BlackTime > 0 {
+		return newTournamentTimeManager(limits, whiteMove)
+	} else {
+		return newMoveTimeManager(1000)
+	}
+}
+
+func newDepthTimeManager(limitsDepth int) (res timeManager) {
+	res.timeoutStrategy = func(manager *timeManager, depth, nodes int) bool {
+		return depth >= limitsDepth
+	}
+	return
+}
+
+func newMoveTimeManager(duration int) (res timeManager) {
+	res.startedAt = time.Now()
+	res.hardTimeout = time.Duration(duration) * time.Millisecond
+	res.timeoutStrategy = neverSoftTimeout
+	return
+}
+
+func newTournamentTimeManager(limits LimitsType, whiteMove bool) (res timeManager) {
 	var limit, inc int
 	if whiteMove {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
@@ -54,12 +86,5 @@ func newTimeManager(limits LimitsType, whiteMove bool) (res timeManager) {
 	res.softTimeout = res.hardTimeout / 4
 	res.startedAt = time.Now()
 	res.timeoutStrategy = compareSoftTimeout
-	return
-}
-
-func newBlankTimeManager() (res timeManager) {
-	res.timeoutStrategy = func(*timeManager) bool {
-		return false
-	}
 	return
 }

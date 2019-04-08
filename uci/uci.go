@@ -217,7 +217,7 @@ func parseLimits(args []string) (result LimitsType) {
 }
 
 func (uci *UciProtocol) uciNewGameCommand() {
-	uci.engine.TransTable = NewTransTable(uci.engine.Hash.Val)
+	uci.engine.NewGame()
 }
 
 func (uci *UciProtocol) ponderhitCommand() {
@@ -237,7 +237,7 @@ type Uci struct {
 func updateUci(s SearchInfo) {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("info depth %d nodes %d score cp %d pv ", s.Depth, s.Nodes, s.Score))
-	for _, move := range s.PV.Moves() {
+	for _, move := range s.Moves {
 		sb.WriteString(move.String())
 		sb.WriteString(" ")
 	}
