@@ -18,12 +18,12 @@ const (
 	QueenCastle            = 5
 	EPCapture              = 9
 	KnightPromotion        = 2
-	BishopPromotion        = 10
-	RookPromotion          = 6
+	BishopPromotion        = 6
+	RookPromotion          = 10
 	QueenPromotion         = 14
 	KnightCapturePromotion = 3
-	BishopCapturePromotion = 11
-	RookCapturePromotion   = 7
+	BishopCapturePromotion = 7
+	RookCapturePromotion   = 11
 	QueenCapturePromotion  = 15
 )
 
@@ -63,7 +63,7 @@ func (m Move) Type() int {
 }
 
 func (m Move) Special() int {
-	return int(m>>20) & 0x3
+	return int(m >> 20)
 }
 
 func (m Move) IsPromotion() bool {

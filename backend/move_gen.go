@@ -33,9 +33,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				if allOccupation&to == 0 {
 					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 0))
-					counter++
 					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 1))
+					counter++
+					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 0))
 					counter++
 					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 0))
 					counter++
@@ -46,9 +46,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 					captureType := pos.TypeOnSquare(to)
 					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
-					counter++
 					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					counter++
+					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
 					counter++
 					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
 					counter++
