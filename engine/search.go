@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sort"
 	"sync"
 
 	. "github.com/mhib/combusken/backend"
@@ -127,7 +128,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 
-	var pos = &t.stack[height].position
+	var pos *Position = &t.stack[height].position
 
 	if t.isDraw(height) {
 		return contempt(pos)
@@ -229,6 +230,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 
 func (t *thread) isDraw(height int) bool {
 	var pos *Position = &t.stack[height].position
+
 	if pos.FiftyMove > 100 {
 		return true
 	}
@@ -265,22 +267,11 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
-	if mainThread {
-		hashOk, _, _, hashMove, _ := t.engine.TransTable.Get(pos.Key, 0)
-		lastBestMove := NullMove
-		if hashOk {
-			lastBestMove = hashMove
-		}
-		t.EvaluateMoves(moves, lastBestMove, 0)
-	}
 	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
 	bestMoveIdx := -1
 	for i := range moves {
-		if mainThread {
-			maxMoveToFirst(moves[i:])
-		}
 		if !pos.MakeMove(moves[i].Move, child) {
 			continue
 		}
@@ -300,7 +291,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 			alpha = contempt(pos)
 		}
 	}
-	if !mainThread && bestMoveIdx != -1 {
+	if bestMoveIdx != -1 {
 		moveToFirst(moves, bestMoveIdx)
 	}
 	fmt.Println(depth, mainThread)
@@ -324,6 +315,12 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, pos *Position) Move {
 	thread := e.threads[0]
 	thread.stack[0].position = *pos
 	moves := pos.GenerateAllMoves(e.threads[0].stack[0].moves[:])
+	ordMove := NullMove
+	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
+		ordMove = hashMove
+	}
+	thread.EvaluateMoves(moves, ordMove, 0)
+	sort.Slice(moves, func(i, j int) bool { return moves[i].Value >= moves[j].Value })
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
 		go func(d int) {
@@ -357,7 +354,14 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, pos *Position) Move {
 func (t *thread) iterativeDeepening(resultChan chan result, idx int) {
 	mainThread := idx == 0
 	moves := t.stack[0].position.GenerateAllMoves(t.stack[0].moves[:])
-	if !mainThread {
+	if mainThread {
+		ordMove := NullMove
+		if hashOk, _, _, hashMove, _ := t.engine.TransTable.Get(t.stack[0].position.Key, 0); hashOk {
+			ordMove = hashMove
+		}
+		t.EvaluateMoves(moves, ordMove, 0)
+		sort.Slice(moves, func(i, j int) bool { return moves[i].Value > moves[j].Value })
+	} else {
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
 		})
