@@ -30,39 +30,6 @@ func depthToMate(val int) int {
 	return val - Mate
 }
 
-func (t *thread) EvaluateMoves(moves []EvaledMove, fromTrans Move, height int) {
-	var pos *Position = &t.stack[height].position
-	var counter Move
-	if pos.LastMove != NullMove {
-		counter = t.CounterMoves[pos.LastMove.From()][pos.LastMove.To()]
-	}
-	for i := range moves {
-		if moves[i].Move == fromTrans {
-			moves[i].Value = 100000
-		} else if moves[i].Move.IsPromotion() {
-			moves[i].Value = 70000 + SEEValues[moves[i].Move.CapturedPiece()]
-		} else if moves[i].Move.IsCapture() {
-			moves[i].Value = SEEValues[moves[i].Move.CapturedPiece()]*8 - SEEValues[moves[i].Move.MovedPiece()] + 10000
-		} else {
-			if moves[i].Move == t.KillerMoves[height][0] {
-				moves[i].Value = 9000
-			} else if moves[i].Move == t.KillerMoves[height][1] {
-				moves[i].Value = 8000
-			} else if moves[i].Move == counter {
-				moves[i].Value = 7999
-			} else {
-				moves[i].Value = t.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
-			}
-		}
-	}
-}
-
-func (t *thread) EvaluateQsMoves(moves []EvaledMove) {
-	for i := range moves {
-		moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
-	}
-}
-
 func (t *thread) quiescence(alpha, beta, height int) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
@@ -179,7 +146,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 	val := MinInt
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
-	t.EvaluateMoves(evaled, hashMove, height)
+	t.EvaluateMoves(pos, evaled, hashMove, height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
@@ -319,7 +286,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, pos *Position) Move {
 	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
 		ordMove = hashMove
 	}
-	thread.EvaluateMoves(moves, ordMove, 0)
+	thread.EvaluateMoves(pos, moves, ordMove, 0)
 	sort.Slice(moves, func(i, j int) bool { return moves[i].Value >= moves[j].Value })
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
@@ -355,11 +322,12 @@ func (t *thread) iterativeDeepening(resultChan chan result, idx int) {
 	mainThread := idx == 0
 	moves := t.stack[0].position.GenerateAllMoves(t.stack[0].moves[:])
 	if mainThread {
+		var pos *Position = &t.stack[0].position
 		ordMove := NullMove
-		if hashOk, _, _, hashMove, _ := t.engine.TransTable.Get(t.stack[0].position.Key, 0); hashOk {
+		if hashOk, _, _, hashMove, _ := t.engine.TransTable.Get(pos.Key, 0); hashOk {
 			ordMove = hashMove
 		}
-		t.EvaluateMoves(moves, ordMove, 0)
+		t.EvaluateMoves(pos, moves, ordMove, 0)
 		sort.Slice(moves, func(i, j int) bool { return moves[i].Value > moves[j].Value })
 	} else {
 		rand.Shuffle(len(moves), func(i, j int) {

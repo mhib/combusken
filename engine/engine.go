@@ -42,12 +42,6 @@ type thread struct {
 	stack [STACK_SIZE]StackEntry
 }
 
-type MoveEvaluator struct {
-	KillerMoves  [STACK_SIZE][2]backend.Move
-	CounterMoves [64][64]backend.Move
-	EvalHistory  [64][64]int
-}
-
 type SearchInfo struct {
 	Score int
 	Depth int
@@ -129,24 +123,6 @@ func (e *Engine) cleanBeforeSearch() {
 	for i := range e.threads {
 		e.threads[i].MoveEvaluator.Clear()
 		e.threads[i].nodes = 0
-	}
-}
-
-func (mv *MoveEvaluator) Clear() {
-	for y := 0; y < 64; y++ {
-		for x := 0; x < 64; x++ {
-			mv.EvalHistory[y][x] = 0
-		}
-	}
-	for y := 0; y < MAX_HEIGHT; y++ {
-		for x := 0; x < 2; x++ {
-			mv.KillerMoves[y][x] = backend.NullMove
-		}
-	}
-	for y := 0; y < 64; y++ {
-		for x := 0; x < 64; x++ {
-			mv.CounterMoves[y][x] = backend.NullMove
-		}
 	}
 }
 
