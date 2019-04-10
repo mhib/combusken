@@ -239,9 +239,8 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	t.stack[0].PV.clear()
 	bestMoveIdx := -1
 	for i := range moves {
-		if !pos.MakeMove(moves[i].Move, child) {
-			continue
-		}
+		// No need to check if move was valid
+		pos.MakeMove(moves[i].Move, child)
 		moveCount++
 		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1)
 		if val > alpha {
@@ -277,22 +276,14 @@ func moveToFirst(moves []EvaledMove, idx int) {
 	moves[0] = move
 }
 
-func (e *Engine) singleThreadBestMove(ctx context.Context, pos *Position) Move {
+func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
 	var lastBestMove Move
 	thread := e.threads[0]
-	thread.stack[0].position = *pos
-	moves := pos.GenerateAllMoves(e.threads[0].stack[0].moves[:])
-	ordMove := NullMove
-	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
-		ordMove = hashMove
-	}
-	thread.EvaluateMoves(pos, moves, ordMove, 0)
-	sort.Slice(moves, func(i, j int) bool { return moves[i].Value >= moves[j].Value })
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
-		go func(d int) {
+		go func(depth int) {
 			defer recoverFromTimeout()
-			thread.depSearch(d, moves, resultChan, true)
+			thread.depSearch(depth, rootMoves, resultChan, true)
 		}(i)
 		select {
 		case <-ctx.Done():
@@ -318,18 +309,9 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, pos *Position) Move {
 	}
 }
 
-func (t *thread) iterativeDeepening(resultChan chan result, idx int) {
+func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, idx int) {
 	mainThread := idx == 0
-	moves := t.stack[0].position.GenerateAllMoves(t.stack[0].moves[:])
-	if mainThread {
-		var pos *Position = &t.stack[0].position
-		ordMove := NullMove
-		if hashOk, _, _, hashMove, _ := t.engine.TransTable.Get(pos.Key, 0); hashOk {
-			ordMove = hashMove
-		}
-		t.EvaluateMoves(pos, moves, ordMove, 0)
-		sort.Slice(moves, func(i, j int) bool { return moves[i].Value > moves[j].Value })
-	} else {
+	if !mainThread {
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
 		})
@@ -344,11 +326,20 @@ func (t *thread) iterativeDeepening(resultChan chan result, idx int) {
 }
 
 func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
-	if e.Threads.Val == 1 {
-		return e.singleThreadBestMove(ctx, pos)
-	}
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
+	}
+
+	rootMoves := pos.GenerateAllLegalMoves()
+	ordMove := NullMove
+	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
+		ordMove = hashMove
+	}
+	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0)
+	sort.Slice(rootMoves, func(i, j int) bool { return rootMoves[i].Value > rootMoves[j].Value })
+
+	if e.Threads.Val == 1 {
+		return e.singleThreadBestMove(ctx, rootMoves)
 	}
 
 	var wg = &sync.WaitGroup{}
@@ -357,7 +348,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		wg.Add(1)
 		go func(idx int) {
 			defer recoverFromTimeout()
-			e.threads[idx].iterativeDeepening(resultChan, idx)
+			e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan, idx)
 			wg.Done()
 		}(i)
 	}
@@ -399,6 +390,12 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 
 func cloneMoves(src []Move) []Move {
 	dst := make([]Move, len(src))
+	copy(dst, src)
+	return dst
+}
+
+func cloneEvaledMoves(src []EvaledMove) []EvaledMove {
+	dst := make([]EvaledMove, len(src))
 	copy(dst, src)
 	return dst
 }
