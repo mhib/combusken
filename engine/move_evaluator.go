@@ -2,6 +2,8 @@ package engine
 
 import . "github.com/mhib/combusken/backend"
 
+const MinSpecialMoveValue = 7999
+
 type MoveEvaluator struct {
 	KillerMoves  [STACK_SIZE][2]Move
 	CounterMoves [64][64]Move

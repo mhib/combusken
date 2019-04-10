@@ -14,6 +14,7 @@ const MaxUint = ^uint(0)
 const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
+const ValueLoss = -ValueWin
 const SMPCycles = 16
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
@@ -123,17 +124,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 		}
 	}
 
+	var child *Position = &t.stack[height+1].position
+
 	inCheck := pos.IsInCheck()
-
-	// check extension
-	if depth == 0 {
-		if !inCheck {
-			return t.quiescence(alpha, beta, height)
-		}
-		depth = 1
-	}
-
-	var child = &t.stack[height+1].position
 
 	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
 		pos.MakeNullMove(child)
@@ -142,6 +135,19 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 			return beta
 		}
 	}
+
+	// Check extension
+	if inCheck {
+		depth++
+	}
+
+	if depth == 0 {
+		if !inCheck {
+			return t.quiescence(alpha, beta, height)
+		}
+	}
+
+	lazyEval := lazyEval{position: pos}
 
 	val := MinInt
 
@@ -154,19 +160,29 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
-		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1)
 		moveCount++
+
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCapture() && !evaled[i].Move.IsPromotion() &&
+			!child.IsInCheck() {
+			if depth < 3 {
+				if moveCount >= 9+3*depth {
+					continue
+				}
+				if lazyEval.Value()+PawnValue*depth <= alpha {
+					continue
+				}
+			}
+		}
+		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1)
 
 		if tmpVal > val {
 			val = tmpVal
 			bestMove = evaled[i].Move
 			if val > alpha {
 				alpha = val
-
-				if !evaled[i].Move.IsCapture() {
+				if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
 					t.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 				}
-
 				if alpha >= beta {
 					if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
 						t.KillerMoves[height][0], t.KillerMoves[height][1] = evaled[i].Move, t.KillerMoves[height][0]
@@ -405,4 +421,18 @@ func recoverFromTimeout() {
 	if err != nil && err != errTimeout {
 		panic(err)
 	}
+}
+
+type lazyEval struct {
+	position *Position
+	hasValue bool
+	value    int
+}
+
+func (le *lazyEval) Value() int {
+	if !le.hasValue {
+		le.value = Evaluate(le.position)
+		le.hasValue = true
+	}
+	return le.value
 }
