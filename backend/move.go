@@ -15,7 +15,7 @@ const (
 	Capture                = 1
 	DoublePawnPush         = 8
 	KingCastle             = 4
-	QueenCastle            = 5
+	QueenCastle            = 12
 	EPCapture              = 9
 	KnightPromotion        = 2
 	BishopPromotion        = 6
@@ -59,7 +59,7 @@ func (m Move) CapturedPiece() int {
 }
 
 func (m Move) Type() int {
-	return int(m>>18) & 0xf
+	return int(m >> 18)
 }
 
 func (m Move) Special() int {
@@ -68,6 +68,20 @@ func (m Move) Special() int {
 
 func (m Move) IsPromotion() bool {
 	return m&(1<<19) != 0
+}
+
+func (m Move) IsCaptureOrPromotion() bool {
+	return m&((1<<19)|(1<<18)) != 0
+}
+
+func (m Move) IsCastling() bool {
+	t := m >> 18 // Type() inlined
+	return t&3 == 0 && t&(1<<2) != 0
+}
+
+// This method does not check if move is a promotion
+func (m Move) PromotedPiece() int {
+	return Knight + int(m>>20)
 }
 
 func NewMove(from, to, pieceType, capturedType, moveType int) Move {

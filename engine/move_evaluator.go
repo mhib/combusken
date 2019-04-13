@@ -2,7 +2,7 @@ package engine
 
 import . "github.com/mhib/combusken/backend"
 
-const MinSpecialMoveValue = 7999
+const MinSpecialMoveValue = 1499
 
 type MoveEvaluator struct {
 	KillerMoves  [STACK_SIZE][2]Move
@@ -36,17 +36,19 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 	for i := range moves {
 		if moves[i].Move == fromTrans {
 			moves[i].Value = 100000
-		} else if moves[i].Move.IsPromotion() {
-			moves[i].Value = 70000 + SEEValues[moves[i].Move.CapturedPiece()]
-		} else if moves[i].Move.IsCapture() {
-			moves[i].Value = SEEValues[moves[i].Move.CapturedPiece()]*8 - SEEValues[moves[i].Move.MovedPiece()] + 10000
+		} else if moves[i].Move.IsCaptureOrPromotion() {
+			if seeSign(pos, moves[i].Move) {
+				moves[i].Value = mvvlva(moves[i].Move) + 50000
+			} else {
+				moves[i].Value = mv.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
+			}
 		} else {
 			if moves[i].Move == mv.KillerMoves[height][0] {
-				moves[i].Value = 9000
+				moves[i].Value = 20000
 			} else if moves[i].Move == mv.KillerMoves[height][1] {
-				moves[i].Value = 8000
+				moves[i].Value = 15000
 			} else if moves[i].Move == counter {
-				moves[i].Value = 7999
+				moves[i].Value = 14999
 			} else {
 				moves[i].Value = mv.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
 			}
@@ -54,8 +56,18 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 	}
 }
 
+var mvvlvaScores = [...]int{0, 1, 4, 4, 6, 12, 20}
+
+func mvvlva(move Move) int {
+	captureScore := mvvlvaScores[move.CapturedPiece()]
+	if move.IsPromotion() {
+		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
+	}
+	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
+}
+
 func (mv *MoveEvaluator) EvaluateQsMoves(moves []EvaledMove) {
 	for i := range moves {
-		moves[i].Value = PieceValues[moves[i].Move.CapturedPiece()] - PieceValues[moves[i].Move.MovedPiece()]
+		moves[i].Value = mvvlvaScores[moves[i].Move.CapturedPiece()] - mvvlvaScores[moves[i].Move.MovedPiece()]
 	}
 }

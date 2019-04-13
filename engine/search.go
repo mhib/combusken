@@ -180,7 +180,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 			bestMove = evaled[i].Move
 			if val > alpha {
 				alpha = val
-				if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
+				if pos.LastMove != NullMove {
 					t.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
 				}
 				if alpha >= beta {
