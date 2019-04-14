@@ -66,8 +66,18 @@ func mvvlva(move Move) int {
 	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
 }
 
-func (mv *MoveEvaluator) EvaluateQsMoves(moves []EvaledMove) {
-	for i := range moves {
-		moves[i].Value = mvvlvaScores[moves[i].Move.CapturedPiece()] - mvvlvaScores[moves[i].Move.MovedPiece()]
+func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCheck bool) {
+	if inCheck {
+		for i := range moves {
+			if moves[i].Move.IsCaptureOrPromotion() {
+				moves[i].Value = mvvlva(moves[i].Move) + 50000
+			} else {
+				moves[i].Value = mv.EvalHistory[moves[i].Move.From()][moves[i].Move.To()]
+			}
+		}
+	} else {
+		for i := range moves {
+			moves[i].Value = mvvlva(moves[i].Move)
+		}
 	}
 }

@@ -30,7 +30,7 @@ func seeAbove(pos *Position, move Move, cutoff int) bool {
 	} else {
 		value -= SEEValues[lastPiece]
 	}
-	// return when on recapture it is still good enough
+	// return when after recapture it is still good enough
 	if value >= 0 {
 		return true
 	}

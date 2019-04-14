@@ -44,20 +44,26 @@ func (t *thread) quiescence(alpha, beta, height int) int {
 	moveCount := 0
 
 	val := Evaluate(pos)
+	inCheck := pos.IsInCheck()
 
-	if val >= beta {
-		return beta
-	}
-	if alpha < val {
-		alpha = val
+	var evaled []EvaledMove
+	if inCheck {
+		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
+	} else {
+		if val >= beta {
+			return beta
+		}
+		if alpha < val {
+			alpha = val
+		}
+		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
 	}
 
-	evaled := pos.GenerateAllCaptures(t.stack[height].moves[:])
-	t.EvaluateQsMoves(evaled)
+	t.EvaluateQsMoves(pos, evaled, inCheck)
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
-		if !pos.MakeMove(evaled[i].Move, child) {
+		if (!inCheck && !seeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
 		moveCount++
@@ -71,8 +77,8 @@ func (t *thread) quiescence(alpha, beta, height int) int {
 		}
 	}
 
-	if moveCount == 0 {
-		return val
+	if moveCount == 0 && inCheck {
+		return lossIn(height)
 	}
 
 	return alpha
