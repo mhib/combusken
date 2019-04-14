@@ -31,7 +31,7 @@ func depthToMate(val int) int {
 	return val - Mate
 }
 
-func (t *thread) quiescence(alpha, beta, height int) int {
+func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 	pos := &t.stack[height].position
@@ -44,7 +44,6 @@ func (t *thread) quiescence(alpha, beta, height int) int {
 	moveCount := 0
 
 	val := Evaluate(pos)
-	inCheck := pos.IsInCheck()
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -67,7 +66,8 @@ func (t *thread) quiescence(alpha, beta, height int) int {
 			continue
 		}
 		moveCount++
-		val = -t.quiescence(-beta, -alpha, height+1)
+		childInCheck := child.IsInCheck()
+		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
 		if val > alpha {
 			alpha = val
 			if val >= beta {
@@ -98,7 +98,7 @@ func maxMoveToFirst(moves []EvaledMove) {
 	moves[0], moves[maxIdx] = moves[maxIdx], moves[0]
 }
 
-func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
+func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 
@@ -132,13 +132,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 
 	var child *Position = &t.stack[height+1].position
 
-	inCheck := pos.IsInCheck()
 	pvNode := alpha != beta+1
 
 	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		reduction := max(1+depth/3, 3)
-		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1)
+		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
 		if tmpVal >= beta {
 			return beta
 		}
@@ -150,9 +149,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 	}
 
 	if depth == 0 {
-		if !inCheck {
-			return t.quiescence(alpha, beta, height)
-		}
+		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
 	lazyEval := lazyEval{position: pos}
@@ -168,9 +165,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 			continue
 		}
 		moveCount++
+		childInCheck := child.IsInCheck()
 
 		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCapture() && !evaled[i].Move.IsPromotion() &&
-			!child.IsInCheck() {
+			!childInCheck {
 			if depth < 3 {
 				if moveCount >= 9+3*depth {
 					continue
@@ -181,12 +179,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 			}
 		}
 		if !pvNode && moveCount > 1 {
-			tmpVal = -t.alphaBeta(-(alpha + 1), -alpha, depth-1, height+1)
+			tmpVal = -t.alphaBeta(-(alpha + 1), -alpha, depth-1, height+1, childInCheck)
 			if tmpVal <= alpha {
 				continue
 			}
 		}
-		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1)
+		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1, childInCheck)
 
 		if tmpVal > val {
 			val = tmpVal
@@ -263,6 +261,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
+	inCheck := pos.IsInCheck()
 	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
@@ -271,7 +270,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		// No need to check if move was valid
 		pos.MakeMove(moves[i].Move, child)
 		moveCount++
-		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1)
+		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1, child.IsInCheck())
 		if val > alpha {
 			bestMoveIdx = i
 			alpha = val
@@ -280,7 +279,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		}
 	}
 	if moveCount == 0 {
-		if pos.IsInCheck() {
+		if inCheck {
 			alpha = lossIn(0)
 		} else {
 			alpha = contempt(pos)
