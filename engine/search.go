@@ -133,10 +133,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 	var child *Position = &t.stack[height+1].position
 
 	inCheck := pos.IsInCheck()
+	pvNode := alpha != beta+1
 
 	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
 		pos.MakeNullMove(child)
-		tmpVal = -t.alphaBeta(depth-3, -beta, -beta+1, height+1)
+		reduction := max(1+depth/3, 3)
+		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1)
 		if tmpVal >= beta {
 			return beta
 		}
@@ -154,7 +156,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 	}
 
 	lazyEval := lazyEval{position: pos}
-
 	val := MinInt
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
@@ -177,6 +178,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int) int {
 				if lazyEval.Value()+PawnValue*depth <= alpha {
 					continue
 				}
+			}
+		}
+		if !pvNode && moveCount > 1 {
+			tmpVal = -t.alphaBeta(-(alpha + 1), -alpha, depth-1, height+1)
+			if tmpVal <= alpha {
+				continue
 			}
 		}
 		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1)
