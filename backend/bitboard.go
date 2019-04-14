@@ -55,25 +55,24 @@ var RANKS = [...]uint64{RANK_1_BB, RANK_2_BB, RANK_3_BB, RANK_4_BB, RANK_5_BB, R
 var FILES = [...]uint64{FILE_A_BB, FILE_B_BB, FILE_C_BB, FILE_D_BB, FILE_E_BB, FILE_F_BB, FILE_G_BB, FILE_H_BB}
 
 func getRank(mask uint64) uint64 {
-	for _, el := range RANKS {
-		if mask&el != 0 {
-			return el
+	for i := range RANKS {
+		if mask&RANKS[i] != 0 {
+			return RANKS[i]
 		}
 	}
 	return 0
 }
 
 func getFile(mask uint64) uint64 {
-	for _, el := range FILES {
-		if mask&el != 0 {
-			return el
+	for i := range FILES {
+		if mask&FILES[i] != 0 {
+			return FILES[i]
 		}
 	}
 	return 0
 }
 
 func File(id int) int {
-
 	return id & 7
 }
 
@@ -261,6 +260,7 @@ var index64 = [64]int{0, 47, 1, 56, 48, 27, 2, 60,
 
 const debruijn64 uint64 = 0x03f79d71b4cb0a89
 
+// https://www.chessprogramming.org/index.php?title=BitScan
 func BitScan(bb uint64) int {
 	return index64[((bb^(bb-1))*debruijn64)>>58]
 }
@@ -368,44 +368,70 @@ func BishopAttacks(square int, occupancy uint64) uint64 {
 	return bishopMoveBoard[square][(bishopBlockerMask[square]&occupancy)*bishopMagicIndex[square]>>bishopShift]
 }
 
-func RooksAttacks(set uint64, occupancy uint64) uint64 {
-	res := uint64(0)
-	for set > 0 {
+func RooksAttacks(set uint64, occupancy uint64) (res uint64) {
+	for ; set > 0; set &= set - 1 {
 		position := BitScan(set)
-		set &= set - 1
 
 		res |= RookAttacks(int(position), occupancy)
 	}
-	return res
+	return
 }
 
-func BishopsAttacks(set uint64, occupancy uint64) uint64 {
-	res := uint64(0)
-	for set > 0 {
+func AnyRookAttacks(set uint64, occupancy uint64, squares uint64) bool {
+	for ; set > 0; set &= set - 1 {
 		position := BitScan(set)
-		set &= set - 1
+
+		if RookAttacks(int(position), occupancy)&squares != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func BishopsAttacks(set uint64, occupancy uint64) (res uint64) {
+	for ; set > 0; set &= set - 1 {
+		position := BitScan(set)
 
 		res |= BishopAttacks(int(position), occupancy)
 	}
-	return res
+	return
 }
 
-func QueensAttacks(set uint64, occupancy uint64) uint64 {
-	res := uint64(0)
-	for set > 0 {
+func AnyBishopAttacks(set uint64, occupancy uint64, squares uint64) bool {
+	for ; set > 0; set &= set - 1 {
 		position := BitScan(set)
-		set &= set - 1
+
+		if BishopAttacks(int(position), occupancy)&squares != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func QueensAttacks(set uint64, occupancy uint64) (res uint64) {
+	for ; set > 0; set &= set - 1 {
+		position := BitScan(set)
 
 		res |= QueenAttacks(int(position), occupancy)
 	}
-	return res
+	return
 }
 
-func squareString(square int) string {
-	var res string
+func AnyQueenAttacks(set uint64, occupancy uint64, squares uint64) bool {
+	for ; set > 0; set &= set - 1 {
+		position := BitScan(set)
+
+		if QueenAttacks(int(position), occupancy)&squares != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func squareString(square int) (res string) {
 	res += string(byte(int('a') + File(square)))
 	res += string(byte(int('1') + Rank(square)))
-	return res
+	return
 }
 
 func init() {

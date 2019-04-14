@@ -299,13 +299,13 @@ func (pos *Position) IsSquareAttacked(squareBB uint64, side bool) bool {
 	if KnightsAttacks(ourOccupancy&pos.Knights)&squareBB != 0 {
 		return true
 	}
-	if BishopsAttacks(ourOccupancy&pos.Bishops, allOccupation)&squareBB != 0 {
+	if AnyQueenAttacks(ourOccupancy&pos.Queens, allOccupation, squareBB) {
 		return true
 	}
-	if RooksAttacks(ourOccupancy&pos.Rooks, allOccupation)&squareBB != 0 {
+	if AnyRookAttacks(ourOccupancy&pos.Rooks, allOccupation, squareBB) {
 		return true
 	}
-	if QueensAttacks(ourOccupancy&pos.Queens, allOccupation)&squareBB != 0 {
+	if AnyBishopAttacks(ourOccupancy&pos.Bishops, allOccupation, squareBB) {
 		return true
 	}
 	if kingAttacks(ourOccupancy&pos.Kings)&squareBB != 0 {
