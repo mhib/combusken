@@ -227,20 +227,20 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 
 	// Castling
 	if pos.WhiteMove {
-		if allOccupation&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1_MASK, false) && !pos.IsSquareAttacked(F1_MASK, false) {
+		if allOccupation&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, false) && !pos.IsSquareAttacked(F1, false) {
 			buffer[counter].Move = WhiteKingSideCastle
 			counter++
 		}
-		if allOccupation&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1_MASK, false) && !pos.IsSquareAttacked(D1_MASK, false) {
+		if allOccupation&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, false) && !pos.IsSquareAttacked(D1, false) {
 			buffer[counter].Move = WhiteQueenSideCastle
 			counter++
 		}
 	} else {
-		if allOccupation&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8_MASK, true) && !pos.IsSquareAttacked(F8_MASK, true) {
+		if allOccupation&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, true) && !pos.IsSquareAttacked(F8, true) {
 			buffer[counter].Move = BlackKingSideCastle
 			counter++
 		}
-		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8_MASK, true) && !pos.IsSquareAttacked(D8_MASK, true) {
+		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, true) && !pos.IsSquareAttacked(D8, true) {
 			buffer[counter].Move = BlackQueenSideCastle
 			counter++
 		}

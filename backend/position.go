@@ -277,38 +277,35 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 
 func (pos *Position) IsInCheck() bool {
 	if pos.WhiteMove {
-		return pos.IsSquareAttacked(pos.White&pos.Kings, false)
+		return pos.IsSquareAttacked(BitScan(pos.White&pos.Kings), false)
 	} else {
-		return pos.IsSquareAttacked(pos.Black&pos.Kings, true)
+		return pos.IsSquareAttacked(BitScan(pos.Black&pos.Kings), true)
 	}
 }
 
-func (pos *Position) IsSquareAttacked(squareBB uint64, side bool) bool {
-	var ourOccupancy, attackedSquares uint64
-	allOccupation := pos.White | pos.Black
+func (pos *Position) IsSquareAttacked(square int, side bool) bool {
+	var theirOccupancy, attackedSquares uint64
 	if side {
-		ourOccupancy = pos.White
-		attackedSquares = WhitePawnsAttacks(pos.Pawns & pos.White)
+		theirOccupancy = pos.White
+		attackedSquares = BlackPawnAttacks[square] & pos.Pawns & theirOccupancy
 	} else {
-		ourOccupancy = pos.Black
-		attackedSquares = BlackPawnsAttacks(pos.Pawns & pos.Black)
+		theirOccupancy = pos.Black
+		attackedSquares = WhitePawnAttacks[square] & pos.Pawns & theirOccupancy
 	}
-	if attackedSquares&squareBB != 0 {
+	if attackedSquares != 0 {
 		return true
 	}
-	if KnightsAttacks(ourOccupancy&pos.Knights)&squareBB != 0 {
+	if KnightAttacks[square]&theirOccupancy&pos.Knights != 0 {
 		return true
 	}
-	if AnyQueenAttacks(ourOccupancy&pos.Queens, allOccupation, squareBB) {
+	if KingAttacks[square]&pos.Kings&theirOccupancy != 0 {
 		return true
 	}
-	if AnyRookAttacks(ourOccupancy&pos.Rooks, allOccupation, squareBB) {
+	allOccupation := pos.White | pos.Black
+	if BishopAttacks(square, allOccupation)&(pos.Queens|pos.Bishops)&theirOccupancy != 0 {
 		return true
 	}
-	if AnyBishopAttacks(ourOccupancy&pos.Bishops, allOccupation, squareBB) {
-		return true
-	}
-	if kingAttacks(ourOccupancy&pos.Kings)&squareBB != 0 {
+	if RookAttacks(square, allOccupation)&(pos.Queens|pos.Rooks)&theirOccupancy != 0 {
 		return true
 	}
 	return false
