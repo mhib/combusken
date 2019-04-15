@@ -282,28 +282,28 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			if Rank(fromId) == RANK_7 {
 				if SquareMask[fromId+8]&allOccupation == 0 {
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1)), QueenValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1)), 0}
 					counter++
 				}
 				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 1, 1, 1)), Queen + PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 1, 1, 1)), 0}
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 1, 1, 1)), Queen + PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 1, 1, 1)), 0}
 					counter++
 				}
 			} else {
 				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 0, 0, 0)), 0}
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId+9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 0, 0, 0)), 0}
 					counter++
 				}
 			}
@@ -322,28 +322,28 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			if Rank(fromId) == RANK_2 {
 				if SquareMask[fromId-8]&allOccupation == 0 {
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1)), QueenValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1)), 0}
 					counter++
 				}
 				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 1, 1, 1)), QueenValue + PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 1, 1, 1)), 0}
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 1, 1, 1)), QueenValue + PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 1, 1, 1)), 0}
 					counter++
 				}
 			} else {
 				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 0, 0, 0)), 0}
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
 					what = pos.TypeOnSquare(SquareMask[fromId-7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 0, 0, 0)), PieceValues[what] - PawnValue}
+					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 0, 0, 0)), 0}
 					counter++
 				}
 			}
@@ -358,7 +358,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Knight, what, NewType(1, 0, 0, 0)), PieceValues[what] - KnightValue}
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Knight, what, NewType(1, 0, 0, 0)), 0}
 			counter++
 		}
 	}
@@ -371,7 +371,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Bishop, what, NewType(1, 0, 0, 0)), PieceValues[what] - BishopValue}
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Bishop, what, NewType(1, 0, 0, 0)), 0}
 			counter++
 		}
 	}
@@ -384,7 +384,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Rook, what, NewType(1, 0, 0, 0)), PieceValues[what] - RookValue}
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Rook, what, NewType(1, 0, 0, 0)), 0}
 			counter++
 		}
 	}
@@ -397,7 +397,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Queen, what, NewType(1, 0, 0, 0)), PieceValues[what] - QueenValue}
+			buffer[counter] = EvaledMove{NewMove(fromId, toId, Queen, what, NewType(1, 0, 0, 0)), 0}
 			counter++
 		}
 	}
@@ -410,7 +410,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		toId = BitScan(toBB)
 		to = SquareMask[uint(toId)]
 		what = pos.TypeOnSquare(to)
-		buffer[counter] = EvaledMove{NewMove(fromId, toId, King, what, NewType(1, 0, 0, 0)), PieceValues[what] - KingValue}
+		buffer[counter] = EvaledMove{NewMove(fromId, toId, King, what, NewType(1, 0, 0, 0)), 0}
 		counter++
 	}
 	// end of Kings
