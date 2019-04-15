@@ -116,9 +116,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		tmpVal = int(hashValue)
 		if hashDepth >= uint8(depth) {
 			if hashFlag == TransExact {
-				if !hashMove.IsCapture() {
-					t.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
-				}
+				t.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
 				return tmpVal
 			}
 			if hashFlag == TransAlpha && tmpVal <= alpha {
@@ -167,7 +165,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCapture() && !evaled[i].Move.IsPromotion() &&
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			if depth < 3 {
 				if moveCount >= 9+3*depth {
@@ -199,8 +197,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 						t.KillerMoves[height][0], t.KillerMoves[height][1] = evaled[i].Move, t.KillerMoves[height][0]
 						t.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
 					}
-					t.engine.TransTable.Set(pos.Key, beta, depth, evaled[i].Move, TransBeta, height)
-					return beta
+					t.engine.TransTable.Set(pos.Key, alpha, depth, evaled[i].Move, TransBeta, height)
+					return alpha
 				}
 				t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 			}
@@ -289,7 +287,6 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		moveToFirst(moves, bestMoveIdx)
 	}
 	fmt.Println(depth, mainThread)
-	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, TransExact, 0)
 	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
