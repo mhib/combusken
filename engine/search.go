@@ -171,7 +171,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				if moveCount >= 9+3*depth {
 					continue
 				}
-				if lazyEval.Value()+PawnValue*depth <= alpha {
+				if lazyEval.Value()+int(PawnValue.Middle)*depth <= alpha {
 					continue
 				}
 			}
@@ -314,9 +314,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		case <-ctx.Done():
 			return lastBestMove
 		case res := <-resultChan:
-			if i >= 3 {
-				e.callUpdate(SearchInfo{res.value, i, thread.nodes, res.moves})
-			}
+			e.callUpdate(SearchInfo{res.value, i, thread.nodes, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}

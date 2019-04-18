@@ -1,16 +1,5 @@
 package backend
 
-const (
-	PawnValue   = 100
-	KnightValue = 320
-	BishopValue = 330
-	RookValue   = 500
-	QueenValue  = 900
-	KingValue   = 2000
-)
-
-var PieceValues = []int{0, PawnValue, KnightValue, BishopValue, RookValue, QueenValue, KingValue}
-
 type EvaledMove struct {
 	Move
 	Value int
