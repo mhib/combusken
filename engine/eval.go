@@ -21,7 +21,7 @@ var RookValue = Score{1289, 1378}
 var QueenValue = Score{2529, 2687}
 
 // values from stockfish 10
-var pieceScores = [][][]Score{
+var pieceScores = [...][8][4]Score{
 	{},
 	{},
 	{ // knight
@@ -75,7 +75,7 @@ var pieceScores = [][][]Score{
 		{Score{64, 5}, Score{87, 60}, Score{49, 75}, Score{0, 75}},
 	},
 }
-var pawnScores = [][]Score{{},
+var pawnScores = [...][8]Score{{},
 	{Score{0, -10}, Score{-5, -3}, Score{10, 7}, Score{13, -1}, Score{21, 7}, Score{17, 6}, Score{6, 1}, Score{-3, -20}},
 	{Score{-11, -6}, Score{-10, -6}, Score{15, -1}, Score{22, -1}, Score{26, -1}, Score{28, 2}, Score{4, -2}, Score{-24, -5}},
 	{Score{-9, 4}, Score{-18, -5}, Score{8, -4}, Score{22, -5}, Score{33, -6}, Score{25, -13}, Score{-4, -3}, Score{-16, -7}},
@@ -99,10 +99,6 @@ var mobilityBonus = [...][32]Score{
 		Score{79, 140}, Score{88, 143}, Score{88, 148}, Score{99, 166}, Score{102, 170}, Score{102, 175},
 		Score{106, 184}, Score{109, 191}, Score{113, 206}, Score{116, 212}},
 }
-
-const bishopPair = 55
-
-var doubled = Score{11, 56}
 
 var blackPawnsPos [64]Score
 var whitePawnsPos [64]Score
@@ -132,6 +128,13 @@ var passedRank = [7]Score{Score{0, 0}, Score{5, 18}, Score{12, 23}, Score{10, 31
 var passedFile = [8]Score{Score{-1, 7}, Score{0, 9}, Score{-9, -8}, Score{-30, -14},
 	Score{-30, -14}, Score{-9, -8}, Score{0, 9}, Score{-1, 7},
 }
+
+const bishopPair = 55
+
+var doubled = Score{11, 56}
+
+// Rook on semiopen, open file
+var rookOnFile = [2]Score{Score{18, 7}, Score{44, 20}}
 
 func init() {
 
@@ -266,8 +269,15 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & RookAttacks(fromId, allOccupation))
 		midResult += int(mobilityBonus[2][mobility].Middle)
 		endResult += int(mobilityBonus[2][mobility].End)
-		midResult += int(RookValue.Middle + whiteRooksPos[fromId].Middle)
-		endResult += int(RookValue.End + whiteRooksPos[fromId].End)
+		midResult += int(RookValue.Middle) + int(whiteRooksPos[fromId].Middle)
+		endResult += int(RookValue.End) + int(whiteRooksPos[fromId].End)
+		if pos.Pawns&FILES[File(fromId)] == 0 {
+			midResult += int(rookOnFile[1].Middle)
+			endResult += int(rookOnFile[1].End)
+		} else if (pos.Pawns&pos.White)&FILES[File(fromId)] == 0 {
+			midResult += int(rookOnFile[0].Middle)
+			endResult += int(rookOnFile[0].End)
+		}
 		phase -= rookPhase
 	}
 
@@ -338,6 +348,13 @@ func Evaluate(pos *Position) int {
 		endResult -= int(mobilityBonus[2][mobility].End)
 		midResult -= int(RookValue.Middle + blackRooksPos[fromId].Middle)
 		endResult -= int(RookValue.End + blackRooksPos[fromId].End)
+		if pos.Pawns&FILES[File(fromId)] == 0 {
+			midResult -= int(rookOnFile[1].Middle)
+			endResult -= int(rookOnFile[1].End)
+		} else if (pos.Pawns&pos.Black)&FILES[File(fromId)] == 0 {
+			midResult -= int(rookOnFile[0].Middle)
+			endResult -= int(rookOnFile[0].End)
+		}
 		phase -= rookPhase
 	}
 
