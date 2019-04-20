@@ -2,7 +2,7 @@ package engine
 
 import . "github.com/mhib/combusken/backend"
 
-var SEEValues = []int{0, 100, 357, 377, 712, 12534, 20000} // From zurichess
+var SEEValues = []int{0, int(PawnValue.Middle), int(KnightValue.Middle), int(BishopValue.Middle), int(RookValue.Middle), int(QueenValue.Middle), -Mate / 2}
 
 // Returns true if see non-negative
 func seeSign(pos *Position, move Move) bool {
@@ -11,12 +11,15 @@ func seeSign(pos *Position, move Move) bool {
 
 // based on laser implementation
 func seeAbove(pos *Position, move Move, cutoff int) bool {
+	// Special case for ep and castling
 	if move.Type() == EPCapture || move.IsCastling() {
 		return cutoff <= 0
 	}
+	lastPiece := move.MovedPiece()
 	capturedValue := SEEValues[move.CapturedPiece()]
 	if move.IsPromotion() {
-		capturedValue += SEEValues[move.Special()+Knight] - SEEValues[Pawn]
+		lastPiece = move.PromotedPiece()
+		capturedValue += SEEValues[lastPiece] - SEEValues[Pawn]
 	}
 	value := capturedValue - cutoff
 	// return when free piece is not enough
@@ -24,12 +27,7 @@ func seeAbove(pos *Position, move Move, cutoff int) bool {
 		return false
 	}
 
-	lastPiece := move.MovedPiece()
-	if lastPiece == King {
-		value -= Mate / 2
-	} else {
-		value -= SEEValues[lastPiece]
-	}
+	value -= SEEValues[lastPiece]
 	// return when after recapture it is still good enough
 	if value >= 0 {
 		return true
@@ -52,8 +50,8 @@ func seeAbove(pos *Position, move Move, cutoff int) bool {
 		side = !side
 		value = -value - 1 - SEEValues[nextVictim]
 		lastPiece = nextVictim
-		// lastPiece belonged to side
-		// if after the recapture of lastPiece opponents score is positive then side loses
+		// lastPiece belonged to `side`
+		// if after the recapture of lastPiece opponents score is positive then `side` loses
 		if value >= 0 {
 			break
 		}
