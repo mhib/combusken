@@ -136,6 +136,23 @@ var doubled = Score{11, 56}
 // Rook on semiopen, open file
 var rookOnFile = [2]Score{Score{18, 7}, Score{44, 20}}
 
+// this bonus only improves midScore
+var pawnShieldBonus = [...]int{15, 7} // score for every pawn
+
+const whiteKingKingSide = F1 | G1 | H1
+const whiteKingKingSideShield1 = (whiteKingKingSide << 8)  // one rank up
+const whiteKingKingSideShield2 = (whiteKingKingSide << 16) // two ranks up
+const whiteKingQueenSide = A1 | B1 | C1
+const whiteKingQueenSideShield1 = (whiteKingQueenSide << 8)  // one rank up
+const whiteKingQueenSideShield2 = (whiteKingQueenSide << 16) // two ranks up
+
+const blackKingKingSide = F8 | G8 | H8
+const blackKingKingSideShield1 = (blackKingKingSide >> 8)  // one rank down
+const blackKingKingSideShield2 = (blackKingKingSide >> 16) // two ranks down
+const blackKingQueenSide = A8 | B8 | C8
+const blackKingQueenSideShield1 = (blackKingQueenSide >> 8)  // one rank down
+const blackKingQueenSideShield2 = (blackKingQueenSide >> 16) // two ranks down
+
 func init() {
 
 	for x := 0; x < 4; x++ {
@@ -292,9 +309,20 @@ func Evaluate(pos *Position) int {
 		phase -= queenPhase
 	}
 
+	// king
 	fromId = BitScan(pos.Kings & pos.White)
 	midResult += int(whiteKingPos[fromId].Middle)
 	endResult += int(whiteKingPos[fromId].End)
+
+	// shield
+	if (pos.Kings&pos.White)&whiteKingKingSide != 0 {
+		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield1) * pawnShieldBonus[0]
+		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield2) * pawnShieldBonus[1]
+	}
+	if (pos.Kings&pos.White)&whiteKingQueenSide != 0 {
+		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield1) * pawnShieldBonus[0]
+		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield2) * pawnShieldBonus[1]
+	}
 
 	// black pawns
 	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
@@ -372,6 +400,15 @@ func Evaluate(pos *Position) int {
 	fromId = BitScan(pos.Kings & pos.Black)
 	midResult -= int(blackKingPos[fromId].Middle)
 	endResult -= int(blackKingPos[fromId].End)
+	// shield
+	if (pos.Kings&pos.Black)&blackKingKingSide != 0 {
+		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield1) * pawnShieldBonus[0]
+		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield2) * pawnShieldBonus[1]
+	}
+	if (pos.Kings&pos.Black)&blackKingQueenSide != 0 {
+		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield1) * pawnShieldBonus[0]
+		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield2) * pawnShieldBonus[1]
+	}
 
 	if phase < 0 {
 		phase = 0
