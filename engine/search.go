@@ -154,7 +154,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height)
 	quietsSearched := t.stack[height].quietsSearched[:0]
-	t.ResetKillers(height)
+	//t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
