@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sort"
 	"sync"
@@ -286,7 +285,6 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	if bestMoveIdx != -1 {
 		moveToFirst(moves, bestMoveIdx)
 	}
-	fmt.Println(depth, mainThread)
 	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
