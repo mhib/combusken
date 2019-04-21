@@ -372,3 +372,10 @@ func (pos *Position) GenerateAllLegalMoves() []EvaledMove {
 	}
 	return result
 }
+
+func (pos *Position) IntSide() int {
+	if pos.WhiteMove {
+		return 1
+	}
+	return 0
+}

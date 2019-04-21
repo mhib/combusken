@@ -115,7 +115,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		tmpVal = int(hashValue)
 		if hashDepth >= uint8(depth) {
 			if hashFlag == TransExact {
-				t.EvalHistory[uint(hashMove.From())][uint(hashMove.To())] += depth
 				return tmpVal
 			}
 			if hashFlag == TransAlpha && tmpVal <= alpha {
@@ -154,6 +153,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height)
+	quietsSearched := t.stack[height].quietsSearched[:0]
+	t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
@@ -181,23 +182,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				continue
 			}
 		}
+		if !evaled[i].Move.IsCaptureOrPromotion() {
+			quietsSearched = append(quietsSearched, evaled[i].Move)
+		}
 		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1, childInCheck)
 
 		if tmpVal > val {
 			val = tmpVal
-			bestMove = evaled[i].Move
 			if val > alpha {
 				alpha = val
-				if pos.LastMove != NullMove {
-					t.EvalHistory[uint(evaled[i].Move.From())][uint(evaled[i].Move.To())] += depth
-				}
+				bestMove = evaled[i].Move
 				if alpha >= beta {
-					if !evaled[i].Move.IsCapture() && pos.LastMove != NullMove {
-						t.KillerMoves[height][0], t.KillerMoves[height][1] = evaled[i].Move, t.KillerMoves[height][0]
-						t.CounterMoves[pos.LastMove.From()][pos.LastMove.To()] = evaled[i].Move
-					}
-					t.engine.TransTable.Set(pos.Key, alpha, depth, evaled[i].Move, TransBeta, height)
-					return alpha
+					break
 				}
 				t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 			}
@@ -211,16 +207,28 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
-	if alpha == alphaOrig {
-		t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, TransAlpha, height)
-	} else {
-		t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, TransExact, height)
+	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
+		t.Update(pos, quietsSearched, bestMove, depth, height)
 	}
+
+	var flag int
+	if alpha == alphaOrig {
+		flag = TransAlpha
+	} else if alpha >= beta {
+		flag = TransBeta
+	} else {
+		flag = TransExact
+	}
+	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
 	return alpha
 }
 
 func (t *thread) isDraw(height int) bool {
 	var pos *Position = &t.stack[height].position
+
+	if t.engine.MovesCount < 50 {
+		return false
+	}
 
 	if pos.FiftyMove > 100 {
 		return true
@@ -349,6 +357,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
+		e.threads[i].nodes = 0
 	}
 
 	rootMoves := pos.GenerateAllLegalMoves()

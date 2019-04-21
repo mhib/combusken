@@ -52,7 +52,8 @@ type SearchInfo struct {
 type StackEntry struct {
 	position backend.Position
 	PV
-	moves [256]backend.EvaledMove
+	moves          [256]backend.EvaledMove
+	quietsSearched [256]backend.Move
 }
 
 type PV struct {
@@ -88,14 +89,13 @@ func (e *Engine) GetOptions() []*IntUciOption {
 }
 
 func NewEngine() (ret Engine) {
-	ret.Hash = IntUciOption{"Hash", 4, 2048, 1024}
-	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 4}
+	ret.Hash = IntUciOption{"Hash", 4, 2048, 256}
+	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 1}
 	ret.threads = make([]thread, 1)
 	return
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
-	e.cleanBeforeSearch()
 	e.fillMoveHistory(searchParams.Positions)
 	e.timeManager = newTimeManager(searchParams.Limits, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove)
 	var cancel context.CancelFunc
@@ -119,13 +119,6 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 	}
 }
 
-func (e *Engine) cleanBeforeSearch() {
-	for i := range e.threads {
-		e.threads[i].MoveEvaluator.Clear()
-		e.threads[i].nodes = 0
-	}
-}
-
 func (e *Engine) NewGame() {
 	if e.Threads.Val == 1 {
 		e.TransTable = NewSingleThreadTransTable(e.Hash.Val)
@@ -135,7 +128,6 @@ func (e *Engine) NewGame() {
 	e.threads = make([]thread, e.Threads.Val)
 	for i := range e.threads {
 		e.threads[i].MoveEvaluator = MoveEvaluator{}
-		e.threads[i].MoveEvaluator.Clear()
 		e.threads[i].engine = e
 	}
 }
