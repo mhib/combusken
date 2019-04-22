@@ -176,14 +176,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				}
 			}
 		}
+		if !evaled[i].Move.IsCaptureOrPromotion() {
+			quietsSearched = append(quietsSearched, evaled[i].Move)
+		}
 		if !pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue {
 			tmpVal = -t.alphaBeta(depth-1, -(alpha + 1), -alpha, height+1, childInCheck)
 			if tmpVal <= alpha {
 				continue
 			}
-		}
-		if !evaled[i].Move.IsCaptureOrPromotion() {
-			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1, childInCheck)
 
