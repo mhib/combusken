@@ -152,7 +152,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	val := MinInt
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
-	t.EvaluateMoves(pos, evaled, hashMove, height)
+	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	//t.ResetKillers(height)
 	bestMove := NullMove
@@ -365,7 +365,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
 		ordMove = hashMove
 	}
-	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0)
+	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
 	sort.Slice(rootMoves, func(i, j int) bool { return rootMoves[i].Value > rootMoves[j].Value })
 
 	if e.Threads.Val == 1 {

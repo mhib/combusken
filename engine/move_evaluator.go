@@ -64,7 +64,7 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 	}
 }
 
-func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height int) {
+func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
 	side := pos.IntSide()
 	var counter Move
 	if pos.LastMove != NullMove {
@@ -75,10 +75,15 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 			moves[i].Value = 100000
 		} else if moves[i].Move.IsCaptureOrPromotion() {
 
-			if seeSign(pos, moves[i].Move) {
-				moves[i].Value = mvvlva(moves[i].Move) + 50000
+			if depth > 2 {
+				if seeSign(pos, moves[i].Move) {
+					moves[i].Value = mvvlva(moves[i].Move) + 50000
+				} else {
+					moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+				}
+
 			} else {
-				moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+				moves[i].Value = mvvlva(moves[i].Move) + 50000
 			}
 		} else {
 			if moves[i].Move == mv.KillerMoves[height][0] {
