@@ -177,7 +177,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 		if !pvNode && moveCount > 1 {
-			tmpVal = -t.alphaBeta(-(alpha + 1), -alpha, depth-1, height+1, childInCheck)
+			tmpVal = -t.alphaBeta(depth-1, -(alpha + 1), -alpha, height+1, childInCheck)
 			if tmpVal <= alpha {
 				continue
 			}
