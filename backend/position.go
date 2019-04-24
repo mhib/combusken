@@ -67,12 +67,12 @@ func init() {
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
 	if squareBB&pos.Pawns != 0 {
 		return Pawn
-	} else if squareBB&pos.Rooks != 0 {
-		return Rook
 	} else if squareBB&pos.Knights != 0 {
 		return Knight
 	} else if squareBB&pos.Bishops != 0 {
 		return Bishop
+	} else if squareBB&pos.Rooks != 0 {
+		return Rook
 	} else if squareBB&pos.Queens != 0 {
 		return Queen
 	} else if squareBB&pos.Kings != 0 {

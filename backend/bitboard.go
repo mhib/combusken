@@ -233,12 +233,6 @@ const (
 var SquareMask [64]uint64
 var SquareString [64]string
 
-func initSquareMask() {
-	for i := uint(0); i < 64; i++ {
-		SquareMask[i] = 1 << i
-	}
-}
-
 func PopCount(set uint64) int {
 	return bits.OnesCount64(set)
 }
@@ -307,7 +301,7 @@ func initArray(array *[64]uint64, method func(mask uint64) uint64) {
 	}
 }
 
-func kingAttacks(set uint64) uint64 {
+func KingsAttacks(set uint64) uint64 {
 	return NorthEast(set & ^RANK_8_BB & ^FILE_H_BB) | North(set & ^RANK_8_BB) |
 		NorthWest(set & ^RANK_8_BB & ^FILE_A_BB) | East(set & ^FILE_H_BB) | West(set & ^FILE_A_BB) |
 		SouthEast(set & ^RANK_1_BB & ^FILE_H_BB) | South(set & ^RANK_1_BB) | SouthWest(set & ^RANK_1_BB & ^FILE_A_BB)
@@ -368,66 +362,6 @@ func BishopAttacks(square int, occupancy uint64) uint64 {
 	return bishopMoveBoard[square][(bishopBlockerMask[square]&occupancy)*bishopMagicIndex[square]>>bishopShift]
 }
 
-func RooksAttacks(set uint64, occupancy uint64) (res uint64) {
-	for ; set > 0; set &= set - 1 {
-		position := BitScan(set)
-
-		res |= RookAttacks(int(position), occupancy)
-	}
-	return
-}
-
-func AnyRookAttacks(set uint64, occupancy uint64, squares uint64) bool {
-	for ; set > 0; set &= set - 1 {
-		position := BitScan(set)
-
-		if RookAttacks(int(position), occupancy)&squares != 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func BishopsAttacks(set uint64, occupancy uint64) (res uint64) {
-	for ; set > 0; set &= set - 1 {
-		position := BitScan(set)
-
-		res |= BishopAttacks(int(position), occupancy)
-	}
-	return
-}
-
-func AnyBishopAttacks(set uint64, occupancy uint64, squares uint64) bool {
-	for ; set > 0; set &= set - 1 {
-		position := BitScan(set)
-
-		if BishopAttacks(int(position), occupancy)&squares != 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func QueensAttacks(set uint64, occupancy uint64) (res uint64) {
-	for ; set > 0; set &= set - 1 {
-		position := BitScan(set)
-
-		res |= QueenAttacks(int(position), occupancy)
-	}
-	return
-}
-
-func AnyQueenAttacks(set uint64, occupancy uint64, squares uint64) bool {
-	for ; set > 0; set &= set - 1 {
-		position := BitScan(set)
-
-		if QueenAttacks(int(position), occupancy)&squares != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func squareString(square int) (res string) {
 	res += string(byte(int('a') + File(square)))
 	res += string(byte(int('1') + Rank(square)))
@@ -435,8 +369,10 @@ func squareString(square int) (res string) {
 }
 
 func init() {
-	initSquareMask()
-	initArray(&KingAttacks, kingAttacks)
+	for i := uint(0); i < 64; i++ {
+		SquareMask[i] = 1 << i
+	}
+	initArray(&KingAttacks, KingsAttacks)
 	initArray(&KnightAttacks, KnightsAttacks)
 	initArray(&WhitePawnAttacks, WhitePawnsAttacks)
 	initArray(&BlackPawnAttacks, BlackPawnsAttacks)
