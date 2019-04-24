@@ -162,6 +162,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
+		newDepth := depth - 1
+		if inCheck && seeSign(pos, evaled[i].Move) {
+			newDepth++
+		}
 		moveCount++
 		childInCheck := child.IsInCheck()
 
@@ -180,12 +184,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 		if !pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue {
-			tmpVal = -t.alphaBeta(depth-1, -(alpha + 1), -alpha, height+1, childInCheck)
+			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
 			if tmpVal <= alpha {
 				continue
 			}
 		}
-		tmpVal = -t.alphaBeta(depth-1, -beta, -alpha, height+1, childInCheck)
+		tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 
 		if tmpVal > val {
 			val = tmpVal
