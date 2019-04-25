@@ -18,7 +18,7 @@ var PawnValue = Score{128, 213}
 var KnightValue = Score{782, 865}
 var BishopValue = Score{830, 918}
 var RookValue = Score{1289, 1378}
-var QueenValue = Score{2529, 2687}
+var QueenValue = Score{128, 213}
 
 // values from stockfish 10
 var pieceScores = [...][8][4]Score{
