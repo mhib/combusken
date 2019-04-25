@@ -15,9 +15,9 @@ type Score struct {
 }
 
 var PawnValue = Score{128, 213}
-var KnightValue = Score{782, 865}
-var BishopValue = Score{830, 918}
-var RookValue = Score{1289, 1378}
+var KnightValue = Score{128, 213}
+var BishopValue = Score{128, 213}
+var RookValue = Score{128, 213}
 var QueenValue = Score{128, 213}
 
 // values from stockfish 10

@@ -130,15 +130,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	pvNode := alpha != beta+1
 
-	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
-		pos.MakeNullMove(child)
-		reduction := max(1+depth/3, 3)
-		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
-		if tmpVal >= beta {
-			return beta
-		}
-	}
-
 	// Check extension
 	if inCheck {
 		depth++
