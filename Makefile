@@ -8,3 +8,4 @@ combusken:
 	mkdir -p "${GOPATH}/src/github.com/mhib"
 	ln -s -f "$(ROOT_DIR)" "${GOPATH}/src/github.com/mhib/combusken"
 	go build -o $(EXE) combusken.go
+	rm "${GOPATH}/src/github.com/mhib/combusken"
