@@ -152,12 +152,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	//t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
+	sortMoves(evaled)
 	for i := range evaled {
-		if i < 4 {
-			maxMoveToFirst(evaled[i:])
-		} else if i == 4 {
-			sortMoves(evaled[i:])
-		}
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
