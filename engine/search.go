@@ -454,17 +454,12 @@ func (le *lazyEval) Value() int {
 	return le.value
 }
 
-// Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.
-var shellSortGaps = [...]int{23, 10, 4, 1}
-
 func sortMoves(moves []EvaledMove) {
-	for _, gap := range shellSortGaps {
-		for i := gap; i < len(moves); i++ {
-			j, t := i, moves[i]
-			for ; j >= gap && moves[j-gap].Value < t.Value; j -= gap {
-				moves[j] = moves[j-gap]
-			}
-			moves[j] = t
+	for i := 1; i < len(moves); i++ {
+		j, t := i, moves[i]
+		for ; j > 0 && moves[j-1].Value < t.Value; j-- {
+			moves[j] = moves[j-1]
 		}
+		moves[j] = t
 	}
 }
