@@ -15,6 +15,8 @@ const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 const SMPCycles = 16
+const SEEQuietMargin = -80
+const SEENoisyMargin = -18
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
@@ -149,11 +151,27 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 	quietsSearched := t.stack[height].quietsSearched[:0]
+
+	seeNoisyMargin := SEENoisyMargin * depth * depth
+	seeQuietMargin := SEEQuietMargin * depth
 	//t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
+
+		if depth <= 8 && val > ValueLoss && !t.beforeQuietMoves(&evaled[i]) {
+			if evaled[i].Move.IsCaptureOrPromotion() {
+				if !seeAbove(pos, evaled[i].Move, seeNoisyMargin) {
+					continue
+				}
+			} else {
+				if !seeAbove(pos, evaled[i].Move, seeQuietMargin) {
+					continue
+				}
+			}
+		}
+
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
