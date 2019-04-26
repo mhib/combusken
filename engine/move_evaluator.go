@@ -79,9 +79,8 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 				if seeSign(pos, moves[i].Move) {
 					moves[i].Value = mvvlva(moves[i].Move) + 50000
 				} else {
-					moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+					moves[i].Value = mvvlva(moves[i].Move) - 100000
 				}
-
 			} else {
 				moves[i].Value = mvvlva(moves[i].Move) + 50000
 			}
