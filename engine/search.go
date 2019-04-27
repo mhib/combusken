@@ -163,11 +163,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
-		newDepth := depth - 1
-		if inCheck && seeSign(pos, evaled[i].Move) {
-			newDepth++
-		}
-
 		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			if depth < 3 {
@@ -179,6 +174,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				}
 			}
 		}
+		newDepth := depth - 1
+		if inCheck && seeSign(pos, evaled[i].Move) {
+			newDepth++
+		}
+
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
