@@ -163,9 +163,16 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		reduction := 0
+		if !inCheck && moveCount > 1 && evaled[i].Value <= MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
-			if depth < 3 {
+			if depth >= 3 {
+				reduction = lmr(depth, moveCount)
+				if pvNode {
+					reduction--
+				}
+				reduction = max(0, min(depth-2, reduction))
+			} else {
 				if moveCount >= 9+3*depth {
 					continue
 				}
@@ -182,8 +189,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
-		if !pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue {
-			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
+		if reduction > 0 || (!pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue) {
+			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
 			if tmpVal <= alpha {
 				continue
 			}
@@ -466,5 +473,18 @@ func sortMoves(moves []EvaledMove) {
 			}
 			moves[j] = t
 		}
+	}
+}
+
+func lmr(d, m int) int {
+	switch {
+	case d >= 5 && m >= 16:
+		return 3
+	case d >= 4 && m >= 9:
+		return 2
+	case d >= 3 && m >= 4:
+		return 1
+	default:
+		return 0
 	}
 }
