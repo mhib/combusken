@@ -121,5 +121,5 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCh
 }
 
 func beforeQuietMoves(ev *EvaledMove) bool {
-	return ev.Value > (50000 - 300)
+	return ev.Value > 20000
 }
