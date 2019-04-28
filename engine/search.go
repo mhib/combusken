@@ -155,6 +155,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	lazyEval := lazyEval{position: pos}
 	val := MinInt
 
+	// Internal iterative deepening
+	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
+		var iiDepth int
+		if pvNode {
+			iiDepth = depth - depth/4 - 1
+		} else {
+			iiDepth = (depth - 5) / 2
+		}
+		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
+		_, _, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
+	}
+
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 	quietsSearched := t.stack[height].quietsSearched[:0]
