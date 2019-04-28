@@ -16,8 +16,8 @@ const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 const SMPCycles = 16
 
-const SEEQuietMargin = -80
-const SEENoisyMargin = -18
+const SEEQuietMargin = -213
+const SEENoisyMargin = -29
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
