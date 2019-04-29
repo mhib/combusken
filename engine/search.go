@@ -35,11 +35,20 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.stack[height].PV.clear()
 	pos := &t.stack[height].position
 
-	if height >= MAX_HEIGHT {
+	if height >= MAX_HEIGHT || t.isDraw(height) {
 		return contempt(pos)
 	}
 
+	if hashOk, hashValue, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
+		tmpHashValue := int(hashValue)
+		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
+			(hashFlag == TransBeta && tmpHashValue >= beta) {
+			return tmpHashValue
+		}
+	}
+
 	child := &t.stack[height+1].position
+
 	moveCount := 0
 
 	val := Evaluate(pos)
