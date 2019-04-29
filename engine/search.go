@@ -159,7 +159,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	if hashMove == NullMove && inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
 		var iiDepth int
 		if pvNode {
-			iiDepth = depth - depth/4 - 1
+			iiDepth = depth / 2
 		} else {
 			iiDepth = (depth - 5) / 2
 		}
