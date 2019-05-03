@@ -45,7 +45,7 @@ func valueToTrans(value int, height int) int16 {
 }
 
 type singleThreadTransEntry struct {
-	key      uint64
+	key      uint32
 	bestMove backend.Move
 	value    int16
 	flag     uint8
@@ -63,8 +63,9 @@ func NewSingleThreadTransTable(megabytes int) *SingleThreadTransTable {
 }
 
 func (t *SingleThreadTransTable) Get(key uint64, height int) (ok bool, value int16, depth uint8, move backend.Move, flag uint8) {
+
 	var element = &t.Entries[key&t.Mask]
-	if element.key != key {
+	if element.key != uint32(key>>32) {
 		return
 	}
 	ok = true
@@ -77,7 +78,7 @@ func (t *SingleThreadTransTable) Get(key uint64, height int) (ok bool, value int
 
 func (t *SingleThreadTransTable) Set(key uint64, value, depth int, bestMove backend.Move, flag int, height int) {
 	var element = &t.Entries[key&t.Mask]
-	element.key = key
+	element.key = uint32(key >> 32)
 	element.value = valueToTrans(value, height)
 	element.flag = uint8(flag)
 	element.depth = uint8(depth)
