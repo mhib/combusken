@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"math/rand"
+	"sort"
 	"sync"
 
 	. "github.com/mhib/combusken/backend"
@@ -403,7 +404,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
-	sortMoves(rootMoves)
+	sort.Slice(rootMoves, func(i, j int) bool { return rootMoves[i].Value > rootMoves[j].Value })
 
 	if e.Threads.Val == 1 {
 		return e.singleThreadBestMove(ctx, rootMoves)
