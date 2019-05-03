@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"math/rand"
-	"sort"
 	"sync"
 
 	. "github.com/mhib/combusken/backend"
@@ -38,20 +37,22 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	if height >= MAX_HEIGHT || t.isDraw(height) {
 		return contempt(pos)
 	}
-
-	if hashOk, hashValue, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
+	var val int
+	hashOk, hashValue, _, hashEvaluation, _, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	if hashOk {
 		tmpHashValue := int(hashValue)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
 			return tmpHashValue
 		}
+		val = int(hashEvaluation)
+	} else {
+		val = Evaluate(pos)
 	}
 
 	child := &t.stack[height+1].position
 
 	moveCount := 0
-
-	val := Evaluate(pos)
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -119,7 +120,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	var tmpVal int
 
 	alphaOrig := alpha
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	hashOk, hashValue, hashDepth, hashMove, hashEvaluation, hashFlag := t.engine.TransTable.Get(pos.Key, height)
 	if hashOk {
 		tmpVal = int(hashValue)
 		if hashDepth >= uint8(depth) {
@@ -152,9 +153,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
-	lazyEval := lazyEval{position: pos}
-	val := MinInt
-
 	// Internal iterative deepening
 	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
 		var iiDepth int
@@ -164,8 +162,16 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			iiDepth = (depth - 5) / 2
 		}
 		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
-		_, _, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
+		hashOk, _, _, hashMove, hashEvaluation, _ = t.engine.TransTable.Get(pos.Key, height)
 	}
+
+	var staticEvaluation int
+	if hashOk {
+		staticEvaluation = int(hashEvaluation)
+	} else {
+		staticEvaluation = Evaluate(pos)
+	}
+	val := MinInt
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
@@ -197,7 +203,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				if moveCount >= 9+3*depth {
 					continue
 				}
-				if lazyEval.Value()+int(PawnValue.Middle)*depth <= alpha {
+				if staticEvaluation+int(PawnValue.Middle)*depth <= alpha {
 					continue
 				}
 			}
@@ -250,7 +256,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
+	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, staticEvaluation, flag, height)
 	return alpha
 }
 
@@ -393,11 +399,11 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 
 	rootMoves := pos.GenerateAllLegalMoves()
 	ordMove := NullMove
-	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
+	if hashOk, _, _, hashMove, _, _ := e.TransTable.Get(pos.Key, 0); hashOk {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
-	sort.Slice(rootMoves, func(i, j int) bool { return rootMoves[i].Value > rootMoves[j].Value })
+	sortMoves(rootMoves)
 
 	if e.Threads.Val == 1 {
 		return e.singleThreadBestMove(ctx, rootMoves)

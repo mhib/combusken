@@ -18,8 +18,8 @@ type IntUciOption struct {
 }
 
 type TransTable interface {
-	Get(key uint64, height int) (ok bool, value int16, depth uint8, move backend.Move, flag uint8)
-	Set(key uint64, value, depth int, move backend.Move, flag, height int)
+	Get(key uint64, height int) (ok bool, value int16, depth uint8, move backend.Move, evaluation int16, flag uint8)
+	Set(key uint64, value, depth int, move backend.Move, evaluation int, flag, height int)
 	Clear()
 }
 
@@ -120,11 +120,7 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 }
 
 func (e *Engine) NewGame() {
-	if e.Threads.Val == 1 {
-		e.TransTable = NewSingleThreadTransTable(e.Hash.Val)
-	} else {
-		e.TransTable = NewAtomicTransTable(e.Hash.Val)
-	}
+	e.TransTable = NewTransTable(e.Hash.Val)
 	e.threads = make([]thread, e.Threads.Val)
 	for i := range e.threads {
 		e.threads[i].MoveEvaluator = MoveEvaluator{}
