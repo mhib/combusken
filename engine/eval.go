@@ -121,6 +121,8 @@ var whiteKingPos [64]Score
 var blackPassedMask [64]uint64
 var whitePassedMask [64]uint64
 
+var adjacentFilesMask [8]uint64
+
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
 var passedRank = [7]Score{Score{0, 0}, Score{5, 18}, Score{12, 23}, Score{10, 31}, Score{57, 62}, Score{163, 167}, Score{271, 250}}
 
@@ -128,6 +130,7 @@ var passedRank = [7]Score{Score{0, 0}, Score{5, 18}, Score{12, 23}, Score{10, 31
 var passedFile = [8]Score{Score{-1, 7}, Score{0, 9}, Score{-9, -8}, Score{-30, -14},
 	Score{-30, -14}, Score{-9, -8}, Score{0, 9}, Score{-1, 7},
 }
+var isolated = Score{-4, -6}
 
 const bishopPair = 55
 
@@ -215,6 +218,15 @@ func init() {
 			}
 		}
 	}
+	for i := range FILES {
+		adjacentFilesMask[i] = 0
+		if i != 0 {
+			adjacentFilesMask[i] |= FILES[i-1]
+		}
+		if i != 7 {
+			adjacentFilesMask[i] |= FILES[i+1]
+		}
+	}
 }
 
 // CounterGO's version
@@ -243,6 +255,10 @@ func Evaluate(pos *Position) int {
 		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 {
 			midResult += int(passedRank[Rank(fromId)].Middle + passedFile[File(fromId)].Middle)
 			endResult += int(passedRank[Rank(fromId)].End + passedFile[File(fromId)].End)
+		}
+		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.White) == 0 {
+			midResult += int(isolated.Middle)
+			endResult += int(isolated.End)
 		}
 		midResult += int(PawnValue.Middle + whitePawnsPos[fromId].Middle)
 		endResult += int(PawnValue.End + whitePawnsPos[fromId].End)
@@ -332,6 +348,10 @@ func Evaluate(pos *Position) int {
 		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 {
 			midResult -= int(passedRank[7-Rank(fromId)].Middle + passedFile[File(fromId)].Middle)
 			endResult -= int(passedRank[7-Rank(fromId)].End + passedFile[File(fromId)].End)
+		}
+		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
+			midResult -= int(isolated.Middle)
+			endResult -= int(isolated.End)
 		}
 		midResult -= int(PawnValue.Middle + blackPawnsPos[fromId].Middle)
 		endResult -= int(PawnValue.End + blackPawnsPos[fromId].End)
