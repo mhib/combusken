@@ -39,7 +39,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
-	if hashOk, hashValue, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
+	if hashOk, hashValue, _, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
 		tmpHashValue := int(hashValue)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
@@ -117,9 +117,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	var tmpVal int
-
 	alphaOrig := alpha
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
 	if hashOk {
 		tmpVal = int(hashValue)
 		if hashDepth >= uint8(depth) {
@@ -152,7 +151,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
-	lazyEval := lazyEval{position: pos}
 	val := MinInt
 
 	// Internal iterative deepening
@@ -164,7 +162,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			iiDepth = (depth - 5) / 2
 		}
 		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
-		_, _, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
+		hashOk, _, hashEval, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
+	}
+	var staticEval int
+
+	if hashOk {
+		staticEval = int(hashEval)
+	} else {
+		staticEval = Evaluate(pos)
 	}
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
@@ -197,7 +202,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				if moveCount >= 9+3*depth {
 					continue
 				}
-				if lazyEval.Value()+int(PawnValue.Middle)*depth <= alpha {
+				if staticEval+int(PawnValue.Middle)*depth <= alpha {
 					continue
 				}
 			}
@@ -250,7 +255,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
+	t.engine.TransTable.Set(pos.Key, alpha, staticEval, depth, bestMove, flag, height)
 	return alpha
 }
 
@@ -393,7 +398,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 
 	rootMoves := pos.GenerateAllLegalMoves()
 	ordMove := NullMove
-	if hashOk, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
+	if hashOk, _, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
@@ -466,20 +471,6 @@ func recoverFromTimeout() {
 	if err != nil && err != errTimeout {
 		panic(err)
 	}
-}
-
-type lazyEval struct {
-	position *Position
-	hasValue bool
-	value    int
-}
-
-func (le *lazyEval) Value() int {
-	if !le.hasValue {
-		le.value = Evaluate(le.position)
-		le.hasValue = true
-	}
-	return le.value
 }
 
 // Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.
