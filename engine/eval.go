@@ -130,7 +130,9 @@ var passedRank = [7]Score{Score{0, 0}, Score{5, 18}, Score{12, 23}, Score{10, 31
 var passedFile = [8]Score{Score{-1, 7}, Score{0, 9}, Score{-9, -8}, Score{-30, -14},
 	Score{-30, -14}, Score{-9, -8}, Score{0, 9}, Score{-1, 7},
 }
-var isolated = Score{-4, -6}
+
+var isolated = Score{-5, -15}
+var minorBehindPawn = Score{18, 3}
 
 const bishopPair = 55
 
@@ -279,6 +281,10 @@ func Evaluate(pos *Position) int {
 		endResult += int(KnightValue.End + whiteKnightsPos[fromId].End)
 		midResult += int(mobilityBonus[0][mobility].Middle)
 		endResult += int(mobilityBonus[0][mobility].End)
+		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
+			midResult += int(minorBehindPawn.Middle)
+			endResult += int(minorBehindPawn.End)
+		}
 		phase -= knightPhase
 	}
 
@@ -290,6 +296,10 @@ func Evaluate(pos *Position) int {
 		endResult += int(mobilityBonus[1][mobility].End)
 		midResult += int(BishopValue.Middle + whiteBishopsPos[fromId].Middle)
 		endResult += int(BishopValue.End + whiteBishopsPos[fromId].End)
+		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
+			midResult += int(minorBehindPawn.Middle)
+			endResult += int(minorBehindPawn.End)
+		}
 		phase -= bishopPhase
 	}
 	// bishop pair bonus
@@ -371,6 +381,10 @@ func Evaluate(pos *Position) int {
 		endResult -= int(KnightValue.End + blackKnightsPos[fromId].End)
 		midResult -= int(mobilityBonus[0][mobility].Middle)
 		endResult -= int(mobilityBonus[0][mobility].End)
+		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
+			midResult -= int(minorBehindPawn.Middle)
+			endResult -= int(minorBehindPawn.End)
+		}
 		phase -= knightPhase
 	}
 
@@ -382,6 +396,10 @@ func Evaluate(pos *Position) int {
 		endResult -= int(mobilityBonus[1][mobility].End)
 		midResult -= int(BishopValue.Middle + blackBishopsPos[fromId].Middle)
 		endResult -= int(BishopValue.End + blackBishopsPos[fromId].End)
+		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
+			midResult -= int(minorBehindPawn.Middle)
+			endResult -= int(minorBehindPawn.End)
+		}
 		phase -= bishopPhase
 	}
 
