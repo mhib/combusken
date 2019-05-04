@@ -63,7 +63,6 @@ func NewSingleThreadTransTable(megabytes int) *SingleThreadTransTable {
 }
 
 func (t *SingleThreadTransTable) Get(key uint64, height int) (ok bool, value int16, eval int16, depth uint8, move backend.Move, flag uint8) {
-
 	var element = &t.Entries[key&t.Mask]
 	if element.key != uint32(key>>32) {
 		return

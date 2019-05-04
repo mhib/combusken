@@ -38,8 +38,8 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	if height >= MAX_HEIGHT || t.isDraw(height) {
 		return contempt(pos)
 	}
-
-	if hashOk, hashValue, _, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
+	hashOk, hashValue, hashEval, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	if hashOk {
 		tmpHashValue := int(hashValue)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
@@ -51,7 +51,13 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := Evaluate(pos)
+	var val int
+
+	if hashOk {
+		val = int(hashEval)
+	} else {
+		val = Evaluate(pos)
+	}
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -116,6 +122,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
+	if depth == 0 {
+		return t.quiescence(alpha, beta, height, inCheck)
+	}
+
 	var tmpVal int
 	alphaOrig := alpha
 	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
@@ -147,12 +157,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 	}
 
-	if depth == 0 {
-		return t.quiescence(alpha, beta, height, inCheck)
-	}
-
 	val := MinInt
 
+	var staticEval int
 	// Internal iterative deepening
 	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
 		var iiDepth int
@@ -164,7 +171,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
 		hashOk, _, hashEval, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
 	}
-	var staticEval int
 
 	if hashOk {
 		staticEval = int(hashEval)
@@ -471,6 +477,20 @@ func recoverFromTimeout() {
 	if err != nil && err != errTimeout {
 		panic(err)
 	}
+}
+
+type lazyEval struct {
+	position *Position
+	hasValue bool
+	value    int
+}
+
+func (le *lazyEval) Value() int {
+	if !le.hasValue {
+		le.value = Evaluate(le.position)
+		le.hasValue = true
+	}
+	return le.value
 }
 
 // Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.
