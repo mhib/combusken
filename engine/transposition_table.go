@@ -4,12 +4,14 @@ import "github.com/mhib/combusken/backend"
 import "unsafe"
 
 const (
-	TransExact = iota + 1
+	TransNone = iota
+	TransExact
 	TransAlpha
 	TransBeta
 )
 
 const maxValue = 32000
+const TRANS_VALUE_NONE = maxValue + 1
 const Mate = maxValue
 
 func nearestPowerOfTwo(input int) uint64 {
@@ -20,15 +22,15 @@ func nearestPowerOfTwo(input int) uint64 {
 	return res
 }
 
-func valueFromTrans(value int16, height int) int16 {
+func valueFromTrans(value int16, height int) int {
 	if value >= Mate-500 {
-		return value - int16(height)
+		return int(value) - height
 	}
 	if value <= -Mate+500 {
-		return value + int16(height)
+		return int(value) + height
 	}
 
-	return value
+	return int(value)
 }
 
 func valueToTrans(value int, height int) int16 {
@@ -62,13 +64,13 @@ func NewSingleThreadTransTable(megabytes int) *SingleThreadTransTable {
 	return &SingleThreadTransTable{make([]singleThreadTransEntry, size), size - 1}
 }
 
-func (t *SingleThreadTransTable) Get(key uint64, height int) (ok bool, value int16, eval int16, depth uint8, move backend.Move, flag uint8) {
+func (t *SingleThreadTransTable) Get(key uint64) (ok bool, value int16, eval int16, depth uint8, move backend.Move, flag uint8) {
 	var element = &t.Entries[key&t.Mask]
 	if element.key != uint32(key>>32) {
 		return
 	}
 	ok = true
-	value = valueFromTrans(element.value, height)
+	value = element.value
 	eval = element.eval
 	depth = element.depth
 	move = element.bestMove
@@ -76,10 +78,10 @@ func (t *SingleThreadTransTable) Get(key uint64, height int) (ok bool, value int
 	return
 }
 
-func (t *SingleThreadTransTable) Set(key uint64, value, eval, depth int, bestMove backend.Move, flag int, height int) {
+func (t *SingleThreadTransTable) Set(key uint64, value int16, eval, depth int, bestMove backend.Move, flag int) {
 	var element = &t.Entries[key&t.Mask]
 	element.key = uint32(key >> 32)
-	element.value = valueToTrans(value, height)
+	element.value = value
 	element.eval = int16(eval)
 	element.flag = uint8(flag)
 	element.depth = uint8(depth)

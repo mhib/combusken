@@ -38,9 +38,9 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	if height >= MAX_HEIGHT || t.isDraw(height) {
 		return contempt(pos)
 	}
-	hashOk, hashValue, hashEval, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	hashOk, hashValue, hashEval, _, _, hashFlag := t.engine.TransTable.Get(pos.Key)
 	if hashOk {
-		tmpHashValue := int(hashValue)
+		tmpHashValue := valueFromTrans(hashValue, height)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
 			return tmpHashValue
@@ -57,6 +57,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		val = int(hashEval)
 	} else {
 		val = Evaluate(pos)
+		t.engine.TransTable.Set(pos.Key, TRANS_VALUE_NONE, val, 0, NullMove, TransNone)
 	}
 
 	var evaled []EvaledMove
@@ -128,10 +129,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	var tmpVal int
 	alphaOrig := alpha
-	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key)
 	if hashOk {
-		tmpVal = int(hashValue)
-		if hashDepth >= uint8(depth) {
+		if hashFlag != TransNone && hashDepth >= uint8(depth) {
+			tmpVal = valueFromTrans(hashValue, height)
 			if hashFlag == TransExact {
 				return tmpVal
 			}
@@ -142,6 +143,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				return beta
 			}
 		}
+	} else {
+		hashMove = NullMove
 	}
 
 	var child *Position = &t.stack[height+1].position
@@ -169,13 +172,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			iiDepth = (depth - 5) / 2
 		}
 		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
-		hashOk, _, hashEval, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
+		hashOk, _, hashEval, _, hashMove, _ = t.engine.TransTable.Get(pos.Key)
 	}
 
 	if hashOk {
 		staticEval = int(hashEval)
 	} else {
 		staticEval = Evaluate(pos)
+		t.engine.TransTable.Set(pos.Key, TRANS_VALUE_NONE, val, 0, NullMove, TransNone)
 	}
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
@@ -261,7 +265,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	t.engine.TransTable.Set(pos.Key, alpha, staticEval, depth, bestMove, flag, height)
+	t.engine.TransTable.Set(pos.Key, valueToTrans(alpha, height), staticEval, depth, bestMove, flag)
 	return alpha
 }
 
@@ -404,7 +408,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 
 	rootMoves := pos.GenerateAllLegalMoves()
 	ordMove := NullMove
-	if hashOk, _, _, _, hashMove, _ := e.TransTable.Get(pos.Key, 0); hashOk {
+	if hashOk, _, _, _, hashMove, _ := e.TransTable.Get(pos.Key); hashOk {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)

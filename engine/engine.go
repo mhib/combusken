@@ -18,8 +18,8 @@ type IntUciOption struct {
 }
 
 type TransTable interface {
-	Get(key uint64, height int) (ok bool, value, eval int16, depth uint8, move backend.Move, flag uint8)
-	Set(key uint64, value, eval, depth int, move backend.Move, flag, height int)
+	Get(key uint64) (ok bool, value, eval int16, depth uint8, move backend.Move, flag uint8)
+	Set(key uint64, value int16, eval, depth int, move backend.Move, flag int)
 	Clear()
 }
 
