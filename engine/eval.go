@@ -131,6 +131,8 @@ var passedFile = [8]Score{Score{-1, 7}, Score{0, 9}, Score{-9, -8}, Score{-30, -
 
 const bishopPair = 55
 
+var tempo = Score{25, 12}
+
 var doubled = Score{11, 56}
 
 // Rook on semiopen, open file
@@ -408,6 +410,14 @@ func Evaluate(pos *Position) int {
 	if (pos.Kings&pos.Black)&blackKingQueenSide != 0 {
 		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield1) * pawnShieldBonus[0]
 		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield2) * pawnShieldBonus[1]
+	}
+
+	if pos.WhiteMove {
+		midResult += int(tempo.Middle)
+		endResult += int(tempo.End)
+	} else {
+		midResult -= int(tempo.Middle)
+		endResult -= int(tempo.End)
 	}
 
 	if phase < 0 {
