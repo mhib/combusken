@@ -14,6 +14,13 @@ type Score struct {
 	End    int16
 }
 
+func addScore(first, second Score) Score {
+	return Score{
+		Middle: first.Middle + second.Middle,
+		End:    first.End + second.End,
+	}
+}
+
 var PawnValue = Score{128, 213}
 var KnightValue = Score{782, 865}
 var BishopValue = Score{830, 918}
@@ -164,25 +171,25 @@ func init() {
 
 	for x := 0; x < 4; x++ {
 		for y := 0; y < 8; y++ {
-			whiteKnightsPos[y*8+x] = pieceScores[2][y][x]
-			whiteKnightsPos[y*8+(7-x)] = pieceScores[2][y][x]
-			blackKnightsPos[(7-y)*8+x] = pieceScores[2][y][x]
-			blackKnightsPos[(7-y)*8+(7-x)] = pieceScores[2][y][x]
+			whiteKnightsPos[y*8+x] = addScore(pieceScores[2][y][x], KnightValue)
+			whiteKnightsPos[y*8+(7-x)] = addScore(pieceScores[2][y][x], KnightValue)
+			blackKnightsPos[(7-y)*8+x] = addScore(pieceScores[2][y][x], KnightValue)
+			blackKnightsPos[(7-y)*8+(7-x)] = addScore(pieceScores[2][y][x], KnightValue)
 
-			whiteBishopsPos[y*8+x] = pieceScores[3][y][x]
-			whiteBishopsPos[y*8+(7-x)] = pieceScores[3][y][x]
-			blackBishopsPos[(7-y)*8+x] = pieceScores[3][y][x]
-			blackBishopsPos[(7-y)*8+(7-x)] = pieceScores[3][y][x]
+			whiteBishopsPos[y*8+x] = addScore(pieceScores[3][y][x], BishopValue)
+			whiteBishopsPos[y*8+(7-x)] = addScore(pieceScores[3][y][x], BishopValue)
+			blackBishopsPos[(7-y)*8+x] = addScore(pieceScores[3][y][x], BishopValue)
+			blackBishopsPos[(7-y)*8+(7-x)] = addScore(pieceScores[3][y][x], BishopValue)
 
-			whiteRooksPos[y*8+x] = pieceScores[4][y][x]
-			whiteRooksPos[y*8+(7-x)] = pieceScores[4][y][x]
-			blackRooksPos[(7-y)*8+x] = pieceScores[4][y][x]
-			blackRooksPos[(7-y)*8+(7-x)] = pieceScores[4][y][x]
+			whiteRooksPos[y*8+x] = addScore(pieceScores[4][y][x], RookValue)
+			whiteRooksPos[y*8+(7-x)] = addScore(pieceScores[4][y][x], RookValue)
+			blackRooksPos[(7-y)*8+x] = addScore(pieceScores[4][y][x], RookValue)
+			blackRooksPos[(7-y)*8+(7-x)] = addScore(pieceScores[4][y][x], RookValue)
 
-			whiteQueensPos[y*8+x] = pieceScores[5][y][x]
-			whiteQueensPos[y*8+(7-x)] = pieceScores[5][y][x]
-			blackQueensPos[(7-y)*8+x] = pieceScores[5][y][x]
-			blackQueensPos[(7-y)*8+(7-x)] = pieceScores[5][y][x]
+			whiteQueensPos[y*8+x] = addScore(pieceScores[5][y][x], QueenValue)
+			whiteQueensPos[y*8+(7-x)] = addScore(pieceScores[5][y][x], QueenValue)
+			blackQueensPos[(7-y)*8+x] = addScore(pieceScores[5][y][x], QueenValue)
+			blackQueensPos[(7-y)*8+(7-x)] = addScore(pieceScores[5][y][x], QueenValue)
 
 			whiteKingPos[y*8+x] = pieceScores[6][y][x]
 			whiteKingPos[y*8+(7-x)] = pieceScores[6][y][x]
@@ -193,8 +200,8 @@ func init() {
 
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
-			whitePawnsPos[y*8+x] = pawnScores[y][x]
-			blackPawnsPos[(7-y)*8+(7-x)] = pawnScores[y][x]
+			whitePawnsPos[y*8+x] = addScore(pawnScores[y][x], PawnValue)
+			blackPawnsPos[(7-y)*8+(7-x)] = addScore(pawnScores[y][x], PawnValue)
 		}
 	}
 
@@ -262,8 +269,8 @@ func Evaluate(pos *Position) int {
 			midResult += int(isolated.Middle)
 			endResult += int(isolated.End)
 		}
-		midResult += int(PawnValue.Middle + whitePawnsPos[fromId].Middle)
-		endResult += int(PawnValue.End + whitePawnsPos[fromId].End)
+		midResult += int(whitePawnsPos[fromId].Middle)
+		endResult += int(whitePawnsPos[fromId].End)
 		phase -= pawnPhase
 	}
 
@@ -277,8 +284,8 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(whiteMobilityArea & KnightAttacks[fromId])
-		midResult += int(KnightValue.Middle + whiteKnightsPos[fromId].Middle)
-		endResult += int(KnightValue.End + whiteKnightsPos[fromId].End)
+		midResult += int(whiteKnightsPos[fromId].Middle)
+		endResult += int(whiteKnightsPos[fromId].End)
 		midResult += int(mobilityBonus[0][mobility].Middle)
 		endResult += int(mobilityBonus[0][mobility].End)
 		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
@@ -294,8 +301,8 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & BishopAttacks(fromId, allOccupation))
 		midResult += int(mobilityBonus[1][mobility].Middle)
 		endResult += int(mobilityBonus[1][mobility].End)
-		midResult += int(BishopValue.Middle + whiteBishopsPos[fromId].Middle)
-		endResult += int(BishopValue.End + whiteBishopsPos[fromId].End)
+		midResult += int(whiteBishopsPos[fromId].Middle)
+		endResult += int(whiteBishopsPos[fromId].End)
 		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
 			midResult += int(minorBehindPawn.Middle)
 			endResult += int(minorBehindPawn.End)
@@ -314,8 +321,8 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & RookAttacks(fromId, allOccupation))
 		midResult += int(mobilityBonus[2][mobility].Middle)
 		endResult += int(mobilityBonus[2][mobility].End)
-		midResult += int(RookValue.Middle) + int(whiteRooksPos[fromId].Middle)
-		endResult += int(RookValue.End) + int(whiteRooksPos[fromId].End)
+		midResult += int(whiteRooksPos[fromId].Middle)
+		endResult += int(whiteRooksPos[fromId].End)
 		if pos.Pawns&FILES[File(fromId)] == 0 {
 			midResult += int(rookOnFile[1].Middle)
 			endResult += int(rookOnFile[1].End)
@@ -332,8 +339,8 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & QueenAttacks(fromId, allOccupation))
 		midResult += int(mobilityBonus[3][mobility].Middle)
 		endResult += int(mobilityBonus[3][mobility].End)
-		midResult += int(QueenValue.Middle + whiteQueensPos[fromId].Middle)
-		endResult += int(QueenValue.End + whiteQueensPos[fromId].End)
+		midResult += int(whiteQueensPos[fromId].Middle)
+		endResult += int(whiteQueensPos[fromId].End)
 		phase -= queenPhase
 	}
 
@@ -363,8 +370,8 @@ func Evaluate(pos *Position) int {
 			midResult -= int(isolated.Middle)
 			endResult -= int(isolated.End)
 		}
-		midResult -= int(PawnValue.Middle + blackPawnsPos[fromId].Middle)
-		endResult -= int(PawnValue.End + blackPawnsPos[fromId].End)
+		midResult -= int(blackPawnsPos[fromId].Middle)
+		endResult -= int(blackPawnsPos[fromId].End)
 		phase -= pawnPhase
 	}
 
@@ -377,8 +384,8 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(blackMobilityArea & KnightAttacks[fromId])
-		midResult -= int(KnightValue.Middle + blackKnightsPos[fromId].Middle)
-		endResult -= int(KnightValue.End + blackKnightsPos[fromId].End)
+		midResult -= int(blackKnightsPos[fromId].Middle)
+		endResult -= int(blackKnightsPos[fromId].End)
 		midResult -= int(mobilityBonus[0][mobility].Middle)
 		endResult -= int(mobilityBonus[0][mobility].End)
 		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
@@ -394,8 +401,8 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & BishopAttacks(fromId, allOccupation))
 		midResult -= int(mobilityBonus[1][mobility].Middle)
 		endResult -= int(mobilityBonus[1][mobility].End)
-		midResult -= int(BishopValue.Middle + blackBishopsPos[fromId].Middle)
-		endResult -= int(BishopValue.End + blackBishopsPos[fromId].End)
+		midResult -= int(blackBishopsPos[fromId].Middle)
+		endResult -= int(blackBishopsPos[fromId].End)
 		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
 			midResult -= int(minorBehindPawn.Middle)
 			endResult -= int(minorBehindPawn.End)
@@ -414,8 +421,8 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & RookAttacks(fromId, allOccupation))
 		midResult -= int(mobilityBonus[2][mobility].Middle)
 		endResult -= int(mobilityBonus[2][mobility].End)
-		midResult -= int(RookValue.Middle + blackRooksPos[fromId].Middle)
-		endResult -= int(RookValue.End + blackRooksPos[fromId].End)
+		midResult -= int(blackRooksPos[fromId].Middle)
+		endResult -= int(blackRooksPos[fromId].End)
 		if pos.Pawns&FILES[File(fromId)] == 0 {
 			midResult -= int(rookOnFile[1].Middle)
 			endResult -= int(rookOnFile[1].End)
@@ -432,8 +439,8 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & QueenAttacks(fromId, allOccupation))
 		midResult -= int(mobilityBonus[3][mobility].Middle)
 		endResult -= int(mobilityBonus[3][mobility].End)
-		midResult -= int(QueenValue.Middle)
-		endResult -= int(QueenValue.End)
+		midResult -= int(blackQueensPos[fromId].Middle)
+		endResult -= int(blackQueensPos[fromId].End)
 		phase -= queenPhase
 	}
 
