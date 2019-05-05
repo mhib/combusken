@@ -100,8 +100,24 @@ var mobilityBonus = [...][32]Score{
 		Score{106, 184}, Score{109, 191}, Score{113, 206}, Score{116, 212}},
 }
 
+var pawnsConnected = [8][4]Score{
+	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
+	{Score{-2, -7}, Score{11, 0}, Score{4, 0}, Score{4, 18}},
+	{Score{15, 0}, Score{34, -1}, Score{22, 10}, Score{26, 18}},
+	{Score{10, 0}, Score{23, 4}, Score{10, 12}, Score{15, 23}},
+	{Score{16, 7}, Score{24, 14}, Score{31, 20}, Score{34, 21}},
+	{Score{57, 26}, Score{53, 47}, Score{69, 55}, Score{82, 59}},
+	{Score{110, -1}, Score{202, 10}, Score{227, 28}, Score{240, 51}},
+	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
+}
+
 var blackPawnsPos [64]Score
 var whitePawnsPos [64]Score
+
+var blackPawnsConnected [64]Score
+var blackPawnsConnectedMask [64]uint64
+var whitePawnsConnected [64]Score
+var whitePawnsConnectedMask [64]uint64
 
 var blackKnightsPos [64]Score
 var whiteKnightsPos [64]Score
@@ -132,13 +148,15 @@ var passedFile = [8]Score{Score{-1, 7}, Score{0, 9}, Score{-9, -8}, Score{-30, -
 }
 
 var isolated = Score{-5, -15}
-var minorBehindPawn = Score{18, 3}
+var doubled = Score{-11, -56}
+var backward = Score{-8, -6}
+var backwardOpen = Score{-18, -9}
 
 const bishopPair = 55
 
-var tempo = Score{25, 12}
+var minorBehindPawn = Score{18, 3}
 
-var doubled = Score{11, 56}
+var tempo = Score{25, 12}
 
 // Rook on semiopen, open file
 var rookOnFile = [2]Score{Score{18, 7}, Score{44, 20}}
@@ -197,6 +215,14 @@ func init() {
 			blackPawnsPos[(7-y)*8+(7-x)] = pawnScores[y][x]
 		}
 	}
+	for x := 0; x < 4; x++ {
+		for y := 0; y < 8; y++ {
+			whitePawnsConnected[y*8+x] = pawnsConnected[y][x]
+			whitePawnsConnected[y*8+(7-x)] = pawnsConnected[y][x]
+			blackPawnsConnected[(7-y)*8+x] = pawnsConnected[y][x]
+			blackPawnsConnected[(7-y)*8+(7-x)] = pawnsConnected[y][x]
+		}
+	}
 
 	for i := 8; i <= 55; i++ {
 		whitePassedMask[i] = 0
@@ -219,6 +245,10 @@ func init() {
 				blackPassedMask[i] |= 1 << uint(rank*8+file)
 			}
 		}
+	}
+	for i := 8; i <= 55; i++ {
+		whitePawnsConnectedMask[i] = BlackPawnAttacks[i] | BlackPawnAttacks[i+8]
+		blackPawnsConnectedMask[i] = WhitePawnAttacks[i] | WhitePawnAttacks[i-8]
 	}
 	for i := range FILES {
 		adjacentFilesMask[i] = 0
@@ -262,6 +292,19 @@ func Evaluate(pos *Position) int {
 			midResult += int(isolated.Middle)
 			endResult += int(isolated.End)
 		}
+		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 &&
+			WhitePawnAttacks[fromId+8]&(pos.Pawns&pos.Black) != 0 {
+			if FILES[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
+				midResult += int(backwardOpen.Middle)
+				endResult += int(backwardOpen.End)
+			} else {
+				midResult += int(backward.Middle)
+				endResult += int(backward.End)
+			}
+		} else if whitePawnsConnectedMask[fromId]&(pos.White&pos.Pawns) != 0 {
+			midResult += int(whitePawnsConnected[fromId].Middle)
+			endResult += int(whitePawnsConnected[fromId].End)
+		}
 		midResult += int(PawnValue.Middle + whitePawnsPos[fromId].Middle)
 		endResult += int(PawnValue.End + whitePawnsPos[fromId].End)
 		phase -= pawnPhase
@@ -269,8 +312,8 @@ func Evaluate(pos *Position) int {
 
 	// white doubled pawns
 	doubledCount := PopCount(pos.Pawns & pos.White & South(pos.Pawns&pos.White))
-	midResult -= doubledCount * int(doubled.Middle)
-	endResult -= doubledCount * int(doubled.End)
+	midResult += doubledCount * int(doubled.Middle)
+	endResult += doubledCount * int(doubled.End)
 
 	// white knights
 
@@ -363,6 +406,19 @@ func Evaluate(pos *Position) int {
 			midResult -= int(isolated.Middle)
 			endResult -= int(isolated.End)
 		}
+		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 &&
+			BlackPawnAttacks[fromId-8]&(pos.Pawns&pos.White) != 0 {
+			if FILES[File(fromId)]&(pos.Pawns&pos.White) == 0 {
+				midResult -= int(backwardOpen.Middle)
+				endResult -= int(backwardOpen.End)
+			} else {
+				midResult -= int(backward.Middle)
+				endResult -= int(backward.End)
+			}
+		} else if blackPawnsConnectedMask[fromId]&(pos.Black&pos.Pawns) != 0 {
+			midResult -= int(blackPawnsConnected[fromId].Middle)
+			endResult -= int(blackPawnsConnected[fromId].End)
+		}
 		midResult -= int(PawnValue.Middle + blackPawnsPos[fromId].Middle)
 		endResult -= int(PawnValue.End + blackPawnsPos[fromId].End)
 		phase -= pawnPhase
@@ -370,8 +426,8 @@ func Evaluate(pos *Position) int {
 
 	// black doubled pawns
 	doubledCount = PopCount(pos.Pawns & pos.Black & North(pos.Pawns&pos.Black))
-	midResult += doubledCount * int(doubled.Middle)
-	endResult += doubledCount * int(doubled.End)
+	midResult -= doubledCount * int(doubled.Middle)
+	endResult -= doubledCount * int(doubled.End)
 
 	// black knights
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
