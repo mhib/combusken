@@ -14,10 +14,14 @@ const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
+
 const SMPCycles = 16
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
+
+const SEEQuietMargin = -80
+const SEENoisyMargin = -18
 
 func lossIn(height int) int {
 	return -Mate + height
@@ -173,11 +177,24 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	//t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
+	seeNoisyMargin := SEENoisyMargin * depth * depth
+	seeQuietMargin := SEEQuietMargin * depth
 	for i := range evaled {
 		if i < 4 {
 			maxMoveToFirst(evaled[i:])
 		} else if i == 4 {
 			sortMoves(evaled[i:])
+		}
+		if !pvNode && depth <= 5 && val > ValueLoss && evaled[i].Value < MinSpecialMoveValue {
+			if evaled[i].Move.IsCaptureOrPromotion() {
+				if !seeAbove(pos, evaled[i].Move, seeNoisyMargin) {
+					continue
+				}
+			} else {
+				if !seeAbove(pos, evaled[i].Move, seeQuietMargin) {
+					continue
+				}
+			}
 		}
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
@@ -185,7 +202,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value <= MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
