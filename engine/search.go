@@ -186,7 +186,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		} else if i == 4 {
 			sortMoves(evaled[i:])
 		}
-		if !pvNode && depth <= 5 && val > ValueLoss && evaled[i].Value < MinSpecialMoveValue {
+		if !pvNode && depth <= 8 && val > ValueLoss && evaled[i].Value < MinSpecialMoveValue {
 			if evaled[i].Move.IsCaptureOrPromotion() {
 				if !seeAbove(pos, evaled[i].Move, seeNoisyMargin) {
 					continue
