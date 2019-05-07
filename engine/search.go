@@ -16,6 +16,9 @@ const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 const SMPCycles = 16
 
+const WindowDepth = 5
+const WindowSize = 50
+
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
@@ -293,12 +296,41 @@ type result struct {
 	moves []Move
 }
 
-func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result, mainThread bool) {
+func (t *thread) aspirationWindow(depth int, moves []EvaledMove, resultChan chan result) {
+	var alpha int
+	var beta int
+	delta := WindowSize
+	if depth >= WindowDepth {
+		alpha = max(-Mate, t.lastValue-delta)
+		beta = min(Mate, t.lastValue+delta)
+	} else {
+		alpha = -Mate
+		beta = Mate
+	}
+
+	for {
+		result := t.depSearch(depth, moves, alpha, beta)
+		if result.value >= alpha && result.value <= beta {
+			t.lastValue = result.value
+			resultChan <- result
+			return
+		}
+		if result.value <= alpha {
+			beta = (alpha + beta) / 2
+			alpha = max(-Mate, alpha-delta)
+		}
+		if result.value >= beta {
+			beta = min(Mate, beta+delta)
+		}
+		delta += delta / 2
+	}
+}
+
+func (t *thread) depSearch(depth int, moves []EvaledMove, alpha, beta int) result {
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
 	inCheck := pos.IsInCheck()
-	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
 	bestMoveIdx := -1
@@ -306,11 +338,14 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		// No need to check if move was valid
 		pos.MakeMove(moves[i].Move, child)
 		moveCount++
-		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1, child.IsInCheck())
+		val := -t.alphaBeta(depth-1, -beta, -alpha, 1, child.IsInCheck())
 		if val > alpha {
 			bestMoveIdx = i
 			alpha = val
 			bestMove = moves[i].Move
+			if alpha >= beta {
+				break
+			}
 			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
@@ -324,7 +359,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	if bestMoveIdx != -1 {
 		moveToFirst(moves, bestMoveIdx)
 	}
-	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
 func moveToFirst(moves []EvaledMove, idx int) {
@@ -345,7 +380,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		resultChan := make(chan result, 1)
 		go func(depth int) {
 			defer recoverFromTimeout()
-			thread.depSearch(depth, rootMoves, resultChan, true)
+			thread.aspirationWindow(depth, rootMoves, resultChan)
 		}(i)
 		select {
 		case <-ctx.Done():
@@ -378,7 +413,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 	}
 	cycle := idx % SMPCycles
 	for depth := 1; depth < MAX_HEIGHT; depth++ {
-		t.depSearch(depth, moves, resultChan, mainThread)
+		t.aspirationWindow(depth, moves, resultChan)
 		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
 			depth += SkipSize[cycle]
 		}
