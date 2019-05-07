@@ -136,7 +136,8 @@ func ParseMoveSAN(pos *Position, san string) Move {
 	if index >= 0 {
 		san = san[:index]
 	}
-	var ml = pos.GenerateAllLegalMoves()
+	var buffer [256]EvaledMove
+	var ml = pos.GenerateAllLegalMoves(buffer[:])
 	for _, mv := range ml {
 		if san == moveToSAN(pos, ml, mv.Move) {
 			return mv.Move

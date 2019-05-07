@@ -64,7 +64,7 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 	}
 }
 
-func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
+func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height int) {
 	side := pos.IntSide()
 	var counter Move
 	if pos.LastMove != NullMove {

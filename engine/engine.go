@@ -41,6 +41,7 @@ type thread struct {
 	nodes     int
 	lastValue int
 	stack     [STACK_SIZE]StackEntry
+	rootMoves []backend.EvaledMove
 }
 
 type SearchInfo struct {

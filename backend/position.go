@@ -360,8 +360,7 @@ func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
 	return Position{}, false
 }
 
-func (pos *Position) GenerateAllLegalMoves() []EvaledMove {
-	var buffer [256]EvaledMove
+func (pos *Position) GenerateAllLegalMoves(buffer []EvaledMove) []EvaledMove {
 	var moves = pos.GenerateAllMoves(buffer[:])
 	var child Position
 	result := make([]EvaledMove, 0)
