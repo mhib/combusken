@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"math/rand"
 	"sync"
 
 	. "github.com/mhib/combusken/backend"
@@ -136,7 +137,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	var child *Position = &t.stack[height+1].position
 
-	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
+	if !rootNode && pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		reduction := max(1+depth/3, 3)
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
@@ -174,6 +175,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	//t.ResetKillers(height)
 	bestMove := NullMove
+	bestMoveIdx := -1
 	moveCount := 0
 	for i := range evaled {
 		if !rootNode {
@@ -226,6 +228,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			val = tmpVal
 			if val > alpha {
 				alpha = val
+				bestMoveIdx = i
 				bestMove = evaled[i].Move
 				t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 				if alpha >= beta {
@@ -242,8 +245,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
-	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
-		t.Update(pos, quietsSearched, bestMove, depth, height)
+	if bestMove != NullMove {
+		if !bestMove.IsCaptureOrPromotion() {
+			t.Update(pos, quietsSearched, bestMove, depth, height)
+		}
+		if rootNode {
+			t.bestMoveIdx = bestMoveIdx
+		}
 	}
 
 	var flag int
@@ -297,7 +305,8 @@ type result struct {
 	moves []Move
 }
 
-func (t *thread) aspirationWindow(depth int, resultChan chan result) {
+func (t *thread) aspirationWindow(depth int, resultChan chan result, idx int) {
+	mainThread := idx == 0
 	var alpha int
 	var beta int
 	delta := WindowSize
@@ -310,10 +319,15 @@ func (t *thread) aspirationWindow(depth int, resultChan chan result) {
 	}
 
 	for {
-		t.sortRootMoves()
+		t.bestMoveIdx = -1
 		value := t.alphaBeta(depth, alpha, beta, 0, t.stack[0].position.IsInCheck())
 		if value > alpha && value < beta {
-			resultChan <- result{t.stack[0].PV.items[0], value, depth, t.stack[0].PV.Moves()}
+			resultChan <- result{t.rootMoves[t.bestMoveIdx].Move, value, depth, t.stack[0].PV.Moves()}
+			if mainThread {
+				t.sortRootMoves()
+			} else {
+				moveToFirst(t.rootMoves, t.bestMoveIdx)
+			}
 			return
 		}
 		if value <= alpha {
@@ -345,7 +359,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context) Move {
 		resultChan := make(chan result, 1)
 		go func(depth int) {
 			defer recoverFromTimeout()
-			thread.aspirationWindow(depth, resultChan)
+			thread.aspirationWindow(depth, resultChan, 0)
 		}(i)
 		select {
 		case <-ctx.Done():
@@ -371,9 +385,16 @@ func (e *Engine) singleThreadBestMove(ctx context.Context) Move {
 
 func (t *thread) iterativeDeepening(resultChan chan result, idx int) {
 	mainThread := idx == 0
+	if mainThread {
+		t.sortRootMoves()
+	} else {
+		rand.Shuffle(len(t.rootMoves), func(i, j int) {
+			t.rootMoves[i], t.rootMoves[j] = t.rootMoves[j], t.rootMoves[i]
+		})
+	}
 	cycle := idx % SMPCycles
 	for depth := 1; depth < MAX_HEIGHT; depth++ {
-		t.aspirationWindow(depth, resultChan)
+		t.aspirationWindow(depth, resultChan, idx)
 		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
 			depth += SkipSize[cycle]
 		}

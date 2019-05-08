@@ -38,10 +38,11 @@ type Engine struct {
 type thread struct {
 	engine *Engine
 	MoveEvaluator
-	nodes     int
-	lastValue int
-	stack     [STACK_SIZE]StackEntry
-	rootMoves []backend.EvaledMove
+	nodes       int
+	lastValue   int
+	bestMoveIdx int
+	stack       [STACK_SIZE]StackEntry
+	rootMoves   []backend.EvaledMove
 }
 
 type SearchInfo struct {
