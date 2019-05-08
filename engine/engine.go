@@ -85,7 +85,7 @@ func (e *Engine) GetInfo() (name, version, author string) {
 }
 
 func (e *Engine) GetOptions() []*IntUciOption {
-	return []*IntUciOption{&e.Hash}
+	return []*IntUciOption{&e.Hash, &e.Threads}
 }
 
 func NewEngine() (ret Engine) {
