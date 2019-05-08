@@ -154,7 +154,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	val := MinInt
 
 	// Internal iterative deepening
-	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
+	if !rootNode && hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
 		var iiDepth int
 		if pvNode {
 			iiDepth = depth - depth/4 - 1
@@ -191,7 +191,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value <= MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		if !rootNode && !inCheck && moveCount > 1 && evaled[i].Value <= MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
@@ -209,14 +209,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 		newDepth := depth - 1
-		if inCheck && seeSign(pos, evaled[i].Move) {
+		if inCheck && !rootNode && seeSign(pos, evaled[i].Move) {
 			newDepth++
 		}
 
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
-		if reduction > 0 || (!pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue) {
+		if !rootNode && (reduction > 0 || (!pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue)) {
 			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
 			if tmpVal <= alpha {
 				continue
