@@ -348,7 +348,30 @@ func (t *thread) rootSearch(depth, alpha, beta int, moves []EvaledMove, mainThre
 		// No need to check if move was valid
 		pos.MakeMove(moves[i].Move, child)
 		moveCount++
-		val := -t.alphaBeta(depth-1, -beta, -alpha, 1, child.IsInCheck())
+		childInCheck := child.IsInCheck()
+		reduction := 0
+		if !inCheck && moveCount > 1 && !moves[i].IsCaptureOrPromotion() && !childInCheck {
+			if depth >= 3 {
+				reduction = lmr(depth, moveCount) - 1
+				reduction = max(0, min(depth-2, reduction))
+			} else {
+				if moveCount >= 9+3*depth {
+					continue
+				}
+			}
+		}
+		newDepth := depth - 1
+		if inCheck && seeSign(pos, moves[i].Move) {
+			newDepth++
+		}
+		var val int
+		if reduction > 0 {
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck)
+			if val <= alpha {
+				continue
+			}
+		}
+		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck)
 		if val > alpha {
 			bestMoveIdx = i
 			alpha = val
