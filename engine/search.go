@@ -371,9 +371,9 @@ func (t *thread) aspirationWindow(depth int, resultChan chan result, idx int) {
 
 	for {
 		t.bestMoveIdx = -1
-		value := t.depSearch(depth, -Mate, Mate, mainThread)
-		if value > -Mate && value < Mate {
-			resultChan <- result{t.rootMoves[t.bestMoveIdx].Move, value, depth, cloneMoves(t.stack[0].PV.Moves())}
+		value := t.depSearch(depth, alpha, beta, mainThread)
+		if value > alpha && value < beta {
+			resultChan <- result{t.bestMove(), value, depth, cloneMoves(t.stack[0].PV.Moves())}
 			return
 		}
 		t.sortRootMoves(t.bestMove())
