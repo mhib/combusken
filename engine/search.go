@@ -19,6 +19,9 @@ const SMPCycles = 16
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
+const WindowDepth = 5
+const WindowSize = 20
+
 func lossIn(height int) int {
 	return -Mate + height
 }
@@ -294,8 +297,32 @@ type result struct {
 }
 
 func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result, mainThread bool) {
-	bestMove, value := t.rootSearch(depth, -Mate, Mate, moves, mainThread)
-	resultChan <- result{bestMove, value, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	var alpha int
+	var beta int
+	delta := WindowSize
+	if depth >= WindowDepth {
+		alpha = max(-Mate, t.lastValue-delta)
+		beta = min(Mate, t.lastValue+delta)
+	} else {
+		alpha = -Mate
+		beta = Mate
+	}
+	for {
+		bestMove, value := t.rootSearch(depth, alpha, beta, moves, mainThread)
+		if value > -Mate && value < Mate {
+			t.lastValue = value
+			resultChan <- result{bestMove, value, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+			return
+		}
+		if value <= alpha {
+			beta = (alpha + beta) / 2
+			alpha = max(-Mate, value-delta)
+		} else if value >= beta {
+			alpha = (alpha + beta) / 2
+			beta = min(Mate, value+delta)
+		}
+		delta += delta / 2
+	}
 }
 
 func moveToFirst(moves []EvaledMove, idx int) {
@@ -326,6 +353,9 @@ func (t *thread) rootSearch(depth, alpha, beta int, moves []EvaledMove, mainThre
 			bestMoveIdx = i
 			alpha = val
 			bestMove = moves[i].Move
+			if alpha >= beta {
+				break
+			}
 			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
