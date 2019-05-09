@@ -360,16 +360,18 @@ func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
 	return Position{}, false
 }
 
-func (pos *Position) GenerateAllLegalMoves(buffer []EvaledMove) []EvaledMove {
+func (pos *Position) GenerateAllLegalMoves(input []EvaledMove) []EvaledMove {
+	var buffer [256]EvaledMove
 	var moves = pos.GenerateAllMoves(buffer[:])
 	var child Position
-	result := make([]EvaledMove, 0)
+	counter := 0
 	for _, move := range moves {
 		if pos.MakeMove(move.Move, &child) {
-			result = append(result, move)
+			input[counter] = move
+			counter++
 		}
 	}
-	return result
+	return input[:counter]
 }
 
 func (pos *Position) IntSide() int {
