@@ -159,6 +159,13 @@ func (t *thread) incNodes() {
 	}
 }
 
+func (t *thread) bestMove() backend.Move {
+	if t.bestMoveIdx == -1 {
+		return backend.NullMove
+	}
+	return t.rootMoves[t.bestMoveIdx].Move
+}
+
 func (pv *PV) clear() {
 	pv.size = 0
 }

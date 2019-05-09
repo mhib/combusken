@@ -10,7 +10,7 @@ const (
 	TransBeta
 )
 
-const maxValue = 32000
+const maxValue = 31000
 const Mate = maxValue
 
 func nearestPowerOfTwo(input int) uint64 {
