@@ -20,7 +20,7 @@ var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
 const WindowDepth = 5
-const WindowSize = 100
+const WindowSize = 500
 
 func lossIn(height int) int {
 	return -Mate + height
