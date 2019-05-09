@@ -294,11 +294,26 @@ type result struct {
 }
 
 func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result, mainThread bool) {
+	bestMove, value := t.rootSearch(depth, -Mate, Mate, moves, mainThread)
+	resultChan <- result{bestMove, value, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+}
+
+func moveToFirst(moves []EvaledMove, idx int) {
+	if idx == 0 {
+		return
+	}
+	move := moves[idx]
+	for i := idx; idx > 0; idx-- {
+		moves[i] = moves[i-1]
+	}
+	moves[0] = move
+}
+
+func (t *thread) rootSearch(depth, alpha, beta int, moves []EvaledMove, mainThread bool) (Move, int) {
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
 	inCheck := pos.IsInCheck()
-	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
 	bestMoveIdx := -1
@@ -306,7 +321,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		// No need to check if move was valid
 		pos.MakeMove(moves[i].Move, child)
 		moveCount++
-		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1, child.IsInCheck())
+		val := -t.alphaBeta(depth-1, -beta, -alpha, 1, child.IsInCheck())
 		if val > alpha {
 			bestMoveIdx = i
 			alpha = val
@@ -324,18 +339,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	if bestMoveIdx != -1 {
 		moveToFirst(moves, bestMoveIdx)
 	}
-	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
-}
-
-func moveToFirst(moves []EvaledMove, idx int) {
-	if idx == 0 {
-		return
-	}
-	move := moves[idx]
-	for i := idx; idx > 0; idx-- {
-		moves[i] = moves[i-1]
-	}
-	moves[0] = move
+	return bestMove, alpha
 }
 
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
