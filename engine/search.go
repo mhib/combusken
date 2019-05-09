@@ -126,14 +126,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	if hashOk {
 		tmpVal = int(hashValue)
 		if hashDepth >= uint8(depth) {
-			if hashFlag == TransExact {
+			if hashFlag == TransExact || hashFlag == TransAlpha && tmpVal <= alpha || hashFlag == TransBeta && tmpVal >= beta {
 				return tmpVal
-			}
-			if hashFlag == TransAlpha && tmpVal <= alpha {
-				return alpha
-			}
-			if hashFlag == TransBeta && tmpVal >= beta {
-				return beta
 			}
 		}
 	}
