@@ -301,14 +301,18 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
-	bestMoveIdx := -1
+	t.ResetKillers(0)
+	quietsSearched := t.stack[0].quietsSearched[:0]
+
 	for i := range moves {
 		// No need to check if move was valid
 		pos.MakeMove(moves[i].Move, child)
 		moveCount++
+		if !moves[i].IsCaptureOrPromotion() {
+			quietsSearched = append(quietsSearched, moves[i].Move)
+		}
 		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1, child.IsInCheck())
 		if val > alpha {
-			bestMoveIdx = i
 			alpha = val
 			bestMove = moves[i].Move
 			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
@@ -321,10 +325,13 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 			alpha = contempt(pos)
 		}
 	}
-	if bestMoveIdx != -1 {
-		moveToFirst(moves, bestMoveIdx)
-	}
 	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+
+	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
+		t.Update(pos, quietsSearched, bestMove, depth, 0)
+	}
+	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
+	sortMoves(moves)
 }
 
 func moveToFirst(moves []EvaledMove, idx int) {
