@@ -152,6 +152,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
+	t.ResetKillers(height + 1)
+
 	lazyEval := lazyEval{position: pos}
 	val := MinInt
 
@@ -301,7 +303,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
-	t.ResetKillers(0)
+	t.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {
