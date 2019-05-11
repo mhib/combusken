@@ -301,7 +301,6 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
-	t.ResetKillers(0)
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {
@@ -311,7 +310,31 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		if !moves[i].IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, moves[i].Move)
 		}
-		val := -t.alphaBeta(depth-1, -MaxInt, -alpha, 1, child.IsInCheck())
+		reduction := 0
+		childInCheck := child.IsInCheck()
+		if !inCheck && moveCount > 1 && moves[i].Value <= MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
+			!childInCheck {
+			if depth >= 3 {
+				reduction = lmr(depth, moveCount) - 1
+				reduction = max(0, min(depth-2, reduction))
+			} else {
+				if moveCount >= 9+3*depth {
+					continue
+				}
+			}
+		}
+		var val int
+		newDepth := depth - 1
+		if inCheck && seeSign(pos, moves[i].Move) {
+			newDepth++
+		}
+		if reduction > 0 {
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck)
+			if val <= alpha {
+				continue
+			}
+		}
+		val = -t.alphaBeta(newDepth, -Mate, -alpha, 1, childInCheck)
 		if val > alpha {
 			alpha = val
 			bestMove = moves[i].Move
