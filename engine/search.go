@@ -317,10 +317,6 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount) - 1
 				reduction = max(0, min(depth-2, reduction))
-			} else {
-				if moveCount >= 9+3*depth {
-					continue
-				}
 			}
 		}
 		var val int
