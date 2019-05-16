@@ -42,8 +42,23 @@ type thread struct {
 	stack [STACK_SIZE]StackEntry
 }
 
+type UciScore struct {
+	Mate      int
+	Centipawn int
+}
+
+func newUciScore(score int) UciScore {
+	if score >= ValueWin {
+		return UciScore{Mate: (Mate - score + 1) / 2}
+	} else if score <= ValueLoss {
+		return UciScore{Mate: (-Mate - score) / 2}
+	} else {
+		return UciScore{Centipawn: score}
+	}
+}
+
 type SearchInfo struct {
-	Score int
+	Score UciScore
 	Depth int
 	Nodes int
 	Moves []backend.Move

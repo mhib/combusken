@@ -381,7 +381,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		case <-ctx.Done():
 			return lastBestMove
 		case res := <-resultChan:
-			e.callUpdate(SearchInfo{res.value, i, thread.nodes, res.moves})
+			e.callUpdate(SearchInfo{newUciScore(res.value), i, thread.nodes, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}
@@ -460,7 +460,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				continue
 			}
 			nodes := e.nodes()
-			e.callUpdate(SearchInfo{res.value, res.depth, nodes, res.moves})
+			e.callUpdate(SearchInfo{newUciScore(res.value), res.depth, nodes, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
 				return res.Move
 			}

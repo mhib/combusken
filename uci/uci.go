@@ -236,7 +236,14 @@ type Uci struct {
 
 func updateUci(s SearchInfo) {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("info depth %d nodes %d score cp %d pv ", s.Depth, s.Nodes, s.Score))
+	sb.WriteString(fmt.Sprintf("info depth %d nodes %d score ", s.Depth, s.Nodes))
+	if s.Score.Mate != 0 {
+		sb.WriteString(fmt.Sprintf("mate %d ", s.Score.Mate))
+	} else {
+		sb.WriteString(fmt.Sprintf("cp %d ", s.Score.Centipawn))
+	}
+
+	sb.WriteString("pv ")
 	for _, move := range s.Moves {
 		sb.WriteString(move.String())
 		sb.WriteString(" ")
