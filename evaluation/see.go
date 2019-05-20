@@ -1,16 +1,16 @@
-package engine
+package evaluation
 
 import . "github.com/mhib/combusken/backend"
 
 var SEEValues = []int{0, int(PawnValue.Middle), int(KnightValue.Middle), int(BishopValue.Middle), int(RookValue.Middle), int(QueenValue.Middle), -Mate / 2}
 
 // Returns true if see non-negative
-func seeSign(pos *Position, move Move) bool {
-	return seeAbove(pos, move, 0)
+func SeeSign(pos *Position, move Move) bool {
+	return SeeAbove(pos, move, 0)
 }
 
 // based on laser implementation
-func seeAbove(pos *Position, move Move, cutoff int) bool {
+func SeeAbove(pos *Position, move Move, cutoff int) bool {
 	// Special case for ep and castling
 	if move.Type() == EPCapture || move.IsCastling() {
 		return cutoff <= 0

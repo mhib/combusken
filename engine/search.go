@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/evaluation"
 )
 
 const MaxUint = ^uint(0)
@@ -70,7 +71,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
-		if (!inCheck && !seeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
+		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
 		moveCount++
@@ -139,7 +140,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	pvNode := alpha != beta+1
 
-	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !isLateEndGame(pos) {
+	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !IsLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		reduction := max(1+depth/3, 3)
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
@@ -203,7 +204,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 		newDepth := depth - 1
-		if inCheck && seeSign(pos, evaled[i].Move) {
+		if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
 		}
 
@@ -325,7 +326,7 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 		}
 		var val int
 		newDepth := depth - 1
-		if inCheck && seeSign(pos, moves[i].Move) {
+		if inCheck && SeeSign(pos, moves[i].Move) {
 			newDepth++
 		}
 		if reduction > 0 {

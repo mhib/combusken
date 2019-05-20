@@ -3,15 +3,15 @@ package engine
 import "github.com/mhib/combusken/backend"
 import "unsafe"
 import "sync/atomic"
+import . "github.com/mhib/combusken/evaluation"
+
+const maxValue = Mate
 
 const (
 	TransExact = iota + 1
 	TransAlpha
 	TransBeta
 )
-
-const maxValue = 32000
-const Mate = maxValue
 
 func nearestPowerOfTwo(input int) uint64 {
 	res := uint64(1)

@@ -1,6 +1,8 @@
-package engine
+package evaluation
 
 import . "github.com/mhib/combusken/backend"
+
+const Mate = 32000
 
 const pawnPhase = 0
 const knightPhase = 1
@@ -159,7 +161,7 @@ var doubled = Score{-11, -56}
 var backward = Score{-8, -6}
 var backwardOpen = Score{-18, -9}
 
-const bishopPair = 55
+var bishopPair = Score{55, 55}
 
 var minorBehindPawn = Score{18, 3}
 
@@ -269,7 +271,7 @@ func init() {
 }
 
 // CounterGO's version
-func isLateEndGame(pos *Position) bool {
+func IsLateEndGame(pos *Position) bool {
 	if pos.WhiteMove {
 		return ((pos.Rooks|pos.Queens)&pos.White) == 0 && !MoreThanOne((pos.Knights|pos.Bishops)&pos.White)
 
@@ -354,8 +356,8 @@ func Evaluate(pos *Position) int {
 	}
 	// bishop pair bonus
 	if MoreThanOne(pos.Bishops & pos.White) {
-		midResult += bishopPair
-		endResult += bishopPair
+		midResult += int(bishopPair.Middle)
+		endResult += int(bishopPair.End)
 	}
 
 	// white rooks
@@ -467,8 +469,8 @@ func Evaluate(pos *Position) int {
 	}
 
 	if MoreThanOne(pos.Bishops & pos.Black) {
-		midResult -= bishopPair
-		endResult -= bishopPair
+		midResult -= int(bishopPair.Middle)
+		endResult -= int(bishopPair.End)
 	}
 
 	// black rooks

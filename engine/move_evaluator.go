@@ -1,6 +1,7 @@
 package engine
 
 import . "github.com/mhib/combusken/backend"
+import . "github.com/mhib/combusken/evaluation"
 
 const MinSpecialMoveValue = 1499
 
@@ -74,7 +75,7 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 		if moves[i].Move == fromTrans {
 			moves[i].Value = 100000
 		} else if moves[i].Move.IsCaptureOrPromotion() {
-			if seeSign(pos, moves[i].Move) {
+			if SeeSign(pos, moves[i].Move) {
 				moves[i].Value = mvvlva(moves[i].Move) + 50000
 			} else {
 				moves[i].Value = mvvlva(moves[i].Move) - 100000

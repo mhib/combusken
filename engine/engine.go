@@ -4,6 +4,7 @@ import "context"
 import "errors"
 import "runtime"
 import "github.com/mhib/combusken/backend"
+import "github.com/mhib/combusken/evaluation"
 
 const MAX_HEIGHT = 127
 const STACK_SIZE = MAX_HEIGHT + 1
@@ -49,9 +50,9 @@ type UciScore struct {
 
 func newUciScore(score int) UciScore {
 	if score >= ValueWin {
-		return UciScore{Mate: (Mate - score + 1) / 2}
+		return UciScore{Mate: (evaluation.Mate - score + 1) / 2}
 	} else if score <= ValueLoss {
-		return UciScore{Mate: (-Mate - score) / 2}
+		return UciScore{Mate: (-evaluation.Mate - score) / 2}
 	} else {
 		return UciScore{Centipawn: score}
 	}
