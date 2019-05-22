@@ -106,7 +106,7 @@ func seeRec(pos *Position, side bool, to int, pieces uint64, lastPiece int) int 
 }
 
 func calculatedSee(pos *Position, mv Move, expected int) int {
-	for seeAbove(pos, mv, expected) {
+	for SeeAbove(pos, mv, expected) {
 		expected++
 	}
 	return expected
@@ -120,8 +120,8 @@ func TestSEE(t *testing.T) {
 		moves := pos.GenerateAllMoves(buffer[:])
 		for _, m := range moves {
 			expected := see(&pos, m.Move)
-			shouldTrue := seeAbove(&pos, m.Move, expected)
-			shouldFalse := seeAbove(&pos, m.Move, expected+1)
+			shouldTrue := SeeAbove(&pos, m.Move, expected)
+			shouldFalse := SeeAbove(&pos, m.Move, expected+1)
 
 			if !shouldTrue || shouldFalse {
 				t.Errorf("failed on on #%d %v", i, fen)
@@ -202,7 +202,7 @@ func BenchmarkSEEFast(b *testing.B) {
 	moves := pos.GenerateAllMoves(buffer[:])
 	for i := 0; i < b.N; i++ {
 		for idx, m := range moves {
-			seeAbove(&pos, m.Move, seeResults[idx])
+			SeeAbove(&pos, m.Move, seeResults[idx])
 		}
 	}
 }
