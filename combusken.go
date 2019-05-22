@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 0 && os.Args[1] == "tune" {
+	if len(os.Args) > 1 && os.Args[1] == "tune" {
 		evaluation.Tune()
 		return
 	}
