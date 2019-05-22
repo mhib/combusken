@@ -45,7 +45,7 @@ func ParseFen(input string) Position {
 	}
 
 	if slices[3] != "-" {
-		square := (int(slices[3][0])-int('a'))*8 + int(slices[3][1]) - int('1')
+		square := (int(slices[3][0]) - int('a')) + (int(slices[3][1])-int('1'))*8
 		if res.WhiteMove {
 			res.EpSquare = square - 8
 		} else {
