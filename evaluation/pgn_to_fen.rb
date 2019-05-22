@@ -3,7 +3,6 @@
 require 'parallel'
 require 'thread'
 require 'pgn'
-require 'pry'
 
 @q = Queue.new
 reader = Thread.new do |n|
@@ -24,16 +23,13 @@ end
 @result = File.new('./games.fen', 'a')
 
 Parallel.each(@q, in_processes: 7) do |pgn|
-  mate_found = false
   game = PGN.parse(pgn).first
   game.moves.each_with_index do |move, idx|
     if move.comment.include? 'M'
-      mate_found = true
-      next
+      break
     end
     @result.write(game.positions[idx + 1].to_fen.to_s + ";#{game.result}\n")
     @result.flush
   end
-  next if mate_found
 end
 reader.join
