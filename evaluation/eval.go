@@ -168,6 +168,7 @@ var backward = Score{7, -5}
 var backwardOpen = Score{-30, -12}
 
 var bishopPair = Score{106, 105}
+var bishopRammedPawns = Score{-10, -16}
 
 var minorBehindPawn = Score{9, 52}
 
@@ -348,6 +349,7 @@ func Evaluate(pos *Position) int {
 		phase -= knightPhase
 	}
 
+	whiteRammedPawns := South(pos.Pawns&pos.Black) & (pos.Pawns & pos.White)
 	// white bishops
 	for fromBB = pos.Bishops & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
@@ -360,6 +362,14 @@ func Evaluate(pos *Position) int {
 			midResult += int(minorBehindPawn.Middle)
 			endResult += int(minorBehindPawn.End)
 		}
+		var rammedCount int16
+		if SquareMask[fromId]&WHITE_SQUARES != 0 {
+			rammedCount = int16(PopCount(whiteRammedPawns & WHITE_SQUARES))
+		} else {
+			rammedCount = int16(PopCount(whiteRammedPawns & BLACK_SQUARES))
+		}
+		midResult += int(bishopRammedPawns.Middle * rammedCount)
+		endResult += int(bishopRammedPawns.End * rammedCount)
 		phase -= bishopPhase
 	}
 	// bishop pair bonus
@@ -462,6 +472,7 @@ func Evaluate(pos *Position) int {
 	}
 
 	// black bishops
+	blackRammedPawns := North(pos.Pawns&pos.White) & (pos.Pawns & pos.Black)
 	for fromBB = pos.Bishops & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(blackMobilityArea & BishopAttacks(fromId, allOccupation))
@@ -473,6 +484,14 @@ func Evaluate(pos *Position) int {
 			midResult -= int(minorBehindPawn.Middle)
 			endResult -= int(minorBehindPawn.End)
 		}
+		var rammedCount int16
+		if SquareMask[fromId]&WHITE_SQUARES != 0 {
+			rammedCount = int16(PopCount(blackRammedPawns & WHITE_SQUARES))
+		} else {
+			rammedCount = int16(PopCount(blackRammedPawns & BLACK_SQUARES))
+		}
+		midResult -= int(bishopRammedPawns.Middle * rammedCount)
+		endResult -= int(bishopRammedPawns.End * rammedCount)
 		phase -= bishopPhase
 	}
 
