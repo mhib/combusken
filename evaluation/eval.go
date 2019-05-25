@@ -28,6 +28,31 @@ func addScore(first, second Score) Score {
 	}
 }
 
+type scoreResult struct {
+	Middle int32
+	End    int32
+}
+
+func (sr *scoreResult) addScore(score Score) {
+	sr.Middle += int32(score.Middle)
+	sr.End += int32(score.End)
+}
+
+func (sr *scoreResult) addScoreCount(score Score, count int32) {
+	sr.Middle += int32(score.Middle) * count
+	sr.End += int32(score.End) * count
+}
+
+func (sr *scoreResult) subScore(score Score) {
+	sr.Middle -= int32(score.Middle)
+	sr.End -= int32(score.End)
+}
+
+func (sr *scoreResult) subScoreCount(score Score, count int32) {
+	sr.Middle -= int32(score.Middle) * count
+	sr.End -= int32(score.End) * count
+}
+
 var PawnValue = Score{166, 214}
 var KnightValue = Score{805, 767}
 var BishopValue = Score{714, 747}
@@ -291,10 +316,9 @@ func IsLateEndGame(pos *Position) bool {
 func Evaluate(pos *Position) int {
 	var fromId int
 	var fromBB uint64
+	var result scoreResult
 
 	phase := totalPhase
-	midResult := 0
-	endResult := 0
 	whiteMobilityArea := ^((pos.Pawns & pos.White) | (BlackPawnsAttacks(pos.Pawns & pos.Black)))
 	blackMobilityArea := ^((pos.Pawns & pos.Black) | (WhitePawnsAttacks(pos.Pawns & pos.White)))
 	allOccupation := pos.White | pos.Black
@@ -302,48 +326,38 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 {
-			midResult += int(passedRank[Rank(fromId)].Middle + passedFile[File(fromId)].Middle)
-			endResult += int(passedRank[Rank(fromId)].End + passedFile[File(fromId)].End)
+			result.addScore(passedRank[Rank(fromId)])
+			result.addScore(passedFile[File(fromId)])
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.White) == 0 {
-			midResult += int(isolated.Middle)
-			endResult += int(isolated.End)
+			result.addScore(isolated)
 		}
 		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 &&
 			WhitePawnAttacks[fromId+8]&(pos.Pawns&pos.Black) != 0 {
 			if FILES[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
-				midResult += int(backwardOpen.Middle)
-				endResult += int(backwardOpen.End)
+				result.addScore(backwardOpen)
 			} else {
-				midResult += int(backward.Middle)
-				endResult += int(backward.End)
+				result.addScore(backward)
 			}
 		} else if whitePawnsConnectedMask[fromId]&(pos.White&pos.Pawns) != 0 {
-			midResult += int(whitePawnsConnected[fromId].Middle)
-			endResult += int(whitePawnsConnected[fromId].End)
+			result.addScore(whitePawnsConnected[fromId])
 		}
-		midResult += int(whitePawnsPos[fromId].Middle)
-		endResult += int(whitePawnsPos[fromId].End)
+		result.addScore(whitePawnsPos[fromId])
 		phase -= pawnPhase
 	}
 
 	// white doubled pawns
 	doubledCount := PopCount(pos.Pawns & pos.White & South(pos.Pawns&pos.White))
-	midResult += doubledCount * int(doubled.Middle)
-	endResult += doubledCount * int(doubled.End)
-
+	result.addScoreCount(doubled, int32(doubledCount))
 	// white knights
 
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(whiteMobilityArea & KnightAttacks[fromId])
-		midResult += int(whiteKnightsPos[fromId].Middle)
-		endResult += int(whiteKnightsPos[fromId].End)
-		midResult += int(mobilityBonus[0][mobility].Middle)
-		endResult += int(mobilityBonus[0][mobility].End)
+		result.addScore(whiteKnightsPos[fromId])
+		result.addScore(mobilityBonus[0][mobility])
 		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
-			midResult += int(minorBehindPawn.Middle)
-			endResult += int(minorBehindPawn.End)
+			result.addScore(minorBehindPawn)
 		}
 		phase -= knightPhase
 	}
@@ -352,36 +366,28 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Bishops & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(whiteMobilityArea & BishopAttacks(fromId, allOccupation))
-		midResult += int(mobilityBonus[1][mobility].Middle)
-		endResult += int(mobilityBonus[1][mobility].End)
-		midResult += int(whiteBishopsPos[fromId].Middle)
-		endResult += int(whiteBishopsPos[fromId].End)
+		result.addScore(mobilityBonus[1][mobility])
+		result.addScore(whiteBishopsPos[fromId])
 		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
-			midResult += int(minorBehindPawn.Middle)
-			endResult += int(minorBehindPawn.End)
+			result.addScore(minorBehindPawn)
 		}
 		phase -= bishopPhase
 	}
 	// bishop pair bonus
 	if MoreThanOne(pos.Bishops & pos.White) {
-		midResult += int(bishopPair.Middle)
-		endResult += int(bishopPair.End)
+		result.addScore(bishopPair)
 	}
 
 	// white rooks
 	for fromBB = pos.Rooks & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(whiteMobilityArea & RookAttacks(fromId, allOccupation))
-		midResult += int(mobilityBonus[2][mobility].Middle)
-		endResult += int(mobilityBonus[2][mobility].End)
-		midResult += int(whiteRooksPos[fromId].Middle)
-		endResult += int(whiteRooksPos[fromId].End)
+		result.addScore(mobilityBonus[2][mobility])
+		result.addScore(whiteRooksPos[fromId])
 		if pos.Pawns&FILES[File(fromId)] == 0 {
-			midResult += int(rookOnFile[1].Middle)
-			endResult += int(rookOnFile[1].End)
+			result.addScore(rookOnFile[1])
 		} else if (pos.Pawns&pos.White)&FILES[File(fromId)] == 0 {
-			midResult += int(rookOnFile[0].Middle)
-			endResult += int(rookOnFile[0].End)
+			result.addScore(rookOnFile[0])
 		}
 		phase -= rookPhase
 	}
@@ -390,73 +396,61 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Queens & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(whiteMobilityArea & QueenAttacks(fromId, allOccupation))
-		midResult += int(mobilityBonus[3][mobility].Middle)
-		endResult += int(mobilityBonus[3][mobility].End)
-		midResult += int(whiteQueensPos[fromId].Middle)
-		endResult += int(whiteQueensPos[fromId].End)
+		result.addScore(mobilityBonus[3][mobility])
+		result.addScore(whiteQueensPos[fromId])
 		phase -= queenPhase
 	}
 
 	// king
 	fromId = BitScan(pos.Kings & pos.White)
-	midResult += int(whiteKingPos[fromId].Middle)
-	endResult += int(whiteKingPos[fromId].End)
+	result.addScore(whiteKingPos[fromId])
 
 	// shield
 	if (pos.Kings&pos.White)&whiteKingKingSide != 0 {
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield2) * int(pawnShieldBonus[1].Middle)
+		result.Middle += int32(PopCount(pos.White&pos.Pawns&whiteKingKingSideShield1) * int(pawnShieldBonus[0].Middle))
+		result.Middle += int32(PopCount(pos.White&pos.Pawns&whiteKingKingSideShield2) * int(pawnShieldBonus[1].Middle))
 	}
 	if (pos.Kings&pos.White)&whiteKingQueenSide != 0 {
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield2) * int(pawnShieldBonus[1].Middle)
+		result.Middle += int32(PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield1) * int(pawnShieldBonus[0].Middle))
+		result.Middle += int32(PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield2) * int(pawnShieldBonus[1].Middle))
 	}
 
 	// black pawns
 	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 {
-			midResult -= int(passedRank[7-Rank(fromId)].Middle + passedFile[File(fromId)].Middle)
-			endResult -= int(passedRank[7-Rank(fromId)].End + passedFile[File(fromId)].End)
+			result.subScore(passedRank[7-Rank(fromId)])
+			result.subScore(passedFile[File(fromId)])
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
-			midResult -= int(isolated.Middle)
-			endResult -= int(isolated.End)
+			result.subScore(isolated)
 		}
 		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 &&
 			BlackPawnAttacks[fromId-8]&(pos.Pawns&pos.White) != 0 {
 			if FILES[File(fromId)]&(pos.Pawns&pos.White) == 0 {
-				midResult -= int(backwardOpen.Middle)
-				endResult -= int(backwardOpen.End)
+				result.subScore(backwardOpen)
 			} else {
-				midResult -= int(backward.Middle)
-				endResult -= int(backward.End)
+				result.subScore(backward)
 			}
 		} else if blackPawnsConnectedMask[fromId]&(pos.Black&pos.Pawns) != 0 {
-			midResult -= int(blackPawnsConnected[fromId].Middle)
-			endResult -= int(blackPawnsConnected[fromId].End)
+			result.subScore(blackPawnsConnected[fromId])
 		}
-		midResult -= int(blackPawnsPos[fromId].Middle)
-		endResult -= int(blackPawnsPos[fromId].End)
+		result.subScore(blackPawnsPos[fromId])
 		phase -= pawnPhase
 	}
 
 	// black doubled pawns
 	doubledCount = PopCount(pos.Pawns & pos.Black & North(pos.Pawns&pos.Black))
-	midResult -= doubledCount * int(doubled.Middle)
-	endResult -= doubledCount * int(doubled.End)
+	result.subScoreCount(doubled, int32(doubledCount))
 
 	// black knights
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(blackMobilityArea & KnightAttacks[fromId])
-		midResult -= int(blackKnightsPos[fromId].Middle)
-		endResult -= int(blackKnightsPos[fromId].End)
-		midResult -= int(mobilityBonus[0][mobility].Middle)
-		endResult -= int(mobilityBonus[0][mobility].End)
+		result.subScore(blackKnightsPos[fromId])
+		result.subScore(mobilityBonus[0][mobility])
 		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
-			midResult -= int(minorBehindPawn.Middle)
-			endResult -= int(minorBehindPawn.End)
+			result.subScore(minorBehindPawn)
 		}
 		phase -= knightPhase
 	}
@@ -465,36 +459,28 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Bishops & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(blackMobilityArea & BishopAttacks(fromId, allOccupation))
-		midResult -= int(mobilityBonus[1][mobility].Middle)
-		endResult -= int(mobilityBonus[1][mobility].End)
-		midResult -= int(blackBishopsPos[fromId].Middle)
-		endResult -= int(blackBishopsPos[fromId].End)
+		result.subScore(mobilityBonus[1][mobility])
+		result.subScore(blackBishopsPos[fromId])
 		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
-			midResult -= int(minorBehindPawn.Middle)
-			endResult -= int(minorBehindPawn.End)
+			result.subScore(minorBehindPawn)
 		}
 		phase -= bishopPhase
 	}
 
 	if MoreThanOne(pos.Bishops & pos.Black) {
-		midResult -= int(bishopPair.Middle)
-		endResult -= int(bishopPair.End)
+		result.subScore(bishopPair)
 	}
 
 	// black rooks
 	for fromBB = pos.Rooks & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(blackMobilityArea & RookAttacks(fromId, allOccupation))
-		midResult -= int(mobilityBonus[2][mobility].Middle)
-		endResult -= int(mobilityBonus[2][mobility].End)
-		midResult -= int(blackRooksPos[fromId].Middle)
-		endResult -= int(blackRooksPos[fromId].End)
+		result.subScore(mobilityBonus[2][mobility])
+		result.subScore(blackRooksPos[fromId])
 		if pos.Pawns&FILES[File(fromId)] == 0 {
-			midResult -= int(rookOnFile[1].Middle)
-			endResult -= int(rookOnFile[1].End)
+			result.subScore(rookOnFile[1])
 		} else if (pos.Pawns&pos.Black)&FILES[File(fromId)] == 0 {
-			midResult -= int(rookOnFile[0].Middle)
-			endResult -= int(rookOnFile[0].End)
+			result.subScore(rookOnFile[0])
 		}
 		phase -= rookPhase
 	}
@@ -503,32 +489,27 @@ func Evaluate(pos *Position) int {
 	for fromBB = pos.Queens & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(blackMobilityArea & QueenAttacks(fromId, allOccupation))
-		midResult -= int(mobilityBonus[3][mobility].Middle)
-		endResult -= int(mobilityBonus[3][mobility].End)
-		midResult -= int(blackQueensPos[fromId].Middle)
-		endResult -= int(blackQueensPos[fromId].End)
+		result.subScore(mobilityBonus[3][mobility])
+		result.subScore(blackQueensPos[fromId])
 		phase -= queenPhase
 	}
 
 	fromId = BitScan(pos.Kings & pos.Black)
-	midResult -= int(blackKingPos[fromId].Middle)
-	endResult -= int(blackKingPos[fromId].End)
+	result.subScore(blackKingPos[fromId])
 	// shield
 	if (pos.Kings&pos.Black)&blackKingKingSide != 0 {
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield2) * int(pawnShieldBonus[1].Middle)
+		result.Middle -= int32(PopCount(pos.Black&pos.Pawns&blackKingKingSideShield1) * int(pawnShieldBonus[0].Middle))
+		result.Middle -= int32(PopCount(pos.Black&pos.Pawns&blackKingKingSideShield2) * int(pawnShieldBonus[1].Middle))
 	}
 	if (pos.Kings&pos.Black)&blackKingQueenSide != 0 {
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield2) * int(pawnShieldBonus[1].Middle)
+		result.Middle -= int32(PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield1) * int(pawnShieldBonus[0].Middle))
+		result.Middle -= int32(PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield2) * int(pawnShieldBonus[1].Middle))
 	}
 
 	if pos.WhiteMove {
-		midResult += int(tempo.Middle)
-		endResult += int(tempo.End)
+		result.addScore(tempo)
 	} else {
-		midResult -= int(tempo.Middle)
-		endResult -= int(tempo.End)
+		result.subScore(tempo)
 	}
 
 	if phase < 0 {
@@ -536,10 +517,10 @@ func Evaluate(pos *Position) int {
 	}
 
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
-	result := ((midResult * (256 - phase)) + (endResult * phase)) / 256
+	intResult := ((int(result.Middle) * (256 - phase)) + (int(result.End) * phase)) / 256
 
 	if pos.WhiteMove {
-		return result
+		return intResult
 	}
-	return -result
+	return -intResult
 }
