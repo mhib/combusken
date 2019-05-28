@@ -168,7 +168,7 @@ var backward = Score{7, -5}
 var backwardOpen = Score{-30, -12}
 
 var bishopPair = Score{106, 105}
-var bishopRammedPawns = Score{-10, -16}
+var bishopRammedPawns = Score{-13, -17}
 
 var minorBehindPawn = Score{9, 52}
 

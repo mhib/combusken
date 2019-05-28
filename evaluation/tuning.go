@@ -356,6 +356,7 @@ func loadScoresToSlice() (res []*Score) {
 	res = append(res, &backward)
 	res = append(res, &backwardOpen)
 	res = append(res, &bishopPair)
+	res = append(res, &bishopRammedPawns)
 	res = append(res, &minorBehindPawn)
 	res = append(res, &tempo)
 	res = append(res, &rookOnFile[0])
