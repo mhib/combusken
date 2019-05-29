@@ -190,7 +190,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.White = pos.White
 	res.Black = pos.Black
 	res.Flags = pos.Flags
-	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0
@@ -267,9 +267,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 		return false
 	}
 
-	for flag := uint64(res.Flags ^ pos.Flags); flag != 0; flag &= (flag - 1) {
-		res.Key ^= zobristFlags[BitScan(flag)]
-	}
+	res.Key ^= zobristFlags[res.Flags]
 	res.WhiteMove = !pos.WhiteMove
 	res.LastMove = move
 	return true
