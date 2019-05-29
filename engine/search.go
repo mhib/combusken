@@ -258,10 +258,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 func (t *thread) isDraw(height int) bool {
 	var pos *Position = &t.stack[height].position
 
-	if t.engine.MovesCount < 50 {
-		return false
-	}
-
 	if pos.FiftyMove > 100 {
 		return true
 	}
