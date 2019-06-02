@@ -34,7 +34,6 @@ var BishopValue = Score{714, 747}
 var RookValue = Score{1009, 1201}
 var QueenValue = Score{2251, 2325}
 
-// values from stockfish 10
 var pieceScores = [7][8][4]Score{
 	{},
 	{},
@@ -149,11 +148,6 @@ var whiteQueensPos [64]Score
 var blackKingPos [64]Score
 var whiteKingPos [64]Score
 
-var blackPassedMask [64]uint64
-var whitePassedMask [64]uint64
-
-var adjacentFilesMask [8]uint64
-
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
 var passedRank = [7]Score{Score{0, 0}, Score{25, -14}, Score{32, -1}, Score{9, 55}, Score{56, 110}, Score{74, 234}, Score{124, 415}}
 
@@ -169,6 +163,12 @@ var backwardOpen = Score{-30, -12}
 
 var bishopPair = Score{106, 105}
 
+var bishopOutpostUndefendedBonus = Score{10, 0}
+var bishopOutpostDefendedBonus = Score{10, 0}
+
+var knightOutpostUndefendedBonus = Score{7, 0}
+var knightOutpostDefendedBonus = Score{7, 0}
+
 var minorBehindPawn = Score{9, 52}
 
 var tempo = Score{39, 50}
@@ -179,12 +179,22 @@ var rookOnFile = [2]Score{Score{22, 39}, Score{86, 2}}
 // this bonus only improves midScore
 var pawnShieldBonus = [...]Score{Score{11, 0}, Score{-11, 0}} // score for every pawn
 
+var blackPassedMask [64]uint64
+var whitePassedMask [64]uint64
+
+var whiteOutpostMask [64]uint64
+var blackOutpostMask [64]uint64
+
+var adjacentFilesMask [8]uint64
+
 const whiteKingKingSide = F1 | G1 | H1
 const whiteKingKingSideShield1 = (whiteKingKingSide << 8)  // one rank up
 const whiteKingKingSideShield2 = (whiteKingKingSide << 16) // two ranks up
 const whiteKingQueenSide = A1 | B1 | C1
 const whiteKingQueenSideShield1 = (whiteKingQueenSide << 8)  // one rank up
 const whiteKingQueenSideShield2 = (whiteKingQueenSide << 16) // two ranks up
+const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
+const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
 const blackKingKingSide = F8 | G8 | H8
 const blackKingKingSideShield1 = (blackKingKingSide >> 8)  // one rank down
@@ -252,6 +262,9 @@ func init() {
 			}
 		}
 	}
+	for i := 8; i <= 55; i++ {
+		whiteOutpostMask[i] = whitePassedMask[i] & ^FILES[File(i)]
+	}
 	for i := 55; i >= 8; i-- {
 		blackPassedMask[i] = 0
 		for file := File(i) - 1; file <= File(i)+1; file++ {
@@ -262,6 +275,9 @@ func init() {
 				blackPassedMask[i] |= 1 << uint(rank*8+file)
 			}
 		}
+	}
+	for i := 55; i >= 8; i-- {
+		blackOutpostMask[i] = blackPassedMask[i] & ^FILES[File(i)]
 	}
 	for i := 8; i <= 55; i++ {
 		whitePawnsConnectedMask[i] = BlackPawnAttacks[i] | BlackPawnAttacks[i+8]
@@ -333,7 +349,6 @@ func Evaluate(pos *Position) int {
 	endResult += doubledCount * int(doubled.End)
 
 	// white knights
-
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		mobility := PopCount(whiteMobilityArea & KnightAttacks[fromId])
@@ -344,6 +359,16 @@ func Evaluate(pos *Position) int {
 		if (pos.Pawns>>8)&SquareMask[fromId] != 0 {
 			midResult += int(minorBehindPawn.Middle)
 			endResult += int(minorBehindPawn.End)
+		}
+		if SquareMask[fromId]&whiteOutpustRanks != 0 && whiteOutpostMask[fromId]&(pos.Pawns&pos.Black) == 0 {
+			if BlackPawnAttacks[fromId]&(pos.Pawns&pos.White) != 0 {
+				midResult += int(knightOutpostDefendedBonus.Middle)
+				endResult += int(knightOutpostDefendedBonus.End)
+			} else {
+				midResult += int(knightOutpostUndefendedBonus.Middle)
+				endResult += int(knightOutpostUndefendedBonus.End)
+			}
+
 		}
 		phase -= knightPhase
 	}
@@ -360,6 +385,16 @@ func Evaluate(pos *Position) int {
 			midResult += int(minorBehindPawn.Middle)
 			endResult += int(minorBehindPawn.End)
 		}
+		if SquareMask[fromId]&whiteOutpustRanks != 0 && whiteOutpostMask[fromId]&(pos.Pawns&pos.Black) == 0 {
+			if BlackPawnAttacks[fromId]&(pos.Pawns&pos.White) != 0 {
+				midResult += int(bishopOutpostDefendedBonus.Middle)
+				endResult += int(bishopOutpostDefendedBonus.End)
+			} else {
+				midResult += int(bishopOutpostUndefendedBonus.Middle)
+				endResult += int(bishopOutpostUndefendedBonus.End)
+			}
+		}
+
 		phase -= bishopPhase
 	}
 	// bishop pair bonus
@@ -458,6 +493,15 @@ func Evaluate(pos *Position) int {
 			midResult -= int(minorBehindPawn.Middle)
 			endResult -= int(minorBehindPawn.End)
 		}
+		if SquareMask[fromId]&blackOutpustRanks != 0 && blackOutpostMask[fromId]&(pos.Pawns&pos.White) == 0 {
+			if WhitePawnAttacks[fromId]&(pos.Pawns&pos.Black) != 0 {
+				midResult -= int(knightOutpostDefendedBonus.Middle)
+				endResult -= int(knightOutpostDefendedBonus.End)
+			} else {
+				midResult -= int(knightOutpostUndefendedBonus.Middle)
+				endResult -= int(knightOutpostUndefendedBonus.End)
+			}
+		}
 		phase -= knightPhase
 	}
 
@@ -472,6 +516,15 @@ func Evaluate(pos *Position) int {
 		if (pos.Pawns<<8)&SquareMask[fromId] != 0 {
 			midResult -= int(minorBehindPawn.Middle)
 			endResult -= int(minorBehindPawn.End)
+		}
+		if SquareMask[fromId]&blackOutpustRanks != 0 && blackOutpostMask[fromId]&(pos.Pawns&pos.White) == 0 {
+			if WhitePawnAttacks[fromId]&(pos.Pawns&pos.Black) != 0 {
+				midResult -= int(bishopOutpostDefendedBonus.Middle)
+				endResult -= int(bishopOutpostDefendedBonus.End)
+			} else {
+				midResult -= int(bishopOutpostUndefendedBonus.Middle)
+				endResult -= int(bishopOutpostUndefendedBonus.End)
+			}
 		}
 		phase -= bishopPhase
 	}
