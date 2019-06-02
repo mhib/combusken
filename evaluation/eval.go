@@ -163,11 +163,11 @@ var backwardOpen = Score{-30, -12}
 
 var bishopPair = Score{106, 105}
 
-var bishopOutpostUndefendedBonus = Score{10, 0}
-var bishopOutpostDefendedBonus = Score{10, 0}
+var bishopOutpostUndefendedBonus = Score{36, -9}
+var bishopOutpostDefendedBonus = Score{92, -4}
 
-var knightOutpostUndefendedBonus = Score{7, 0}
-var knightOutpostDefendedBonus = Score{7, 0}
+var knightOutpostUndefendedBonus = Score{34, -23}
+var knightOutpostDefendedBonus = Score{75, 23}
 
 var minorBehindPawn = Score{9, 52}
 
