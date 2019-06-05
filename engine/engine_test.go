@@ -1,48 +1,12 @@
 package engine
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	. "github.com/mhib/combusken/backend"
-	"log"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
-
-type positionTest struct {
-	Position
-	bestMoves []string
-	id        string
-}
-
-func loadEPD(fileLocation string) (res []positionTest) {
-	path, _ := filepath.Abs(fileLocation)
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		var entry positionTest
-		positionAndRest := strings.Split(line, " bm ")
-		entry.Position = ParseFen(positionAndRest[0])
-		bestMovesAndID := strings.Split(positionAndRest[1], ";")
-		entry.bestMoves = strings.Split(bestMovesAndID[0], " ")
-		entry.id = bestMovesAndID[1]
-		res = append(res, entry)
-	}
-
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-	return
-}
 
 func TestWAC(t *testing.T) {
 	var good, bad int

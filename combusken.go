@@ -8,8 +8,12 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "tune" {
-		evaluation.Tune()
+	if len(os.Args) > 1 {
+		if os.Args[1] == "tune" {
+			evaluation.Tune()
+		} else if os.Args[1] == "bench" {
+			engine.Benchmark()
+		}
 		return
 	}
 	e := engine.NewEngine()
