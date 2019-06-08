@@ -186,7 +186,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value <= MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
