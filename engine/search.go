@@ -17,7 +17,7 @@ const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 const SMPCycles = 16
 
-const SEEPruningDepth = 8
+const SEEPruningDepth = 6
 const SEEQuietMargin = -80
 const SEENoisyMargin = -18
 
@@ -188,7 +188,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			sortMoves(evaled[i:])
 		}
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
-		if val > ValueLoss && depth <= SEEPruningDepth && evaled[i].Value < MinSpecialMoveValue {
+		if !pvNode && val > ValueLoss && depth <= SEEPruningDepth && evaled[i].Value < MinSpecialMoveValue {
 			if isNoisy {
 				if !SeeAbove(pos, evaled[i].Move, seeNoisy) {
 					continue
