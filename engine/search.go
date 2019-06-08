@@ -117,12 +117,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
-	if alpha < -Mate+height {
-		alpha = -Mate + height
-	}
-	if beta > Mate-height-1 {
-		beta = Mate - height - 1
-	}
+	// Mate distance pruning
+	alpha = max(alpha, -Mate+height)
+	beta = min(beta, Mate-height-1)
 	if alpha >= beta {
 		return alpha
 	}

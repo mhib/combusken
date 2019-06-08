@@ -14,20 +14,6 @@ type timeManager struct {
 
 type timeoutStrategy func(manager *timeManager, depth, nodes int) bool
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a < b {
-		return b
-	}
-	return a
-}
-
 func (manager *timeManager) isSoftTimeout(depth, nodes int) bool {
 	return manager.timeoutStrategy(manager, depth, nodes)
 }
