@@ -17,6 +17,10 @@ const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 const SMPCycles = 16
 
+const SEEPruningDepth = 8
+const SEEQuietMargin = -80
+const SEENoisyMargin = -18
+
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
@@ -168,6 +172,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		_, _, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
 	}
 
+	seeNoisy := SEENoisyMargin * depth * depth
+	seeQuiet := SEEQuietMargin * depth
+
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 	quietsSearched := t.stack[height].quietsSearched[:0]
@@ -180,14 +187,25 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		} else if i == 4 {
 			sortMoves(evaled[i:])
 		}
+		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
+		if val > ValueLoss && depth <= SEEPruningDepth && evaled[i].Value < MinSpecialMoveValue {
+			if isNoisy {
+				if !SeeAbove(pos, evaled[i].Move, seeNoisy) {
+					continue
+				}
+			} else {
+				if !SeeAbove(pos, evaled[i].Move, seeQuiet) {
+					continue
+				}
+			}
+		}
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
-			!childInCheck {
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy && !childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
 				if pvNode {
@@ -208,7 +226,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			newDepth++
 		}
 
-		if !evaled[i].Move.IsCaptureOrPromotion() {
+		if !isNoisy {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 		if reduction > 0 || (!pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue) {
