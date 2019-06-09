@@ -5,6 +5,7 @@ import (
 	"fmt"
 	. "github.com/mhib/combusken/backend"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -95,6 +96,12 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	return alpha
 }
 
+type tuner struct {
+	k       float64
+	weights []*Score
+	entries []tuneEntry
+}
+
 func Tune() {
 	inputChan := make(chan string)
 	go loadEntries(inputChan)
@@ -114,21 +121,32 @@ func Tune() {
 		wg.Wait()
 		close(resultChan)
 	}()
-	var entries []tuneEntry
+	t := &tuner{}
 	for entry := range resultChan {
-		entries = append(entries, entry)
+		t.entries = append(t.entries, entry)
 	}
 	fmt.Println("Number of entries:")
-	fmt.Println(len(entries))
-	k := calculateOptimalK(entries)
-	fmt.Printf("Optimal k: %.17g\n", k)
-	weights := loadScoresToSlice()
-	coordinateDescent(weights, entries, k)
-	fmt.Println("Generated weights:")
-	fmt.Println(weights)
+	fmt.Println(len(t.entries))
+	t.calculateOptimalK()
+	fmt.Printf("Optimal k: %.17g\n", t.k)
+	t.weights = loadScoresToSlice()
+	for i := 0; ; i++ {
+		fmt.Printf("Iteration: %d\n", i)
+		t.coordinateDescent()
+		fmt.Println("Generated weights in coordinate descent:")
+		fmt.Println(t.weights)
+		fmt.Println("Mutating")
+		mutationsSucceeded := t.mutate()
+		if mutationsSucceeded {
+			fmt.Println("Generated weights after mutations:")
+			fmt.Println(t.weights)
+		} else {
+			break
+		}
+	}
 }
 
-func computeError(entries []tuneEntry, k float64) float64 {
+func (t *tuner) computeError() float64 {
 	numCPU := runtime.NumCPU()
 	results := make([]float64, numCPU)
 	wg := &sync.WaitGroup{}
@@ -136,13 +154,13 @@ func computeError(entries []tuneEntry, k float64) float64 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			for y := idx; y < len(entries); y += numCPU {
-				entry := entries[y]
+			for y := idx; y < len(t.entries); y += numCPU {
+				entry := t.entries[y]
 				evaluation := float64(Evaluate(&entry.Position))
 				if !entry.Position.WhiteMove {
 					evaluation *= -1
 				}
-				diff := entry.result - sigmoid(k, evaluation)
+				diff := entry.result - sigmoid(t.k, evaluation)
 				results[idx] += diff * diff
 			}
 		}(i)
@@ -152,22 +170,23 @@ func computeError(entries []tuneEntry, k float64) float64 {
 	for _, tResult := range results {
 		sum += tResult
 	}
-	return sum / float64(len(entries))
+	return sum / float64(len(t.entries))
 }
 
-func calculateOptimalK(entries []tuneEntry) float64 {
+func (t *tuner) calculateOptimalK() {
 	start := -10.0
 	end := 10.0
 	delta := 1.0
-	best := computeError(entries, start)
+	t.k = start
+	best := t.computeError()
 	for i := 0; i < 10; i++ {
-		current := start - delta
-		for current < end {
-			current += delta
-			err := computeError(entries, current)
+		t.k = start - delta
+		for t.k < end {
+			t.k += delta
+			err := t.computeError()
 			if err <= best {
 				best = err
-				start = current
+				start = t.k
 			}
 		}
 		end = start + delta
@@ -175,7 +194,7 @@ func calculateOptimalK(entries []tuneEntry) float64 {
 		delta /= 10
 		fmt.Printf("Optimal k after %d steps: %.17g\n", i+1, start)
 	}
-	return start
+	t.k = start
 }
 
 func parseEntry(t *thread, fen string, resultChan chan tuneEntry) {
@@ -229,17 +248,52 @@ func absScore(num int16) int {
 	return int(num)
 }
 
-func regularization(weights []*Score) float64 {
+func (t *tuner) regularization() float64 {
 	alpha := 0.2e-7
 	sum := 0
-	for _, score := range weights {
+	for _, score := range t.weights {
 		sum += absScore(score.Middle)
 		sum += absScore(score.End)
 	}
 	return alpha * float64(sum)
 }
 
-func coordinateDescent(weights []*Score, entries []tuneEntry, k float64) {
+func (t *tuner) mutate() (improved bool) {
+	bestError := t.computeError()
+	bestErrorWithRegularization := bestError + t.regularization()
+	fmt.Println(bestErrorWithRegularization)
+	bestWeights := make([]Score, len(t.weights))
+	for i := range t.weights {
+		bestWeights[i] = *t.weights[i]
+	}
+	for i := 0; i < 50000; i++ {
+		for i := range t.weights {
+			t.weights[i].Middle += int16(rand.NormFloat64() * 1)
+			t.weights[i].End += int16(rand.NormFloat64() * 1)
+		}
+		loadScoresToPieceSquares()
+		newError := t.computeError()
+		newRegularization := t.regularization()
+		fmt.Printf("\r%f", newError+newRegularization)
+		if newError < bestError && newError+newRegularization < bestErrorWithRegularization {
+			for i := range t.weights {
+				bestWeights[i] = *t.weights[i]
+			}
+			improved = true
+			fmt.Printf("Mutation %d; error: %.17g; regularization: %.17g\n", i+1, newError, newRegularization)
+			fmt.Println(t.weights)
+			bestError = newError
+			bestErrorWithRegularization = newError + newRegularization
+		}
+		for i := range t.weights {
+			*t.weights[i] = bestWeights[i]
+		}
+	}
+
+	return improved
+}
+
+func (t *tuner) coordinateDescent() {
 	getter := func(score *Score, phase int) int16 {
 		if phase == 0 {
 			return score.Middle
@@ -256,20 +310,21 @@ func coordinateDescent(weights []*Score, entries []tuneEntry, k float64) {
 			loadScoresToPieceSquares()
 		}
 	}
-	bestError := computeError(entries, k)
-	bestErrorWithRegularization := bestError + regularization(weights)
-	fmt.Printf("Inital values; error: %.17g; regularization: %.17g\n", bestError, regularization(weights))
-	fmt.Println(weights)
+	bestError := t.computeError()
+	bestErrorWithRegularization := bestError + t.regularization()
+	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", bestError, t.regularization())
+	fmt.Println(t.weights)
 	for iter := 0; ; iter++ {
 		improved := false
-		for idx, score := range weights {
+		for idx, score := range t.weights {
 			for phase := 0; phase < 2; phase++ {
 				oldValue := getter(score, phase)
 				bestValue := oldValue
+				// try increasing
 				for i := int16(1); i <= 64; i *= 2 {
 					setter(score, phase, oldValue+i, idx)
-					newError := computeError(entries, k)
-					newErrorWithRegularization := newError + regularization(weights)
+					newError := t.computeError()
+					newErrorWithRegularization := newError + t.regularization()
 					// First compare to prevent decreasing parameter just to lower regularization(as some parameters may be irrelevant in test positions)
 					if newError < bestError && newErrorWithRegularization < bestErrorWithRegularization {
 						bestValue = oldValue + i
@@ -281,11 +336,12 @@ func coordinateDescent(weights []*Score, entries []tuneEntry, k float64) {
 						break
 					}
 				}
+				// try decreasing
 				if bestValue == oldValue {
 					for i := int16(1); i <= 64; i *= 2 {
 						setter(score, phase, oldValue-i, idx)
-						newError := computeError(entries, k)
-						newErrorWithRegularization := newError + regularization(weights)
+						newError := t.computeError()
+						newErrorWithRegularization := newError + t.regularization()
 						if newError < bestError && newErrorWithRegularization < bestErrorWithRegularization {
 							bestValue = oldValue - i
 							bestError = newError
@@ -299,8 +355,8 @@ func coordinateDescent(weights []*Score, entries []tuneEntry, k float64) {
 				}
 			}
 		}
-		fmt.Printf("Iteration %d; error: %.17g; regularization: %.17g\n", iter+1, bestError, regularization(weights))
-		fmt.Println(weights)
+		fmt.Printf("Iteration %d; error: %.17g; regularization: %.17g\n", iter+1, bestError, t.regularization())
+		fmt.Println(t.weights)
 		if !improved {
 			break
 		}
