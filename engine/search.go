@@ -15,7 +15,11 @@ const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
+
 const SMPCycles = 16
+
+const WindowSize = 15
+const WindowDepth = 5
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
@@ -290,12 +294,39 @@ type result struct {
 	moves []Move
 }
 
-func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result, mainThread bool) {
+func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resultChan chan result) int {
+	var alpha, beta int
+	delta := WindowSize
+	if depth >= WindowDepth {
+		alpha = max(-Mate, lastValue-delta)
+		beta = min(Mate, lastValue+delta)
+	} else {
+		alpha = -Mate
+		beta = Mate
+	}
+	for {
+		res := t.depSearch(depth, alpha, beta, moves)
+		if res.value > alpha && res.value < beta {
+			resultChan <- res
+			return res.value
+		}
+		if res.value <= alpha {
+			beta = (alpha + beta) / 2
+			alpha = max(-Mate, alpha-delta)
+		}
+		if res.value >= beta {
+			beta = min(Mate, beta+delta)
+		}
+		delta += delta / 2
+	}
+}
+
+// depSearch is special case of alphaBeta function for root node
+func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
 	inCheck := pos.IsInCheck()
-	alpha := -MaxInt
 	moveCount := 0
 	t.stack[0].PV.clear()
 	quietsSearched := t.stack[0].quietsSearched[:0]
@@ -331,10 +362,13 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 				continue
 			}
 		}
-		val = -t.alphaBeta(newDepth, -Mate, -alpha, 1, childInCheck)
+		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck)
 		if val > alpha {
 			alpha = val
 			bestMove = moves[i].Move
+			if alpha >= beta {
+				break
+			}
 			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
@@ -345,13 +379,12 @@ func (t *thread) depSearch(depth int, moves []EvaledMove, resultChan chan result
 			alpha = contempt(pos)
 		}
 	}
-	resultChan <- result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
-
 	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, 0)
 	}
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
+	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
 func moveToFirst(moves []EvaledMove, idx int) {
@@ -368,11 +401,12 @@ func moveToFirst(moves []EvaledMove, idx int) {
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
 	var lastBestMove Move
 	thread := e.threads[0]
+	lastValue := -Mate
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
 		go func(depth int) {
 			defer recoverFromTimeout()
-			thread.depSearch(depth, rootMoves, resultChan, true)
+			lastValue = thread.aspirationWindow(depth, lastValue, rootMoves, resultChan)
 		}(i)
 		select {
 		case <-ctx.Done():
@@ -398,6 +432,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 
 func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, idx int) {
 	mainThread := idx == 0
+	lastValue := -Mate
 	if !mainThread {
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
@@ -405,7 +440,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 	}
 	cycle := idx % SMPCycles
 	for depth := 1; depth < MAX_HEIGHT; depth++ {
-		t.depSearch(depth, moves, resultChan, mainThread)
+		lastValue = t.aspirationWindow(depth, lastValue, moves, resultChan)
 		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
 			depth += SkipSize[cycle]
 		}
