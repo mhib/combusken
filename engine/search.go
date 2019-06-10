@@ -18,7 +18,7 @@ const ValueLoss = -ValueWin
 
 const SMPCycles = 16
 
-const WindowSize = 30
+const WindowSize = 100
 const WindowDepth = 6
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
@@ -317,7 +317,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 		if res.value >= beta {
 			beta = min(Mate, beta+delta)
 		}
-		delta += delta / 2
+		delta += delta/2 + 5
 	}
 }
 
