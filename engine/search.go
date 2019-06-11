@@ -18,7 +18,7 @@ const ValueLoss = -ValueWin
 
 const SMPCycles = 16
 
-const WindowSize = 100
+const WindowSize = 50
 const WindowDepth = 6
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
