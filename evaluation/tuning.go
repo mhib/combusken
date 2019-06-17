@@ -130,20 +130,9 @@ func Tune() {
 	t.calculateOptimalK()
 	fmt.Printf("Optimal k: %.17g\n", t.k)
 	t.weights = loadScoresToSlice()
-	for i := 0; ; i++ {
-		fmt.Printf("Iteration: %d\n", i)
-		t.coordinateDescent()
-		fmt.Println("Generated weights in coordinate descent:")
-		fmt.Println(t.weights)
-		fmt.Println("Mutating")
-		mutationsSucceeded := t.mutate()
-		if mutationsSucceeded {
-			fmt.Println("Generated weights after mutations:")
-			fmt.Println(t.weights)
-		} else {
-			break
-		}
-	}
+	t.coordinateDescent()
+	fmt.Println("Generated weights in coordinate descent:")
+	fmt.Println(t.weights)
 }
 
 func (t *tuner) computeError() float64 {
@@ -258,39 +247,68 @@ func (t *tuner) regularization() float64 {
 	return alpha * float64(sum)
 }
 
-func (t *tuner) mutate() (improved bool) {
-	bestError := t.computeError()
-	bestErrorWithRegularization := bestError + t.regularization()
-	fmt.Println(bestErrorWithRegularization)
+func (t *tuner) annealing() (improved bool) {
+	energy := func() float64 {
+		return (t.computeError() - t.regularization()) * 5000000
+	}
+	bestEnergy := energy()
+	prevEnergy := bestEnergy
+	fmt.Println(bestEnergy)
+
 	bestWeights := make([]Score, len(t.weights))
+	prevWeights := make([]Score, len(t.weights))
 	for i := range t.weights {
 		bestWeights[i] = *t.weights[i]
+		prevWeights[i] = *t.weights[i]
 	}
-	for i := 0; i < 50000; i++ {
+
+	maxTemperature := 1000.0
+	minTemperature := 2.5
+	tFactor := -math.Log(maxTemperature / minTemperature)
+
+	steps := 50000
+	currentEnergy := bestEnergy
+
+	for i := 1; i <= steps; i++ {
 		for i := range t.weights {
 			t.weights[i].Middle += int16(rand.NormFloat64() * 1)
 			t.weights[i].End += int16(rand.NormFloat64() * 1)
 		}
 		loadScoresToPieceSquares()
-		newError := t.computeError()
-		newRegularization := t.regularization()
-		fmt.Printf("\r%f", newError+newRegularization)
-		if newError < bestError && newError+newRegularization < bestErrorWithRegularization {
+		temperature := maxTemperature * math.Exp(tFactor*float64(i)/float64(steps))
+		currentEnergy = energy()
+		dEnergy := currentEnergy - prevEnergy
+		fmt.Printf("D: %f Temperature: %f Error: %f Exp: %f\r", dEnergy, temperature, currentEnergy, math.Exp(-dEnergy/temperature))
+		if dEnergy > 0 && math.Exp(-dEnergy/temperature) < rand.Float64() {
+			// Previous state
 			for i := range t.weights {
-				bestWeights[i] = *t.weights[i]
+				*t.weights[i] = prevWeights[i]
 			}
-			improved = true
-			fmt.Printf("Mutation %d; error: %.17g; regularization: %.17g\n", i+1, newError, newRegularization)
-			fmt.Println(t.weights)
-			bestError = newError
-			bestErrorWithRegularization = newError + newRegularization
-		}
-		for i := range t.weights {
-			*t.weights[i] = bestWeights[i]
+		} else {
+			for i := range t.weights {
+				prevWeights[i] = *t.weights[i]
+			}
+			prevEnergy = currentEnergy
+			if currentEnergy < bestEnergy {
+				fmt.Println("Yay!")
+				fmt.Println(currentEnergy)
+				fmt.Println(t.weights)
+				improved = true
+				for i := range t.weights {
+					bestWeights[i] = *t.weights[i]
+				}
+			}
 		}
 	}
+	fmt.Printf("\nlastEnergy: %f\n", currentEnergy)
 
-	return improved
+	for i := range t.weights {
+		*t.weights[i] = bestWeights[i]
+	}
+	if improved {
+		fmt.Println(t.weights)
+	}
+	return
 }
 
 func (t *tuner) coordinateDescent() {
@@ -314,9 +332,18 @@ func (t *tuner) coordinateDescent() {
 	bestErrorWithRegularization := bestError + t.regularization()
 	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", bestError, t.regularization())
 	fmt.Println(t.weights)
+
+	indexes := make([]int, len(t.weights))
+	for idx := range t.weights {
+		indexes[idx] = idx
+	}
 	for iter := 0; ; iter++ {
 		improved := false
-		for idx, score := range t.weights {
+		rand.Shuffle(len(indexes), func(i, j int) {
+			indexes[i], indexes[j] = indexes[j], indexes[i]
+		})
+		for _, idx := range indexes {
+			score := t.weights[idx]
 			for phase := 0; phase < 2; phase++ {
 				oldValue := getter(score, phase)
 				bestValue := oldValue
