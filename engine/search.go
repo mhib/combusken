@@ -125,17 +125,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	alphaOrig := alpha
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
 	if hashOk {
-		tmpVal = int(hashValue)
-		if hashDepth >= uint8(depth) {
-			if hashFlag == TransExact {
-				return tmpVal
-			}
-			if hashFlag == TransAlpha && tmpVal <= alpha {
-				return alpha
-			}
-			if hashFlag == TransBeta && tmpVal >= beta {
-				return beta
-			}
+		tmpVal := int(hashValue)
+		if hashDepth >= uint8(depth) && (hashFlag == TransExact || (hashFlag == TransAlpha && tmpVal <= alpha) ||
+			(hashFlag == TransBeta && tmpVal >= beta)) {
+			return tmpVal
 		}
 	}
 
