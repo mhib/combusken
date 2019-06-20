@@ -184,6 +184,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				maxMoveToFirst(evaled[i:])
 			} else if i == 4 {
 				sortMoves(evaled[i:])
+				movesSorted = true
 			}
 		}
 		if !pos.MakeMove(evaled[i].Move, child) {
@@ -214,7 +215,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			evaled[i].Move == hashMove &&
 			int(hashDepth) >= depth-2 &&
 			hashFlag != TransAlpha
-
 		if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
 		} else if singularCandidate && t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
@@ -271,6 +271,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, moves []EvaledMove) bool {
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
+	// Store child as we already made a move into it in alphaBeta
+	oldChild := *child
 	sortMoves(moves)
 	val := -Mate
 	rBeta := max(hashValue-depth, -Mate)
@@ -288,11 +290,13 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 		}
 		if !moves[i].Move.IsCaptureOrPromotion() {
 			quiets++
-			if quiets >= 6 {
+			if quiets >= 4 {
 				break
 			}
 		}
 	}
+	// restore child
+	*child = oldChild
 	return val <= rBeta
 }
 
