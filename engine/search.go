@@ -128,10 +128,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
 	if hashOk {
 		tmpVal := int(hashValue)
-		if hashDepth >= uint8(depth) && (!pvNode || height == 0) && (hashFlag == TransExact || (hashFlag == TransAlpha && tmpVal <= alpha) ||
+		if (!pvNode || depth == 0) && hashDepth >= uint8(depth) && (hashFlag == TransExact || (hashFlag == TransAlpha && tmpVal <= alpha) ||
 			(hashFlag == TransBeta && tmpVal >= beta)) {
 			return tmpVal
 		}
+	}
+
+	if depth == 0 {
+		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
 	var child *Position = &t.stack[height+1].position
@@ -143,10 +147,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if tmpVal >= beta {
 			return beta
 		}
-	}
-
-	if depth == 0 {
-		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
 	lazyEval := lazyEval{position: pos}
