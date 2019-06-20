@@ -8,9 +8,9 @@ import . "github.com/mhib/combusken/evaluation"
 const maxValue = Mate
 
 const (
-	TransExact = iota + 1
-	TransAlpha
-	TransBeta
+	TransBeta  = iota + 1 // Lower bound
+	TransAlpha            // Upper bound
+	TransExact
 )
 
 func nearestPowerOfTwo(input int) uint64 {

@@ -177,11 +177,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	//t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
+	movesSorted := false
 	for i := range evaled {
-		if i < 4 {
-			maxMoveToFirst(evaled[i:])
-		} else if i == 4 {
-			sortMoves(evaled[i:])
+		if !movesSorted {
+			if i < 4 {
+				maxMoveToFirst(evaled[i:])
+			} else if i == 4 {
+				sortMoves(evaled[i:])
+			}
 		}
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
@@ -207,10 +210,17 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 		newDepth := depth - 1
+		singularCandidate := depth >= 8 &&
+			evaled[i].Move == hashMove &&
+			int(hashDepth) >= depth-2 &&
+			hashFlag != TransAlpha
+
 		if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
+		} else if singularCandidate && t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
+			newDepth++
+			movesSorted = true
 		}
-
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
@@ -256,6 +266,34 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
 	return alpha
+}
+
+func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, moves []EvaledMove) bool {
+	var pos *Position = &t.stack[height].position
+	var child *Position = &t.stack[height+1].position
+	sortMoves(moves)
+	val := -Mate
+	rBeta := max(hashValue-depth, -Mate)
+	quiets := 0
+	for i := range moves {
+		if moves[i].Move == hashMove {
+			continue
+		}
+		if !pos.MakeMove(moves[i].Move, child) {
+			continue
+		}
+		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck())
+		if val > rBeta {
+			break
+		}
+		if !moves[i].Move.IsCaptureOrPromotion() {
+			quiets++
+			if quiets >= 6 {
+				break
+			}
+		}
+	}
+	return val <= rBeta
 }
 
 func (t *thread) isDraw(height int) bool {
