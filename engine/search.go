@@ -290,7 +290,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 		}
 		if !moves[i].Move.IsCaptureOrPromotion() {
 			quiets++
-			if quiets >= 4 {
+			if quiets >= 6 {
 				break
 			}
 		}
