@@ -4,6 +4,7 @@ import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/evaluation"
 
 const MinSpecialMoveValue = 1499
+const MinGoodCapture = 20001
 
 const HistoryMax = 400
 const HistoryMultiplier = 32
