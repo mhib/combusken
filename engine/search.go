@@ -293,6 +293,8 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 			if quiets >= 6 {
 				break
 			}
+		} else if moves[i].Value < MaxBadCapture {
+			break
 		}
 	}
 	// restore child
