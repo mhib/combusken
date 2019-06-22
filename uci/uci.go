@@ -257,7 +257,10 @@ func (uci *UciProtocol) setOptionCommand() {
 		debugUci("invalid setoption arguments")
 		return
 	}
-	var name, value = uci.fields[1], uci.fields[3]
+	var name, value string
+	valueIdx := findIndexString(uci.fields, "value")
+	name = strings.Join(uci.fields[1:valueIdx], " ")
+	value = uci.fields[valueIdx+1]
 	for _, option := range uci.engine.GetOptions() {
 		if strings.EqualFold(option.Name, name) {
 			v, err := strconv.Atoi(value)

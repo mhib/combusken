@@ -25,9 +25,10 @@ type TransTable interface {
 }
 
 type Engine struct {
-	Hash    IntUciOption
-	Threads IntUciOption
-	done    <-chan struct{}
+	Hash         IntUciOption
+	Threads      IntUciOption
+	MoveOverhead IntUciOption
+	done         <-chan struct{}
 	TransTable
 	MoveHistory map[uint64]int
 	MovesCount  int
@@ -101,19 +102,20 @@ func (e *Engine) GetInfo() (name, version, author string) {
 }
 
 func (e *Engine) GetOptions() []*IntUciOption {
-	return []*IntUciOption{&e.Hash, &e.Threads}
+	return []*IntUciOption{&e.Hash, &e.Threads, &e.MoveOverhead}
 }
 
 func NewEngine() (ret Engine) {
 	ret.Hash = IntUciOption{"Hash", 4, 2048, 256}
 	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 1}
+	ret.MoveOverhead = IntUciOption{"Move Overhead", 0, 1000, 50}
 	ret.threads = make([]thread, 1)
 	return
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
 	e.fillMoveHistory(searchParams.Positions)
-	e.timeManager = newTimeManager(searchParams.Limits, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove)
+	e.timeManager = newTimeManager(searchParams.Limits, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove, e.MoveOverhead.Val)
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
 	if e.hardTimeout > 0 {

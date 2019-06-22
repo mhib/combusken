@@ -3,7 +3,6 @@ package engine
 import "time"
 
 const defaultMovesToGo = 35
-const buffer = 50
 
 type timeManager struct {
 	timeoutStrategy
@@ -40,7 +39,7 @@ func neverSoftTimeout(manager *timeManager, depth, nodes int) bool {
 	return false
 }
 
-func newTimeManager(limits LimitsType, whiteMove bool) timeManager {
+func newTimeManager(limits LimitsType, whiteMove bool, overhead int) timeManager {
 	if limits.MoveTime > 0 {
 		return newMoveTimeManager(limits.MoveTime)
 	} else if limits.Depth > 0 {
@@ -48,7 +47,7 @@ func newTimeManager(limits LimitsType, whiteMove bool) timeManager {
 	} else if limits.Infinite {
 		return timeManager{timeoutStrategy: neverSoftTimeout}
 	} else if limits.WhiteTime > 0 || limits.BlackTime > 0 {
-		return newTournamentTimeManager(limits, whiteMove)
+		return newTournamentTimeManager(limits, whiteMove, overhead)
 	} else {
 		return newMoveTimeManager(1000)
 	}
@@ -68,7 +67,7 @@ func newMoveTimeManager(duration int) (res timeManager) {
 	return
 }
 
-func newTournamentTimeManager(limits LimitsType, whiteMove bool) (res timeManager) {
+func newTournamentTimeManager(limits LimitsType, whiteMove bool, overhead int) (res timeManager) {
 	var limit, inc int
 	if whiteMove {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
@@ -81,9 +80,9 @@ func newTournamentTimeManager(limits LimitsType, whiteMove bool) (res timeManage
 	}
 	ideal := limit / movesToGo
 	ideal += inc
-	ensureNoFlag := max(limit-buffer, 0)
+	ensureNoFlag := max(limit-overhead, 0)
 	res.hardTimeout = time.Duration(min(ideal*2, ensureNoFlag)) * time.Millisecond
-	res.softTimeout = res.hardTimeout / 4
+	res.softTimeout = time.Duration(max(ideal/2-overhead, 0)) * time.Millisecond
 	res.startedAt = time.Now()
 	res.timeoutStrategy = compareSoftTimeout
 	return
