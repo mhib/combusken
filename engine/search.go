@@ -7,6 +7,7 @@ import (
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
+	. "github.com/mhib/combusken/utils"
 )
 
 const MaxUint = ^uint(0)
@@ -182,7 +183,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(lazyEval.Value()) >= beta {
 		pos.MakeNullMove(child)
-		reduction := max(1+depth/3, 3)
+		reduction := Max(1+depth/3, 3)
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
 		if tmpVal >= beta {
 			return beta
@@ -240,7 +241,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				if !pvNode {
 					reduction++
 				}
-				reduction = max(0, min(depth-2, reduction))
+				reduction = Max(0, Min(depth-2, reduction))
 			} else {
 				// Move count based pruning
 				// We do not expect moves with low move ordering to change search results on shallow depths
@@ -334,7 +335,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 	oldChild := *child
 	sortMoves(moves)
 	val := -Mate
-	rBeta := max(hashValue-depth, -Mate)
+	rBeta := Max(hashValue-depth, -Mate)
 	quiets := 0
 	for i := range moves {
 		if moves[i].Move == hashMove {
@@ -406,8 +407,8 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 	var alpha, beta int
 	delta := WindowSize
 	if depth >= WindowDepth {
-		alpha = max(-Mate, lastValue-delta)
-		beta = min(Mate, lastValue+delta)
+		alpha = Max(-Mate, lastValue-delta)
+		beta = Min(Mate, lastValue+delta)
 	} else {
 		// Search with [-Mate, Mate] in shallow depths
 		alpha = -Mate
@@ -421,10 +422,10 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 		}
 		if res.value <= alpha {
 			beta = (alpha + beta) / 2
-			alpha = max(-Mate, alpha-delta)
+			alpha = Max(-Mate, alpha-delta)
 		}
 		if res.value >= beta {
-			beta = min(Mate, beta+delta)
+			beta = Min(Mate, beta+delta)
 		}
 		delta += delta/2 + 5
 	}
@@ -452,7 +453,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			!childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount) - 1
-				reduction = max(0, min(depth-2, reduction))
+				reduction = Max(0, Min(depth-2, reduction))
 			} else {
 				if moveCount >= 9+3*depth {
 					continue
@@ -519,6 +520,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 			if i >= MAX_HEIGHT {
 				return res.Move
 			}
+			e.updateTime(res.depth, res.value)
 			if e.isSoftTimeout(i, thread.nodes) {
 				return res.Move
 			}
@@ -608,6 +610,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			if res.depth >= MAX_HEIGHT {
 				return res.Move
 			}
+			e.updateTime(res.depth, res.value)
 			if e.isSoftTimeout(res.depth, nodes) {
 				return res.Move
 			}
