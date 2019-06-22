@@ -463,6 +463,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 			if i >= MAX_HEIGHT {
 				return res.Move
 			}
+			e.updateTime(res.depth, res.value)
 			if e.isSoftTimeout(i, thread.nodes) {
 				return res.Move
 			}
@@ -546,6 +547,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			if res.depth >= MAX_HEIGHT {
 				return res.Move
 			}
+			e.updateTime(res.depth, res.value)
 			if e.isSoftTimeout(res.depth, nodes) {
 				return res.Move
 			}

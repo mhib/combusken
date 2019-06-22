@@ -2,17 +2,11 @@ package engine
 
 import "time"
 
-const defaultMovesToGo = 35
-const buffer = 50
-
-type timeManager struct {
-	timeoutStrategy
-	startedAt   time.Time
-	softTimeout time.Duration
-	hardTimeout time.Duration
+type timeManager interface {
+	hardTimeout() time.Duration
+	isSoftTimeout(depth, nodes int) bool
+	updateTime(depth, score int)
 }
-
-type timeoutStrategy func(manager *timeManager, depth, nodes int) bool
 
 func min(a, b int) int {
 	if a < b {
@@ -28,47 +22,80 @@ func max(a, b int) int {
 	return a
 }
 
-func (manager *timeManager) isSoftTimeout(depth, nodes int) bool {
-	return manager.timeoutStrategy(manager, depth, nodes)
+type blankTimeManager struct {
 }
 
-func compareSoftTimeout(manager *timeManager, depth, nodes int) bool {
-	return time.Now().Sub(manager.startedAt) >= manager.softTimeout
+func (*blankTimeManager) hardTimeout() time.Duration {
+	return 0
 }
 
-func neverSoftTimeout(manager *timeManager, depth, nodes int) bool {
+func (*blankTimeManager) isSoftTimeout(depth, nodes int) bool {
 	return false
 }
 
-func newTimeManager(limits LimitsType, whiteMove bool) timeManager {
-	if limits.MoveTime > 0 {
-		return newMoveTimeManager(limits.MoveTime)
-	} else if limits.Depth > 0 {
-		return newDepthTimeManager(limits.Depth)
-	} else if limits.Infinite {
-		return timeManager{timeoutStrategy: neverSoftTimeout}
-	} else if limits.WhiteTime > 0 || limits.BlackTime > 0 {
-		return newTournamentTimeManager(limits, whiteMove)
-	} else {
-		return newMoveTimeManager(1000)
+func (*blankTimeManager) updateTime(int, int) {
+}
+
+type moveTimeTimeManager struct {
+	blankTimeManager
+	duration int
+}
+
+func (manager *moveTimeTimeManager) hardTimeout() time.Duration {
+	return time.Duration(manager.duration) * time.Millisecond
+}
+
+type depthTimeManager struct {
+	blankTimeManager
+	depth int
+}
+
+func (manager *depthTimeManager) isSoftTimeout(depth, nodes int) bool {
+	return depth >= manager.depth
+}
+
+type tournamentTimeManager struct {
+	hard      time.Duration
+	ideal     time.Duration
+	startedAt time.Time
+	lastScore int
+}
+
+func (manager *tournamentTimeManager) hardTimeout() time.Duration {
+	return manager.hard
+}
+
+func (manager *tournamentTimeManager) isSoftTimeout(int, int) bool {
+	return time.Now().Sub(manager.startedAt) >= manager.ideal
+}
+
+func (manager *tournamentTimeManager) updateTime(depth, score int) {
+	lastScore := manager.lastScore
+	manager.lastScore = score
+	if depth < 4 {
+		return
+	}
+
+	if lastScore > score+10 {
+		manager.ideal += manager.ideal / 20
+	}
+	if lastScore > score+20 {
+		manager.ideal += manager.ideal / 20
+	}
+	if lastScore > score+40 {
+		manager.ideal += manager.ideal / 20
+	}
+
+	if lastScore+15 < score {
+		manager.ideal += manager.ideal / 40
+	}
+	if lastScore+30 < score {
+		manager.ideal += manager.ideal / 20
 	}
 }
 
-func newDepthTimeManager(limitsDepth int) (res timeManager) {
-	res.timeoutStrategy = func(manager *timeManager, depth, nodes int) bool {
-		return depth >= limitsDepth
-	}
-	return
-}
-
-func newMoveTimeManager(duration int) (res timeManager) {
-	res.startedAt = time.Now()
-	res.hardTimeout = time.Duration(duration) * time.Millisecond
-	res.timeoutStrategy = neverSoftTimeout
-	return
-}
-
-func newTournamentTimeManager(limits LimitsType, whiteMove bool) (res timeManager) {
+func newTournamentTimeManager(limits LimitsType, overhead int, whiteMove bool) *tournamentTimeManager {
+	res := &tournamentTimeManager{startedAt: time.Now()}
 	var limit, inc int
 	if whiteMove {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
@@ -76,15 +103,30 @@ func newTournamentTimeManager(limits LimitsType, whiteMove bool) (res timeManage
 		limit, inc = limits.BlackTime, limits.BlackIncrement
 	}
 	movesToGo := limits.MovesToGo
-	if movesToGo == 0 {
-		movesToGo = defaultMovesToGo
+	var ideal, hard int
+
+	if movesToGo > 0 {
+		ideal = (((limit/movesToGo + 5) + inc) * 3) / 4
+		hard = ((limit/movesToGo + 7) + inc) * 4
+	} else {
+		ideal = (limit + 25*inc) / 50
+		hard = 10 * (limit + 25*inc) / 50
 	}
-	ideal := limit / movesToGo
-	ideal += inc
-	ensureNoFlag := max(limit-buffer, 0)
-	res.hardTimeout = time.Duration(min(ideal*2, ensureNoFlag)) * time.Millisecond
-	res.softTimeout = res.hardTimeout / 4
-	res.startedAt = time.Now()
-	res.timeoutStrategy = compareSoftTimeout
-	return
+	res.ideal = time.Duration(min(ideal, limit-overhead)) * time.Millisecond
+	res.hard = time.Duration(min(hard, limit-overhead)) * time.Millisecond
+	return res
+}
+
+func newTimeManager(limits LimitsType, overhead int, whiteMove bool) timeManager {
+	if limits.WhiteTime > 0 || limits.BlackTime > 0 {
+		return newTournamentTimeManager(limits, overhead, whiteMove)
+	} else if limits.MoveTime > 0 {
+		return &moveTimeTimeManager{duration: limits.MoveTime}
+	} else if limits.Depth > 0 {
+		return &depthTimeManager{depth: limits.Depth}
+	} else if limits.Infinite {
+		return &blankTimeManager{}
+	} else {
+		return &moveTimeTimeManager{duration: 1000}
+	}
 }
