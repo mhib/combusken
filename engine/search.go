@@ -224,13 +224,16 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
+
 		if reduction > 0 || (!pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue) {
 			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
-			if tmpVal <= alpha {
-				continue
-			}
 		}
-		tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
+		if (reduction > 0 && tmpVal > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
+			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
+		}
+		if pvNode && (moveCount == 1 || tmpVal > alpha) {
+			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
+		}
 
 		if tmpVal > val {
 			val = tmpVal
@@ -264,7 +267,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
+	t.engine.TransTable.Set(pos.Key, val, depth, bestMove, flag, height)
 	return alpha
 }
 
