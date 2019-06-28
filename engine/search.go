@@ -197,8 +197,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			!childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
-				if pvNode {
-					reduction--
+				if !pvNode {
+					reduction++
 				}
 				reduction = max(0, min(depth-2, reduction))
 			} else {
