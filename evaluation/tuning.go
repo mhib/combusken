@@ -352,7 +352,7 @@ func (t *tuner) coordinateDescent() {
 					setter(score, phase, oldValue+i, idx)
 					newError := t.computeError()
 					newErrorWithRegularization := newError + t.regularization()
-					// First compare to prevent decreasing parameter just to lower regularization(as some parameters may be irrelevant in test positions)
+					// First comparison to prevent decreasing parameter just to lower regularization(as some parameters may be irrelevant in test positions)
 					if newError < bestError && newErrorWithRegularization < bestErrorWithRegularization {
 						bestValue = oldValue + i
 						bestError = newError
