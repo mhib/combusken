@@ -197,8 +197,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			!childInCheck {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
-				if pvNode {
-					reduction--
+				if !pvNode {
+					reduction++
 				}
 				reduction = max(0, min(depth-2, reduction))
 			} else {
@@ -225,7 +225,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 
-		if reduction > 0 || (!pvNode && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue) {
+		if reduction > 0 {
 			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
 		if (reduction > 0 && tmpVal > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
