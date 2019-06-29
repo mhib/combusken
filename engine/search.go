@@ -121,10 +121,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	var tmpVal int
+	pvNode := alpha != beta+1
 
 	alphaOrig := alpha
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
-	if hashOk {
+	if hashOk && (!pvNode || depth == 0) {
 		tmpVal = int(hashValue)
 		if hashDepth >= uint8(depth) {
 			if hashFlag == TransExact {
@@ -140,8 +141,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	var child *Position = &t.stack[height+1].position
-
-	pvNode := alpha != beta+1
 
 	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !IsLateEndGame(pos) {
 		pos.MakeNullMove(child)
