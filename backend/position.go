@@ -200,69 +200,67 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 
 	res.EpSquare = 0
 
-	switch move {
-	case WhiteKingSideCastle:
-		res.MovePiece(King, true, E1, G1)
-		res.MovePiece(Rook, true, H1, F1)
-	case WhiteQueenSideCastle:
-		res.MovePiece(King, true, E1, C1)
-		res.MovePiece(Rook, true, A1, D1)
-	case BlackKingSideCastle:
-		res.MovePiece(King, false, E8, G8)
-		res.MovePiece(Rook, false, H8, F8)
-	case BlackQueenSideCastle:
-		res.MovePiece(King, false, E8, C8)
-		res.MovePiece(Rook, false, A8, D8)
-	default:
-		if !move.IsPromotion() {
-			switch move.Type() {
-			case DoublePawnPush:
-				res.EpSquare = move.To()
-				res.Key ^= zobristEpSquare[move.To()]
-			case Capture:
-				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-				if move.CapturedPiece() == Rook {
-					switch move.To() {
-					case A1:
-						res.Flags |= WhiteQueenSideCastleFlag
-					case H1:
-						res.Flags |= WhiteKingSideCastleFlag
-					case H8:
-						res.Flags |= BlackKingSideCastleFlag
-					case A8:
-						res.Flags |= BlackQueenSideCastleFlag
-					}
+	if !move.IsPromotion() {
+		res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
+		switch move.Type() {
+		case DoublePawnPush:
+			res.EpSquare = move.To()
+			res.Key ^= zobristEpSquare[move.To()]
+		case Capture:
+			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			if move.CapturedPiece() == Rook {
+				switch move.To() {
+				case A1:
+					res.Flags |= WhiteQueenSideCastleFlag
+				case H1:
+					res.Flags |= WhiteKingSideCastleFlag
+				case H8:
+					res.Flags |= BlackKingSideCastleFlag
+				case A8:
+					res.Flags |= BlackQueenSideCastleFlag
 				}
-			case EPCapture:
-				res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
 			}
-			res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
-		} else {
-			res.TogglePiece(Pawn, pos.WhiteMove, move.From())
-			switch move.Type() {
-			case KnightPromotion:
-				res.TogglePiece(Knight, pos.WhiteMove, move.To())
-			case BishopPromotion:
-				res.TogglePiece(Bishop, pos.WhiteMove, move.To())
-			case RookPromotion:
-				res.TogglePiece(Rook, pos.WhiteMove, move.To())
-			case QueenPromotion:
-				res.TogglePiece(Queen, pos.WhiteMove, move.To())
-			case KnightCapturePromotion:
-				res.TogglePiece(Knight, pos.WhiteMove, move.To())
-				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			case BishopCapturePromotion:
-				res.TogglePiece(Bishop, pos.WhiteMove, move.To())
-				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			case RookCapturePromotion:
-				res.TogglePiece(Rook, pos.WhiteMove, move.To())
-				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			case QueenCapturePromotion:
-				res.TogglePiece(Queen, pos.WhiteMove, move.To())
-				res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+		case KingCastle:
+			if pos.WhiteMove {
+				res.MovePiece(Rook, true, H1, F1)
+			} else {
+				res.MovePiece(Rook, false, H8, F8)
 			}
+		case QueenCastle:
+			if pos.WhiteMove {
+				res.MovePiece(Rook, true, A1, D1)
+			} else {
+				res.MovePiece(Rook, false, A8, D8)
+			}
+		case EPCapture:
+			res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
+		}
+	} else {
+		res.TogglePiece(Pawn, pos.WhiteMove, move.From())
+		switch move.Type() {
+		case QueenPromotion:
+			res.TogglePiece(Queen, pos.WhiteMove, move.To())
+		case QueenCapturePromotion:
+			res.TogglePiece(Queen, pos.WhiteMove, move.To())
+			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+		case RookPromotion:
+			res.TogglePiece(Rook, pos.WhiteMove, move.To())
+		case RookCapturePromotion:
+			res.TogglePiece(Rook, pos.WhiteMove, move.To())
+			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+		case KnightPromotion:
+			res.TogglePiece(Knight, pos.WhiteMove, move.To())
+		case BishopPromotion:
+			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
+		case KnightCapturePromotion:
+			res.TogglePiece(Knight, pos.WhiteMove, move.To())
+			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+		case BishopCapturePromotion:
+			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
+			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
 		}
 	}
+
 	if res.IsInCheck() {
 		return false
 	}
