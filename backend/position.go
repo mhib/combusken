@@ -31,6 +31,7 @@ type Position struct {
 	FiftyMove                                                   int32
 	LastMove                                                    Move
 	Key                                                         uint64
+	PawnKey                                                     uint64
 }
 
 func (pos *Position) Inspect() string {
@@ -58,7 +59,7 @@ const maxMoves = 256
 var InitialPosition Position = Position{
 	0xff00000000ff00, 0x4200000000000042, 0x2400000000000024,
 	0x8100000000000081, 0x800000000000008, 0x1000000000000010,
-	0xffff, 0xffff000000000000, 0, 0, true, 0, 0, 0}
+	0xffff, 0xffff000000000000, 0, 0, true, 0, 0, 0, 0}
 
 func init() {
 	HashPosition(&InitialPosition)
@@ -94,6 +95,7 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 	case Pawn:
 		p.Pawns ^= b
 		p.Key ^= zobrist[0][intSide][from] ^ zobrist[0][intSide][to]
+		p.PawnKey ^= zobrist[0][intSide][from] ^ zobrist[0][intSide][to]
 	case Knight:
 		p.Knights ^= b
 		p.Key ^= zobrist[1][intSide][from] ^ zobrist[1][intSide][to]
@@ -122,6 +124,7 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 	case King:
 		p.Kings ^= b
 		p.Key ^= zobrist[5][intSide][from] ^ zobrist[5][intSide][to]
+		p.PawnKey ^= zobrist[5][intSide][from] ^ zobrist[5][intSide][to]
 		if side {
 			p.Flags |= WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag
 		} else {
@@ -143,6 +146,7 @@ func (p *Position) TogglePiece(piece int, side bool, square int) {
 	case Pawn:
 		p.Pawns ^= b
 		p.Key ^= zobrist[0][intSide][square]
+		p.PawnKey ^= zobrist[0][intSide][square]
 	case Knight:
 		p.Knights ^= b
 		p.Key ^= zobrist[1][intSide][square]
@@ -158,6 +162,7 @@ func (p *Position) TogglePiece(piece int, side bool, square int) {
 	case King:
 		p.Kings ^= b
 		p.Key ^= zobrist[5][intSide][square]
+		p.PawnKey ^= zobrist[5][intSide][square]
 	}
 }
 
