@@ -29,7 +29,7 @@ func addScore(first, second Score) Score {
 	}
 }
 
-var PawnValue = Score{166, 214}
+var PawnValue = Score{186, 216}
 var KnightValue = Score{805, 767}
 var BishopValue = Score{714, 747}
 var RookValue = Score{1009, 1201}
@@ -91,22 +91,22 @@ var pieceScores = [7][8][4]Score{
 }
 var pawnScores = [7][8]Score{
 	{},
-	{Score{-13, -11}, Score{39, -17}, Score{18, 8}, Score{38, 3}, Score{36, 8}, Score{22, 6}, Score{36, -8}, Score{-13, -18}},
-	{Score{-11, -18}, Score{-14, -12}, Score{7, -3}, Score{4, -3}, Score{-2, 0}, Score{18, -11}, Score{-20, -11}, Score{-9, -23}},
-	{Score{-30, -2}, Score{-22, -11}, Score{6, -18}, Score{36, -17}, Score{33, -15}, Score{12, -16}, Score{-23, -11}, Score{-30, -5}},
-	{Score{-20, 22}, Score{19, -2}, Score{9, -15}, Score{52, -30}, Score{50, -39}, Score{6, -6}, Score{21, -7}, Score{-19, 19}},
-	{Score{0, 79}, Score{27, 61}, Score{58, 14}, Score{54, -4}, Score{70, -17}, Score{87, 22}, Score{7, 57}, Score{9, 83}},
-	{Score{0, 158}, Score{5, 137}, Score{-1, 85}, Score{0, 74}, Score{22, 110}, Score{-26, 108}, Score{0, 124}, Score{-61, 200}},
+	{Score{-17, -2}, Score{29, -15}, Score{11, -3}, Score{33, -17}, Score{35, -22}, Score{16, -9}, Score{34, -12}, Score{-18, 0}},
+	{Score{-11, -29}, Score{-23, -28}, Score{-3, -35}, Score{-6, -40}, Score{-7, -39}, Score{9, -41}, Score{-17, -35}, Score{-6, -33}},
+	{Score{-24, -10}, Score{-24, -22}, Score{7, -46}, Score{36, -53}, Score{33, -51}, Score{11, -43}, Score{-21, -21}, Score{-21, -13}},
+	{Score{-1, 40}, Score{40, 16}, Score{29, -12}, Score{76, -42}, Score{70, -50}, Score{19, 0}, Score{49, 10}, Score{-1, 37}},
+	{Score{46, 203}, Score{74, 198}, Score{136, 114}, Score{134, 101}, Score{146, 88}, Score{158, 124}, Score{44, 205}, Score{39, 211}},
+	{Score{153, 510}, Score{227, 473}, Score{156, 400}, Score{191, 363}, Score{281, 368}, Score{129, 424}, Score{189, 460}, Score{30, 568}},
 }
 
 var pawnsConnected = [8][4]Score{
 	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
-	{Score{6, -27}, Score{17, 3}, Score{17, -7}, Score{8, 27}},
-	{Score{13, 3}, Score{57, -3}, Score{18, 8}, Score{44, 30}},
-	{Score{32, 1}, Score{44, 5}, Score{30, 14}, Score{47, 10}},
-	{Score{25, 20}, Score{29, 24}, Score{44, 36}, Score{52, 30}},
-	{Score{0, 89}, Score{53, 76}, Score{88, 83}, Score{133, 44}},
-	{Score{6, 264}, Score{130, 7}, Score{153, 0}, Score{0, 47}},
+	{Score{19, -46}, Score{17, 0}, Score{24, -11}, Score{7, 16}},
+	{Score{21, 7}, Score{69, 2}, Score{23, 20}, Score{51, 44}},
+	{Score{22, 15}, Score{48, 11}, Score{31, 27}, Score{57, 22}},
+	{Score{8, 21}, Score{8, 26}, Score{41, 39}, Score{57, 36}},
+	{Score{-42, 66}, Score{35, 41}, Score{72, 69}, Score{97, 78}},
+	{Score{0, 263}, Score{127, 51}, Score{147, 0}, Score{0, 128}},
 	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
 }
 
@@ -127,13 +127,13 @@ var mobilityBonus = [...][32]Score{
 }
 
 var passedFriendlyDistance = [8]Score{
-	Score{0, 0}, Score{0, 0}, Score{3, -4}, Score{7, -10},
-	Score{6, -14}, Score{-8, -13}, Score{-15, -9}, Score{0, 0},
+	Score{0, 0}, Score{-49, -7}, Score{-124, 7}, Score{-82, -11},
+	Score{-69, -21}, Score{-29, -37}, Score{21, -65}, Score{-37, -45},
 }
 
 var passedEnemyDistance = [8]Score{
-	Score{0, 0}, Score{3, 0}, Score{5, 2}, Score{9, 9},
-	Score{1, 21}, Score{7, 30}, Score{24, 28}, Score{0, 0},
+	Score{0, 0}, Score{19, 1}, Score{38, -2}, Score{57, 1},
+	Score{49, 2}, Score{41, 6}, Score{48, 3}, Score{18, 22},
 }
 
 var blackPawnsPos [64]Score
@@ -160,17 +160,17 @@ var blackKingPos [64]Score
 var whiteKingPos [64]Score
 
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
-var passedRank = [7]Score{Score{0, 0}, Score{25, -14}, Score{32, -1}, Score{9, 55}, Score{56, 110}, Score{74, 234}, Score{124, 415}}
+var passedRank = [7]Score{Score{0, 0}, Score{63, 100}, Score{28, 122}, Score{50, 124}, Score{16, 137}, Score{39, 142}, Score{-4, 163}}
 
 // PassedFile[File] contains a bonus according to the file of a passed pawn
-var passedFile = [8]Score{Score{-32, 54}, Score{-72, 55}, Score{-60, 21}, Score{-54, -5},
-	Score{-15, -11}, Score{63, -16}, Score{31, 21}, Score{22, 10},
+var passedFile = [8]Score{Score{-91, -4}, Score{-79, -1}, Score{-42, -24}, Score{-28, -24},
+	Score{-50, -22}, Score{-57, -14}, Score{-61, -3}, Score{-62, -14},
 }
 
-var isolated = Score{-22, -18}
-var doubled = Score{-20, -55}
-var backward = Score{7, -5}
-var backwardOpen = Score{-30, -12}
+var isolated = Score{-21, -16}
+var doubled = Score{-26, -41}
+var backward = Score{21, -8}
+var backwardOpen = Score{-27, -2}
 
 var bishopPair = Score{106, 105}
 var bishopRammedPawns = Score{-10, -16}
