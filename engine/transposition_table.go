@@ -4,6 +4,13 @@ import "github.com/mhib/combusken/backend"
 import "unsafe"
 import "sync/atomic"
 import . "github.com/mhib/combusken/evaluation"
+import . "github.com/mhib/combusken/utils"
+
+type TransTable interface {
+	Get(key uint64, height int) (ok bool, value int16, depth uint8, move backend.Move, flag uint8)
+	Set(key uint64, value, depth int, move backend.Move, flag, height int)
+	Clear()
+}
 
 const maxValue = Mate
 
@@ -12,14 +19,6 @@ const (
 	TransAlpha            // Upper bound
 	TransExact
 )
-
-func nearestPowerOfTwo(input int) uint64 {
-	res := uint64(1)
-	for int((res << 1)) <= input {
-		res <<= 1
-	}
-	return res
-}
 
 func valueFromTrans(value int16, height int) int16 {
 	if value >= Mate-500 {
@@ -58,7 +57,7 @@ type SingleThreadTransTable struct {
 }
 
 func NewSingleThreadTransTable(megabytes int) *SingleThreadTransTable {
-	size := nearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(singleThreadTransEntry{})))
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(singleThreadTransEntry{})))
 	return &SingleThreadTransTable{make([]singleThreadTransEntry, size), size - 1}
 }
 
@@ -115,7 +114,7 @@ func (t *AtomicTransTable) Clear() {
 }
 
 func NewAtomicTransTable(megabytes int) *AtomicTransTable {
-	size := nearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(singleThreadTransEntry{})))
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(singleThreadTransEntry{})))
 	return &AtomicTransTable{make([]atomicTransEntry, size), size - 1}
 }
 

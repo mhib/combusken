@@ -47,6 +47,21 @@ func (pv *pv) Moves() []Move {
 	return pv.items[:pv.size]
 }
 
+type emptyPKTableType struct {
+}
+
+func (t *emptyPKTableType) Get(uint64) (bool, Score) {
+	return false, Score{}
+}
+
+func (t *emptyPKTableType) Set(uint64, Score) {
+}
+
+func (t *emptyPKTableType) Clear() {
+}
+
+var emptyPKTable = emptyPKTableType{}
+
 func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.stack[height].pv.clear()
 	pos := &t.stack[height].position
@@ -59,7 +74,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := Evaluate(pos)
+	val := Evaluate(pos, &emptyPKTable)
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -145,7 +160,7 @@ func (t *tuner) computeError() float64 {
 			defer wg.Done()
 			for y := idx; y < len(t.entries); y += numCPU {
 				entry := t.entries[y]
-				evaluation := float64(Evaluate(&entry.Position))
+				evaluation := float64(Evaluate(&entry.Position, &emptyPKTable))
 				if !entry.Position.WhiteMove {
 					evaluation *= -1
 				}
