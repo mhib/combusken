@@ -351,9 +351,12 @@ func Evaluate(pos *Position) int {
 	phase := totalPhase
 	midResult := 0
 	endResult := 0
-	whiteMobilityArea := ^((pos.Pawns & pos.White) | (BlackPawnsAttacks(pos.Pawns & pos.Black)))
-	blackMobilityArea := ^((pos.Pawns & pos.Black) | (WhitePawnsAttacks(pos.Pawns & pos.White)))
+
 	allOccupation := pos.White | pos.Black
+	whiteBlockedOrLowRankPawns := (South(allOccupation) | RANK_2_BB | RANK_3_BB) & (pos.Pawns & pos.White)
+	blackBlockedOrLowRankPawns := (North(allOccupation) | RANK_7_BB | RANK_6_BB) & (pos.Pawns & pos.Black)
+	whiteMobilityArea := ^(whiteBlockedOrLowRankPawns | BlackPawnsAttacks(pos.Pawns&pos.Black) | (pos.Kings & pos.White))
+	blackMobilityArea := ^(blackBlockedOrLowRankPawns | WhitePawnsAttacks(pos.Pawns&pos.White) | (pos.Kings & pos.Black))
 
 	// white king
 	whiteKingLocation := BitScan(pos.Kings & pos.White)
