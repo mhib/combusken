@@ -61,6 +61,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	if inCheck {
 		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
 	} else {
+		// Early return if not check and evaluation exceeded beta
 		if val >= beta {
 			return beta
 		}
@@ -74,6 +75,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
+		// Ignore move with negative SEE unless checked
 		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
@@ -96,6 +98,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	return alpha
 }
 
+// Currently draws are scored as 0
 func contempt(pos *Position) int {
 	return 0
 }
@@ -126,6 +129,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
 	if hashOk {
 		tmpVal = int(hashValue)
+		// Hash pruning
 		if hashDepth >= uint8(depth) {
 			if hashFlag == TransExact {
 				return tmpVal
@@ -141,8 +145,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	var child *Position = &t.stack[height+1].position
 
+	// Node is not pv if it is searched with null window
 	pvNode := alpha != beta+1
 
+	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !IsLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		reduction := max(1+depth/3, 3)
@@ -156,10 +162,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
+	// https://en.wikipedia.org/wiki/Lazy_evaluation
 	lazyEval := lazyEval{position: pos}
 	val := MinInt
 
 	// Internal iterative deepening
+	// https://www.chessprogramming.org/Internal_Iterative_Deepening
 	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
 		var iiDepth int
 		if pvNode {
@@ -173,16 +181,20 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
 	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
+
+	// Quiet moves are stored in order to reduce their history value at the end of search
 	quietsSearched := t.stack[height].quietsSearched[:0]
-	//t.ResetKillers(height)
 	bestMove := NullMove
 	moveCount := 0
 	movesSorted := false
 	for i := range evaled {
+		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
+			// Sort first 4 moves with selection sort
 			if i < 4 {
 				maxMoveToFirst(evaled[i:])
 			} else if i == 4 {
+				// Sort rest of moves with shell sort
 				sortMoves(evaled[i:])
 				movesSorted = true
 			}
@@ -195,6 +207,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		reduction := 0
 		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
+			// Late Move Reduction
+			// https://www.chessprogramming.org/Late_Move_Reductions
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
 				if !pvNode {
@@ -202,9 +216,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				}
 				reduction = max(0, min(depth-2, reduction))
 			} else {
+				// Move count based pruning
+				// We do not expect moves with low move ordering to change search results on shallow depths
 				if moveCount >= 9+3*depth {
 					continue
 				}
+				// Futility move pruning
+				// https://www.chessprogramming.org/Futility_Pruning
 				if lazyEval.Value()+int(PawnValue.Middle)*depth <= alpha {
 					continue
 				}
@@ -215,22 +233,35 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			evaled[i].Move == hashMove &&
 			int(hashDepth) >= depth-2 &&
 			hashFlag != TransAlpha
+		// Check extension
+		// Moves with positive SEE and gives check are searched with increased depth
 		if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
+			// Singular extension
+			// https://www.chessprogramming.org/Singular_Extensions
 		} else if singularCandidate && t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
 			newDepth++
 			movesSorted = true
 		}
+		// Store move if it is quiet
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 
+		// Search conditions as in Ethereal
+
+		// Search with null window and reduced depth if lmr
 		if reduction > 0 {
 			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
+		// Search with null window without reduced depth if
+		// search with lmr null window exceeded alpha or
+		// not in pv (this is the same as normal search as non pv nodes are searched with null window anyway)
+		// pv and not first move
 		if (reduction > 0 && tmpVal > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
 			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
+		// If Node and first move or search with null window exceeded alpha, search with full window
 		if pvNode && (moveCount == 1 || tmpVal > alpha) {
 			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 		}
@@ -306,14 +337,17 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 func (t *thread) isDraw(height int) bool {
 	var pos *Position = &t.stack[height].position
 
+	// Fifty move rule
 	if pos.FiftyMove > 100 {
 		return true
 	}
 
+	// Cannot mate with only one minor piece and no pawns
 	if (pos.Pawns|pos.Rooks|pos.Queens) == 0 && !MoreThanOne(pos.Knights|pos.Bishops) {
 		return true
 	}
 
+	// Look for repetitoin in current search stack
 	for i := height - 1; i >= 0; i-- {
 		descendant := &t.stack[i].position
 		if descendant.Key == pos.Key {
@@ -324,6 +358,7 @@ func (t *thread) isDraw(height int) bool {
 		}
 	}
 
+	// Check for repetition in already played positions
 	if t.engine.MoveHistory[pos.Key] >= 2 {
 		return true
 	}
@@ -338,6 +373,8 @@ type result struct {
 	moves []Move
 }
 
+// https://www.chessprogramming.org/Aspiration_Windows
+// After a lot of tries ELO gain have been accomplished only with relatively large window(50 cp)
 func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resultChan chan result) int {
 	var alpha, beta int
 	delta := WindowSize
@@ -345,6 +382,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 		alpha = max(-Mate, lastValue-delta)
 		beta = min(Mate, lastValue+delta)
 	} else {
+		// Search with [-Mate, Mate] in shallow depths
 		alpha = -Mate
 		beta = Mate
 	}
@@ -431,17 +469,6 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
-func moveToFirst(moves []EvaledMove, idx int) {
-	if idx == 0 {
-		return
-	}
-	move := moves[idx]
-	for i := idx; idx > 0; idx-- {
-		moves[i] = moves[i-1]
-	}
-	moves[0] = move
-}
-
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
 	var lastBestMove Move
 	thread := e.threads[0]
@@ -477,11 +504,13 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, idx int) {
 	mainThread := idx == 0
 	lastValue := -Mate
+	// I do not think this matters much, but at the beginning only thread with id 0 have sorted moves list
 	if !mainThread {
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
 		})
 	}
+	// Depth skipping pattern taken from Ethereal
 	cycle := idx % SMPCycles
 	for depth := 1; depth < MAX_HEIGHT; depth++ {
 		lastValue = t.aspirationWindow(depth, lastValue, moves, resultChan)
@@ -516,6 +545,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	resultChan := make(chan result)
 	for i := range e.threads {
 		wg.Add(1)
+		// Start parallel searching
 		go func(idx int) {
 			defer recoverFromTimeout()
 			e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan, idx)
@@ -523,6 +553,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		}(i)
 	}
 
+	// Wait for closing
 	go func() {
 		wg.Wait()
 		close(resultChan)
@@ -533,8 +564,10 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	for {
 		select {
 		case <-e.done:
+			// Hard timeout
 			return lastBestMove
 		case res := <-resultChan:
+			// If thread reports result for depth that is lower than already calculated one, ignore results
 			if res.depth <= prevDepth {
 				continue
 			}

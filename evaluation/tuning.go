@@ -47,6 +47,7 @@ func (pv *pv) Moves() []Move {
 	return pv.items[:pv.size]
 }
 
+// Copy if quiescence search to extract quiet position
 func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.stack[height].pv.clear()
 	pos := &t.stack[height].position
@@ -247,6 +248,7 @@ func (t *tuner) regularization() float64 {
 	return alpha * float64(sum)
 }
 
+// I've tried annealing but, I was unable to make it work
 func (t *tuner) annealing() (improved bool) {
 	energy := func() float64 {
 		return (t.computeError() - t.regularization()) * 5000000

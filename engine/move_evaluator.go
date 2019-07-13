@@ -104,6 +104,7 @@ func mvvlva(move Move) int {
 	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
 }
 
+// In Quiescent search it is expected that SEE will be check anyway
 func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCheck bool) {
 	side := pos.IntSide()
 	if inCheck {

@@ -35,6 +35,7 @@ var BishopValue = Score{714, 747}
 var RookValue = Score{1009, 1201}
 var QueenValue = Score{2251, 2325}
 
+// Piece Square Values
 var pieceScores = [7][8][4]Score{
 	{},
 	{},
@@ -89,6 +90,8 @@ var pieceScores = [7][8][4]Score{
 		{Score{53, 1}, Score{21, 99}, Score{2, 125}, Score{0, 97}},
 	},
 }
+
+// Pawns Square scores
 var pawnScores = [7][8]Score{
 	{},
 	{Score{-13, -11}, Score{39, -17}, Score{18, 8}, Score{38, 3}, Score{36, 8}, Score{22, 6}, Score{36, -8}, Score{-13, -18}},
@@ -201,21 +204,23 @@ var distanceBetween [64][64]int16
 
 var adjacentFilesMask [8]uint64
 
+// King shield bitboards
 const whiteKingKingSide = F1 | G1 | H1
 const whiteKingKingSideShield1 = (whiteKingKingSide << 8)  // one rank up
 const whiteKingKingSideShield2 = (whiteKingKingSide << 16) // two ranks up
 const whiteKingQueenSide = A1 | B1 | C1
 const whiteKingQueenSideShield1 = (whiteKingQueenSide << 8)  // one rank up
 const whiteKingQueenSideShield2 = (whiteKingQueenSide << 16) // two ranks up
-const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
-const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
-
 const blackKingKingSide = F8 | G8 | H8
 const blackKingKingSideShield1 = (blackKingKingSide >> 8)  // one rank down
 const blackKingKingSideShield2 = (blackKingKingSide >> 16) // two ranks down
 const blackKingQueenSide = A8 | B8 | C8
 const blackKingQueenSideShield1 = (blackKingQueenSide >> 8)  // one rank down
 const blackKingQueenSideShield2 = (blackKingQueenSide >> 16) // two ranks down
+
+// Outpost bitboards
+const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
+const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
@@ -265,6 +270,8 @@ func loadScoresToPieceSquares() {
 
 func init() {
 	loadScoresToPieceSquares()
+
+	// Pawn is passed if no pawn of opposite color can stop it from promoting
 	for i := 8; i <= 55; i++ {
 		whitePassedMask[i] = 0
 		for file := File(i) - 1; file <= File(i)+1; file++ {
@@ -276,9 +283,11 @@ func init() {
 			}
 		}
 	}
+	// Outpust is similar to passed bitboard bot we do not care about pawns in same file
 	for i := 8; i <= 55; i++ {
 		whiteOutpostMask[i] = whitePassedMask[i] & ^FILES[File(i)]
 	}
+
 	for i := 55; i >= 8; i-- {
 		blackPassedMask[i] = 0
 		for file := File(i) - 1; file <= File(i)+1; file++ {
@@ -293,10 +302,12 @@ func init() {
 	for i := 55; i >= 8; i-- {
 		blackOutpostMask[i] = blackPassedMask[i] & ^FILES[File(i)]
 	}
+
 	for i := 8; i <= 55; i++ {
 		whitePawnsConnectedMask[i] = BlackPawnAttacks[i] | BlackPawnAttacks[i+8]
 		blackPawnsConnectedMask[i] = WhitePawnAttacks[i] | WhitePawnAttacks[i-8]
 	}
+
 	for i := range FILES {
 		adjacentFilesMask[i] = 0
 		if i != 0 {
@@ -339,10 +350,12 @@ func Evaluate(pos *Position) int {
 	whiteKingLocation := BitScan(pos.Kings & pos.White)
 	midResult += int(whiteKingPos[whiteKingLocation].Middle)
 	endResult += int(whiteKingPos[whiteKingLocation].End)
+	// Kingside shield bonus
 	if (pos.Kings&pos.White)&whiteKingKingSide != 0 {
 		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield1) * int(pawnShieldBonus[0].Middle)
 		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield2) * int(pawnShieldBonus[1].Middle)
 	}
+	// Queenside shield bonus
 	if (pos.Kings&pos.White)&whiteKingQueenSide != 0 {
 		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield1) * int(pawnShieldBonus[0].Middle)
 		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield2) * int(pawnShieldBonus[1].Middle)
@@ -352,10 +365,12 @@ func Evaluate(pos *Position) int {
 	blackKingLocation := BitScan(pos.Kings & pos.Black)
 	midResult -= int(blackKingPos[blackKingLocation].Middle)
 	endResult -= int(blackKingPos[blackKingLocation].End)
+	// Kingside shield bonus
 	if (pos.Kings&pos.Black)&blackKingKingSide != 0 {
 		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield1) * int(pawnShieldBonus[0].Middle)
 		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield2) * int(pawnShieldBonus[1].Middle)
 	}
+	// Queenside shield bonus
 	if (pos.Kings&pos.Black)&blackKingQueenSide != 0 {
 		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield1) * int(pawnShieldBonus[0].Middle)
 		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield2) * int(pawnShieldBonus[1].Middle)
@@ -364,7 +379,9 @@ func Evaluate(pos *Position) int {
 	// white pawns
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		// Passed bonus
 		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 {
+			// Bonus is calculated based on rank, file, distance from friendly and enemy king
 			midResult += int(
 				passedRank[Rank(fromId)].Middle +
 					passedFile[File(fromId)].Middle +
@@ -378,10 +395,13 @@ func Evaluate(pos *Position) int {
 					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].End,
 			)
 		}
+		// Isolated pawn penalty
 		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.White) == 0 {
 			midResult += int(isolated.Middle)
 			endResult += int(isolated.End)
 		}
+
+		// Pawn is backward if there are no pawns behind it and cannot increase rank without being attacked by enemy pawn
 		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 &&
 			WhitePawnAttacks[fromId+8]&(pos.Pawns&pos.Black) != 0 {
 			if FILES[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
@@ -521,6 +541,7 @@ func Evaluate(pos *Position) int {
 			}
 		}
 
+		// Bishop is worth less if there are friendly rammed pawns of its color
 		var rammedCount int16
 		if SquareMask[fromId]&WHITE_SQUARES != 0 {
 			rammedCount = int16(PopCount(whiteRammedPawns & WHITE_SQUARES))
@@ -532,6 +553,8 @@ func Evaluate(pos *Position) int {
 		phase -= bishopPhase
 	}
 
+	// Bishop pair bonus
+	// It is not checked if bishops have opposite colors, but that is almost always the case
 	if MoreThanOne(pos.Bishops & pos.White) {
 		midResult += int(bishopPair.Middle)
 		endResult += int(bishopPair.End)
@@ -633,6 +656,7 @@ func Evaluate(pos *Position) int {
 		phase -= queenPhase
 	}
 
+	// tempo bonus
 	if pos.WhiteMove {
 		midResult += int(tempo.Middle)
 		endResult += int(tempo.End)
@@ -645,6 +669,7 @@ func Evaluate(pos *Position) int {
 		phase = 0
 	}
 
+	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
 	result := ((midResult * (256 - phase)) + (endResult * phase)) / 256
 
