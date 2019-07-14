@@ -24,6 +24,10 @@ const WindowDepth = 6
 const QSDepthChecks = 0
 const QSDepthNoChecks = -1
 
+const seePruningDepth = 6
+const seeQuietMargin = -80
+const seeNoisyMargin = -18
+
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
@@ -214,6 +218,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	bestMove := NullMove
 	moveCount := 0
 	movesSorted := false
+	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
+
 	for i := range evaled {
 		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
@@ -226,13 +232,21 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				movesSorted = true
 			}
 		}
+		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
+		if !pvNode &&
+			val > ValueLoss &&
+			depth <= seePruningDepth &&
+			evaled[i].Value < MinGoodCapture &&
+			!SeeAbove(pos, evaled[i].Move, seeMargins[BoolToInt(isNoisy)]) {
+			continue
+		}
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
 			!childInCheck {
 			// Late Move Reduction
 			// https://www.chessprogramming.org/Late_Move_Reductions
@@ -271,7 +285,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			movesSorted = true
 		}
 		// Store move if it is quiet
-		if !evaled[i].Move.IsCaptureOrPromotion() {
+		if !isNoisy {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 
