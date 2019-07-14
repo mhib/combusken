@@ -168,6 +168,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	// Internal iterative deepening
 	// https://www.chessprogramming.org/Internal_Iterative_Deepening
+	// Values taken from Laser
 	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
 		var iiDepth int
 		if pvNode {
@@ -249,7 +250,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 
 		// Search conditions as in Ethereal
-
 		// Search with null window and reduced depth if lmr
 		if reduction > 0 {
 			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
