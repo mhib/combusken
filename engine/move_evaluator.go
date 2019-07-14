@@ -3,6 +3,7 @@ package engine
 import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/evaluation"
 
+const MinGoodCapture = 20001
 const MinSpecialMoveValue = 1499
 const MaxBadCapture = -100000 + 2500 // 2500 represents max mvvlva value
 
