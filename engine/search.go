@@ -7,6 +7,7 @@ import (
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
+	. "github.com/mhib/combusken/utils"
 )
 
 const MaxUint = ^uint(0)
@@ -162,6 +163,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(alpha, beta, height, inCheck)
 	}
 
+	// Mate distance pruning
+	// Basically we are ignoring searches if finding Mate is either too good, or too bad
+	mateAlpha := Max(alpha, -Mate+height)
+	mateBeta := Min(beta, Mate-height-1)
+	if mateAlpha >= mateBeta {
+		return mateAlpha
+	}
+
 	// https://en.wikipedia.org/wiki/Lazy_evaluation
 	lazyEval := lazyEval{position: pos}
 	val := MinInt
@@ -234,6 +243,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			evaled[i].Move == hashMove &&
 			int(hashDepth) >= depth-2 &&
 			hashFlag != TransAlpha
+
 		// Check extension
 		// Moves with positive SEE and gives check are searched with increased depth
 		if inCheck && SeeSign(pos, evaled[i].Move) {
@@ -244,6 +254,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			newDepth++
 			movesSorted = true
 		}
+
 		// Store move if it is quiet
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
@@ -254,6 +265,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if reduction > 0 {
 			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
+
 		// Search with null window without reduced depth if
 		// search with lmr null window exceeded alpha or
 		// not in pv (this is the same as normal search as non pv nodes are searched with null window anyway)
@@ -261,6 +273,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if (reduction > 0 && tmpVal > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
 			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
+
 		// If Node and first move or search with null window exceeded alpha, search with full window
 		if pvNode && (moveCount == 1 || tmpVal > alpha) {
 			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
