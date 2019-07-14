@@ -84,10 +84,10 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
 		if val > alpha {
 			alpha = val
+			t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 			if val >= beta {
 				return beta
 			}
-			t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 		}
 	}
 
@@ -299,7 +299,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		flag = TransExact
 	}
 	t.engine.TransTable.Set(pos.Key, val, depth, bestMove, flag, height)
-	return alpha
+	return val
 }
 
 func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, moves []EvaledMove) bool {
