@@ -2,7 +2,7 @@ package evaluation
 
 import . "github.com/mhib/combusken/backend"
 
-var SEEValues = []int{0, int(PawnValue.Middle), int(KnightValue.Middle), int(BishopValue.Middle), int(RookValue.Middle), int(QueenValue.Middle), -Mate / 2}
+var SEEValues = []int{0, 100, 450, 450, 675, 1300, -Mate / 2}
 
 // Returns true if see non-negative
 func SeeSign(pos *Position, move Move) bool {
