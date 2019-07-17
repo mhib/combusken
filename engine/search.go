@@ -21,8 +21,9 @@ const WindowSize = 50
 const WindowDepth = 6
 
 const SEEPruningDepth = 6
-const SEEQuietMargin = -80
-const SEENoisyMargin = -18
+
+var SEEQuietMargin = int(PawnValue.End) * 8 / 11
+var SEENoisyMargin = int(PawnValue.End) / 9
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
