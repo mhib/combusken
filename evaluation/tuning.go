@@ -239,7 +239,7 @@ func absScore(num int16) int {
 }
 
 func (t *tuner) regularization() float64 {
-	alpha := 0.2e-7
+	alpha := 0.2e-6
 	sum := 0
 	for _, score := range t.weights {
 		sum += absScore(score.Middle)
@@ -430,11 +430,20 @@ func loadScoresToSlice() (res []*Score) {
 	for y := 0; y < 28; y++ {
 		res = append(res, &mobilityBonus[3][y])
 	}
+	for y := 0; y < 8; y++ {
+		res = append(res, &passedFriendlyDistance[y])
+	}
+	for y := 0; y < 8; y++ {
+		res = append(res, &passedEnemyDistance[y])
+	}
 	for y := 0; y < 7; y++ {
 		res = append(res, &passedRank[y])
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 4; y++ {
 		res = append(res, &passedFile[y])
+	}
+	for y := 0; y < 4; y++ {
+		res = append(res, &passedFile[3-y])
 	}
 	res = append(res, &isolated)
 	res = append(res, &doubled)
