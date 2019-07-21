@@ -38,12 +38,14 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 	pos := &t.stack[height].position
+	alphaOrig := alpha
 
 	if height >= MAX_HEIGHT || t.isDraw(height) {
 		return contempt(pos)
 	}
 
-	if hashOk, hashValue, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
+	hashOk, hashValue, _, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	if hashOk {
 		tmpHashValue := int(hashValue)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
@@ -71,7 +73,9 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
 	}
 
-	t.EvaluateQsMoves(pos, evaled, inCheck)
+	t.EvaluateQsMoves(pos, evaled, hashMove, inCheck)
+
+	bestMove := NullMove
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
@@ -84,6 +88,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
 		if val > alpha {
 			alpha = val
+			bestMove = evaled[i].Move
 			if val >= beta {
 				return beta
 			}
@@ -94,6 +99,16 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	if moveCount == 0 && inCheck {
 		return lossIn(height)
 	}
+
+	var flag int
+	if alpha == alphaOrig {
+		flag = TransAlpha
+	} else if alpha >= beta {
+		flag = TransBeta
+	} else {
+		flag = TransExact
+	}
+	t.engine.TransTable.Set(pos.Key, alpha, 0, bestMove, flag, height)
 
 	return alpha
 }
