@@ -298,7 +298,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	t.engine.TransTable.Set(pos.Key, val, depth, bestMove, flag, height)
+	t.engine.TransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
 	return alpha
 }
 
