@@ -692,20 +692,18 @@ func Evaluate(pos *Position) int {
 	result := ((midResult * (256 - phase)) + (endResult * phase)) / 256
 
 	// Scaling
-	if phase < 12 { // Start scaling after half of phase is gone
-		whiteNonPawnValue := PopCount(pos.Queens&pos.White)*int(QueenValue.End) +
-			PopCount(pos.Rooks&pos.White)*int(RookValue.End) +
-			PopCount(pos.Bishops&pos.White)*int(BishopValue.End) +
-			PopCount(pos.Knights&pos.White)*int(KnightValue.End)
-		blackNonPawnValue := PopCount(pos.Queens&pos.Black)*int(QueenValue.End) +
-			PopCount(pos.Rooks&pos.Black)*int(RookValue.End) +
-			PopCount(pos.Bishops&pos.Black)*int(BishopValue.End) +
-			PopCount(pos.Knights&pos.Black)*int(KnightValue.End)
-		if result >= 0 {
-			result = ((midResult * (256 - phase)) + (endResult * phase * calculateScale(PopCount(pos.White&pos.Pawns), whiteNonPawnValue, blackNonPawnValue) / scaleNormal)) / 256
-		} else {
-			result = ((midResult * (256 - phase)) + (endResult * phase * calculateScale(PopCount(pos.Black&pos.Pawns), blackNonPawnValue, whiteNonPawnValue) / scaleNormal)) / 256
-		}
+	whiteNonPawnValue := PopCount(pos.Queens&pos.White)*int(QueenValue.End) +
+		PopCount(pos.Rooks&pos.White)*int(RookValue.End) +
+		PopCount(pos.Bishops&pos.White)*int(BishopValue.End) +
+		PopCount(pos.Knights&pos.White)*int(KnightValue.End)
+	blackNonPawnValue := PopCount(pos.Queens&pos.Black)*int(QueenValue.End) +
+		PopCount(pos.Rooks&pos.Black)*int(RookValue.End) +
+		PopCount(pos.Bishops&pos.Black)*int(BishopValue.End) +
+		PopCount(pos.Knights&pos.Black)*int(KnightValue.End)
+	if result >= 0 {
+		result = ((midResult * (256 - phase)) + (endResult * phase * calculateScale(PopCount(pos.White&pos.Pawns), whiteNonPawnValue, blackNonPawnValue) / scaleNormal)) / 256
+	} else {
+		result = ((midResult * (256 - phase)) + (endResult * phase * calculateScale(PopCount(pos.Black&pos.Pawns), blackNonPawnValue, whiteNonPawnValue) / scaleNormal)) / 256
 	}
 
 	if pos.WhiteMove {
