@@ -13,6 +13,11 @@ const rookPhase = 2
 const queenPhase = 4
 const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + queenPhase*2
 
+const scaleNormal = 128
+const scaleOnePawn = 48
+const scaleHard = 10
+const scaleDraw = 0
+
 type Score struct {
 	Middle int16
 	End    int16
@@ -333,6 +338,19 @@ func IsLateEndGame(pos *Position) bool {
 	} else {
 		return ((pos.Rooks|pos.Queens)&pos.Black) == 0 && !MoreThanOne((pos.Knights|pos.Bishops)&pos.Black)
 	}
+}
+
+func calculateScale(ourPawnsCount, ourNonPawnValue, theirNonPawnValue int) int {
+	if ourPawnsCount == 0 && ourNonPawnValue-theirNonPawnValue <= int(KnightValue.End) {
+		if ourNonPawnValue <= int(RookValue.End) {
+			return scaleDraw
+		} else {
+			return scaleHard
+		}
+	} else if ourPawnsCount == 1 && ourNonPawnValue-theirNonPawnValue <= int(KnightValue.End) {
+		return scaleOnePawn
+	}
+	return scaleNormal
 }
 
 func Evaluate(pos *Position) int {
@@ -672,6 +690,23 @@ func Evaluate(pos *Position) int {
 	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
 	result := ((midResult * (256 - phase)) + (endResult * phase)) / 256
+
+	// Scaling
+	if phase < 12 { // Start scaling after half of phase is gone
+		whiteNonPawnValue := PopCount(pos.Queens&pos.White)*int(QueenValue.End) +
+			PopCount(pos.Rooks&pos.White)*int(RookValue.End) +
+			PopCount(pos.Bishops&pos.White)*int(BishopValue.End) +
+			PopCount(pos.Knights&pos.White)*int(KnightValue.End)
+		blackNonPawnValue := PopCount(pos.Queens&pos.Black)*int(QueenValue.End) +
+			PopCount(pos.Rooks&pos.Black)*int(RookValue.End) +
+			PopCount(pos.Bishops&pos.Black)*int(BishopValue.End) +
+			PopCount(pos.Knights&pos.Black)*int(KnightValue.End)
+		if result >= 0 {
+			result = ((midResult * (256 - phase)) + (endResult * phase * calculateScale(PopCount(pos.White&pos.Pawns), whiteNonPawnValue, blackNonPawnValue) / scaleNormal)) / 256
+		} else {
+			result = ((midResult * (256 - phase)) + (endResult * phase * calculateScale(PopCount(pos.Black&pos.Pawns), blackNonPawnValue, whiteNonPawnValue) / scaleNormal)) / 256
+		}
+	}
 
 	if pos.WhiteMove {
 		return result
