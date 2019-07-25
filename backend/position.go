@@ -375,3 +375,87 @@ func (pos *Position) IntSide() int {
 	}
 	return 0
 }
+
+func (pos *Position) IsMovePseudoLegal(move Move) bool {
+	var we, them uint64
+	if pos.WhiteMove {
+		we = pos.White
+		them = pos.Black
+	} else {
+		we = pos.Black
+		them = pos.White
+	}
+	occupancy := we | them
+	fromMask := SquareMask[move.From()]
+	toMask := SquareMask[move.To()]
+
+	if move == NullMove || (we&fromMask) == 0 {
+		return false
+	}
+
+	switch move.MovedPiece() {
+	case Knight:
+		return move.IsNormal() && (pos.Knights&fromMask) != 0 && (KnightAttacks[move.From()] & ^we)&toMask != 0
+	case Bishop:
+		return move.IsNormal() && (pos.Bishops&fromMask) != 0 && (BishopAttacks(move.From(), occupancy) & ^we)&toMask != 0
+	case Rook:
+		return move.IsNormal() && (pos.Rooks&fromMask) != 0 && (RookAttacks(move.From(), occupancy) & ^we)&toMask != 0
+	case Queen:
+		return move.IsNormal() && (pos.Queens&fromMask) != 0 && (QueenAttacks(move.From(), occupancy) & ^we)&toMask != 0
+	case Pawn:
+		if (pos.Pawns&fromMask) == 0 || move.IsCastling() {
+			return false
+		}
+		var attacks, forward uint64
+		if pos.WhiteMove {
+			if move.Type() == EPCapture && pos.EpSquare != 0 {
+				return (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_5_BB&fromMask != 0
+			}
+			attacks = WhitePawnAttacks[move.From()]
+			forward = North(fromMask) & ^occupancy
+		} else {
+			if move.Type() == EPCapture && pos.EpSquare != 0 {
+				return (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_4_BB&fromMask != 0
+			}
+			attacks = BlackPawnAttacks[move.From()]
+			forward = South(fromMask) & ^occupancy
+		}
+		if move.IsPromotion() {
+			return PROMOTION_RANKS&((attacks&them)|forward) != 0
+		}
+
+		// Double pawn push
+		if forward != 0 && pos.WhiteMove && fromMask&RANK_2_BB != 0 && North(forward)&occupancy == 0 {
+			forward |= North(forward)
+		} else if forward != 0 && !pos.WhiteMove && fromMask&RANK_7_BB != 0 && South(forward)&occupancy == 0 {
+			forward |= South(forward)
+		}
+		return (^PROMOTION_RANKS)&((attacks&them)|forward)&toMask != 0
+	case King:
+		if (pos.Kings & fromMask) == 0 {
+			return false
+		}
+		if move.IsNormal() {
+			return move.IsNormal() && (KingAttacks[move.From()] & ^we)&toMask != 0
+		}
+		if pos.WhiteMove {
+			if move == WhiteKingSideCastle {
+				return occupancy&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, false) && !pos.IsSquareAttacked(F1, false)
+			} else if move == WhiteQueenSideCastle {
+				return occupancy&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, false) && !pos.IsSquareAttacked(D1, false)
+			} else {
+				return false
+			}
+		} else {
+			if move == BlackKingSideCastle {
+				return occupancy&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, true) && !pos.IsSquareAttacked(F8, true)
+			} else if move == BlackQueenSideCastleFlag {
+				return occupancy&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, true) && !pos.IsSquareAttacked(D8, true)
+			} else {
+				return false
+			}
+		}
+	}
+
+	return false
+}

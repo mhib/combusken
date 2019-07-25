@@ -102,7 +102,13 @@ func mvvlva(move Move) int {
 	if move.IsPromotion() {
 		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
 	}
-	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
+	return captureScore - move.MovedPiece()
+}
+
+func EvaluateNoisy(moves []EvaledMove) {
+	for i := range moves {
+		moves[i].Value = mvvlva(moves[i].Move)
+	}
 }
 
 // In Quiescent search it is expected that SEE will be check anyway
@@ -121,4 +127,12 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCh
 			moves[i].Value = mvvlva(moves[i].Move)
 		}
 	}
+}
+
+func (mv *MoveEvaluator) EvaluateQuiets(pos *Position, moves []EvaledMove, height int) {
+	side := pos.IntSide()
+	for i := range moves {
+		moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+	}
+
 }

@@ -68,8 +68,8 @@ type SearchInfo struct {
 type StackEntry struct {
 	position backend.Position
 	PV
-	moves          [256]backend.EvaledMove
-	quietsSearched [256]backend.Move
+	movePicker
+	quietsSearched [128]backend.Move
 }
 
 type PV struct {

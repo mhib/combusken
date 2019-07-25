@@ -42,8 +42,8 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	if height >= MAX_HEIGHT || t.isDraw(height) {
 		return contempt(pos)
 	}
-
-	if hashOk, hashValue, _, _, hashFlag := t.engine.TransTable.Get(pos.Key, height); hashOk {
+	hashOk, hashValue, _, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	if hashOk {
 		tmpHashValue := int(hashValue)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
@@ -57,9 +57,10 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	val := Evaluate(pos)
 
-	var evaled []EvaledMove
+	picker := &t.stack[height].movePicker
+
 	if inCheck {
-		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
+		picker.initNormal(t, hashMove, height)
 	} else {
 		// Early return if not check and evaluation exceeded beta
 		if val >= beta {
@@ -68,15 +69,17 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		if alpha < val {
 			alpha = val
 		}
-		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
+		picker.initQs(t, hashMove, height)
 	}
 
-	t.EvaluateQsMoves(pos, evaled, inCheck)
-
-	for i := range evaled {
-		maxMoveToFirst(evaled[i:])
+	var move Move
+	for {
+		move = picker.nextMove(pos, &t.MoveEvaluator, !inCheck, height)
+		if move == noneMove {
+			break
+		}
 		// Ignore move with negative SEE unless checked
-		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
+		if !pos.MakeMove(move, child) {
 			continue
 		}
 		moveCount++
@@ -84,10 +87,10 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
 		if val > alpha {
 			alpha = val
+			t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 			if val >= beta {
 				return beta
 			}
-			t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 		}
 	}
 
@@ -180,33 +183,26 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		_, _, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
 	}
 
-	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
-	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
+	picker := &t.stack[height].movePicker
+	picker.initNormal(t, hashMove, height)
 
 	// Quiet moves are stored in order to reduce their history value at the end of search
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	bestMove := NullMove
 	moveCount := 0
-	movesSorted := false
-	for i := range evaled {
-		// Move might have been already sorted if singularity have been checked
-		if !movesSorted {
-			// Sort first 4 moves with selection sort
-			if i < 4 {
-				maxMoveToFirst(evaled[i:])
-			} else if i == 4 {
-				// Sort rest of moves with shell sort
-				sortMoves(evaled[i:])
-				movesSorted = true
-			}
+	var move Move
+	for {
+		move = picker.nextMove(pos, &t.MoveEvaluator, false, height)
+		if move == noneMove {
+			break
 		}
-		if !pos.MakeMove(evaled[i].Move, child) {
+		if !pos.MakeMove(move, child) {
 			continue
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && picker.stage > stageCounter && move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			// Late Move Reduction
 			// https://www.chessprogramming.org/Late_Move_Reductions
@@ -231,22 +227,21 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		newDepth := depth - 1
 		singularCandidate := depth >= 8 &&
-			evaled[i].Move == hashMove &&
+			move == hashMove &&
 			int(hashDepth) >= depth-2 &&
 			hashFlag != TransAlpha
 		// Check extension
 		// Moves with positive SEE and gives check are searched with increased depth
-		if inCheck && SeeSign(pos, evaled[i].Move) {
+		if inCheck && picker.stage < stageBadNoisy && SeeSign(pos, move) {
 			newDepth++
 			// Singular extension
 			// https://www.chessprogramming.org/Singular_Extensions
-		} else if singularCandidate && t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
+		} else if singularCandidate && t.isMoveSingular(depth, height, hashMove, int(hashValue)) {
 			newDepth++
-			movesSorted = true
 		}
 		// Store move if it is quiet
-		if !evaled[i].Move.IsCaptureOrPromotion() {
-			quietsSearched = append(quietsSearched, evaled[i].Move)
+		if move.IsCaptureOrPromotion() {
+			quietsSearched = append(quietsSearched, move)
 		}
 
 		// Search conditions as in Ethereal
@@ -270,11 +265,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			val = tmpVal
 			if val > alpha {
 				alpha = val
-				bestMove = evaled[i].Move
+				bestMove = move
 				if alpha >= beta {
 					break
 				}
-				t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
+				t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 			}
 		}
 	}
@@ -302,33 +297,34 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	return alpha
 }
 
-func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, moves []EvaledMove) bool {
+func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int) bool {
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
+	var picker movePicker
 	// Store child as we already made a move into it in alphaBeta
 	oldChild := *child
-	sortMoves(moves)
 	val := -Mate
 	rBeta := max(hashValue-depth, -Mate)
 	quiets := 0
-	for i := range moves {
-		if moves[i].Move == hashMove {
-			continue
+	var move Move
+	picker.initSingular(t, hashMove, height)
+	for {
+		move = picker.nextMove(pos, &t.MoveEvaluator, false, height)
+		if move == noneMove {
+			break
 		}
-		if !pos.MakeMove(moves[i].Move, child) {
+		if !pos.MakeMove(move, child) {
 			continue
 		}
 		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck())
 		if val > rBeta {
 			break
 		}
-		if !moves[i].Move.IsCaptureOrPromotion() {
+		if picker.stage > stageGoodNoisy {
 			quiets++
 			if quiets >= 6 {
 				break
 			}
-		} else if moves[i].Value < MaxBadCapture {
-			break
 		}
 	}
 	// restore child

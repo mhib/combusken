@@ -66,6 +66,11 @@ func (m Move) Special() int {
 	return int(m >> 20)
 }
 
+// Either quiete move or capture
+func (m Move) IsNormal() bool {
+	return int(m>>18) < 2
+}
+
 func (m Move) IsPromotion() bool {
 	return m&(1<<19) != 0
 }
