@@ -303,7 +303,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 				counter++
 			}
 		}
-		for fromBB = (WhitePawnsAttacks(theirOccupation) | RANK_7_BB) & pos.Pawns & pos.Black; fromBB != 0; fromBB &= fromBB - 1 {
+		for fromBB = (WhitePawnsAttacks(theirOccupation) | RANK_2_BB) & pos.Pawns & pos.Black; fromBB != 0; fromBB &= fromBB - 1 {
 			fromId = BitScan(fromBB)
 			if Rank(fromId) == RANK_2 {
 				if SquareMask[fromId-8]&allOccupation == 0 {
