@@ -98,13 +98,6 @@ func (mp *movePicker) popBadNoisy() backend.Move {
 	return ret
 }
 
-func (mp *movePicker) popMove(size *uint8, index int) backend.Move {
-	ret := mp.buffer[index].Move
-	*size--
-	mp.buffer[index] = mp.buffer[*size]
-	return ret
-}
-
 func (mp *movePicker) noteBadNoisyMove() {
 	mp.noisySize--
 	mp.badNoisySize++
@@ -122,6 +115,13 @@ func (mp *movePicker) popQuietMove() backend.Move {
 	mp.quietsSize--
 	mp.buffer[mp.split], mp.buffer[mp.split+mp.quietsSize] = mp.buffer[mp.split+mp.quietsSize], mp.buffer[mp.split]
 	return ret
+}
+
+func (mp *movePicker) resetAfterSingular(quietsSize uint8) {
+	mp.quietsSize = quietsSize
+	mp.noisySize = mp.split - mp.badNoisySize
+	mp.kind = kindNormal
+	mp.stage = stageGoodNoisy
 }
 
 func (mp *movePicker) nextMove(pos *backend.Position, mv *MoveEvaluator, height int) backend.Move {
@@ -191,6 +191,7 @@ Top:
 		mp.quietsSize = 0
 		pos.GenerateQuiets(mp.buffer[mp.split:], &mp.quietsSize)
 		mv.EvaluateQuiets(pos, mp.buffer[mp.split:mp.split+mp.quietsSize], height)
+		sortMoves(mp.buffer[mp.split : mp.split+mp.quietsSize])
 		fallthrough
 	case stageQuiets:
 	Quiets:
