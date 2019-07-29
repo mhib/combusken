@@ -20,9 +20,12 @@ const (
 )
 
 const (
-	kindNormal kind = iota
-	kindNoBadCaptures
+	kindNormal        kind = iota // 00
+	kindNoBadCaptures             // 01
+	kindNoQuiets                  // 10
 )
+
+const kindQs kind = kindNoBadCaptures | kindNoQuiets // 11
 
 const noneMove = backend.Move(1)
 
@@ -40,13 +43,6 @@ type movePicker struct {
 	badNoisySize uint8
 }
 
-func (mp *movePicker) clearCounters() {
-	mp.noisySize = 0
-	mp.quietsSize = 0
-	mp.split = 0
-	mp.badNoisySize = 0
-}
-
 func (mp *movePicker) loadSpecialMoves(t *thread, hashMove backend.Move, height int) {
 	mp.hashMove = hashMove
 	mp.killerMove1 = t.KillerMoves[height][0]
@@ -62,26 +58,24 @@ func (mp *movePicker) loadSpecialMoves(t *thread, hashMove backend.Move, height 
 func (mp *movePicker) initNormal(t *thread, hashMove backend.Move, height int) {
 	mp.stage = stageTT
 	mp.kind = kindNormal
-	mp.clearCounters()
 	mp.loadSpecialMoves(t, hashMove, height)
 }
 
 func (mp *movePicker) initSingular(t *thread, hashMove backend.Move, height int) {
 	mp.stage = stageGenerateNoisy
 	mp.kind = kindNoBadCaptures
-	mp.clearCounters()
 	mp.loadSpecialMoves(t, hashMove, height)
 }
 
 func (mp *movePicker) initQs(t *thread, hashMove backend.Move, height int) {
-	mp.stage = stageGenerateNoisy
-	mp.kind = kindNoBadCaptures
+	mp.kind = kindQs
 	if hashMove.IsCaptureOrPromotion() {
 		mp.hashMove = hashMove
+		mp.stage = stageTT
 	} else {
 		mp.hashMove = backend.NullMove
+		mp.stage = stageGenerateNoisy
 	}
-	mp.clearCounters()
 	mp.killerMove1 = backend.NullMove
 	mp.killerMove2 = backend.NullMove
 	mp.counterMove = backend.NullMove
@@ -130,7 +124,7 @@ func (mp *movePicker) popQuietMove() backend.Move {
 	return ret
 }
 
-func (mp *movePicker) nextMove(pos *backend.Position, mv *MoveEvaluator, skipQuiets bool, height int) backend.Move {
+func (mp *movePicker) nextMove(pos *backend.Position, mv *MoveEvaluator, height int) backend.Move {
 	var bestMove backend.Move
 Top:
 	switch mp.stage {
@@ -160,20 +154,11 @@ Top:
 				if bestMove == mp.hashMove {
 					goto GoodNoisy
 				}
-				if bestMove == mp.killerMove1 {
-					mp.killerMove1 = backend.NullMove
-				}
-				if bestMove == mp.killerMove2 {
-					mp.killerMove2 = backend.NullMove
-				}
-				if bestMove == mp.counterMove {
-					mp.counterMove = backend.NullMove
-				}
 				return bestMove
 			}
 		}
-		if skipQuiets {
-			if mp.kind == kindNoBadCaptures {
+		if mp.kind&kindNoQuiets != 0 {
+			if mp.kind&kindNoBadCaptures != 0 {
 				mp.stage = stageDone
 				return noneMove
 			}
@@ -203,6 +188,7 @@ Top:
 		fallthrough
 	case stageGenerateQuiets:
 		mp.stage = stageQuiets
+		mp.quietsSize = 0
 		pos.GenerateQuiets(mp.buffer[mp.split:], &mp.quietsSize)
 		mv.EvaluateQuiets(pos, mp.buffer[mp.split:mp.split+mp.quietsSize], height)
 		fallthrough
@@ -219,8 +205,12 @@ Top:
 		mp.stage = stageBadNoisy
 		fallthrough
 	case stageBadNoisy:
-		if mp.badNoisySize > 0 && mp.kind != kindNoBadCaptures {
+	badNoisy:
+		if mp.badNoisySize > 0 && mp.kind&kindNoBadCaptures == 0 {
 			bestMove = mp.popBadNoisy()
+			if bestMove == mp.hashMove {
+				goto badNoisy
+			}
 			return bestMove
 		}
 		mp.stage = stageDone

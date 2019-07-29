@@ -74,11 +74,10 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	var move Move
 	for {
-		move = picker.nextMove(pos, &t.MoveEvaluator, !inCheck, height)
+		move = picker.nextMove(pos, &t.MoveEvaluator, height)
 		if move == noneMove {
 			break
 		}
-		// Ignore move with negative SEE unless checked
 		if !pos.MakeMove(move, child) {
 			continue
 		}
@@ -192,7 +191,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	moveCount := 0
 	var move Move
 	for {
-		move = picker.nextMove(pos, &t.MoveEvaluator, false, height)
+		move = picker.nextMove(pos, &t.MoveEvaluator, height)
 		if move == noneMove {
 			break
 		}
@@ -202,7 +201,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && picker.stage > stageCounter && move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && picker.stage > stageCounter && !move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			// Late Move Reduction
 			// https://www.chessprogramming.org/Late_Move_Reductions
@@ -301,15 +300,15 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int)
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
 	var picker movePicker
-	// Store child as we already made a move into it in alphaBeta
 	oldChild := *child
+	// Store child as we already made a move into it in alphaBeta
 	val := -Mate
 	rBeta := max(hashValue-depth, -Mate)
 	quiets := 0
 	var move Move
 	picker.initSingular(t, hashMove, height)
 	for {
-		move = picker.nextMove(pos, &t.MoveEvaluator, false, height)
+		move = picker.nextMove(pos, &t.MoveEvaluator, height)
 		if move == noneMove {
 			break
 		}

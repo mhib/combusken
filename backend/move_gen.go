@@ -252,7 +252,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove, counter *uint8) {
 			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
 			for fromBB = epBB & pos.Pawns & pos.White; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
-				buffer[*counter] = EvaledMove{NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1)), 0}
+				buffer[*counter].Move = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
 				*counter++
 			}
 		}
@@ -302,7 +302,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove, counter *uint8) {
 			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
 			for fromBB = epBB & pos.Pawns & pos.Black; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
-				buffer[*counter] = EvaledMove{NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1)), 0}
+				buffer[*counter].Move = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
 				*counter++
 			}
 		}

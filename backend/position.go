@@ -408,14 +408,14 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 		}
 		var attacks, forward uint64
 		if pos.WhiteMove {
-			if move.Type() == EPCapture && pos.EpSquare != 0 {
-				return (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_5_BB&fromMask != 0
+			if move.Type() == EPCapture {
+				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_5_BB&fromMask != 0
 			}
 			attacks = WhitePawnAttacks[move.From()]
 			forward = North(fromMask) & ^occupancy
 		} else {
-			if move.Type() == EPCapture && pos.EpSquare != 0 {
-				return (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_4_BB&fromMask != 0
+			if move.Type() == EPCapture {
+				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_4_BB&fromMask != 0
 			}
 			attacks = BlackPawnAttacks[move.From()]
 			forward = South(fromMask) & ^occupancy
