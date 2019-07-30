@@ -191,7 +191,6 @@ Top:
 		mp.quietsSize = 0
 		pos.GenerateQuiets(mp.buffer[mp.split:], &mp.quietsSize)
 		mv.EvaluateQuiets(pos, mp.buffer[mp.split:mp.split+mp.quietsSize], height)
-		sortMoves(mp.buffer[mp.split : mp.split+mp.quietsSize])
 		fallthrough
 	case stageQuiets:
 	Quiets:
