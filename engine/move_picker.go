@@ -124,6 +124,36 @@ func (mp *movePicker) resetAfterSingular(quietsSize uint8) {
 	mp.stage = stageGoodNoisy
 }
 
+func (mp *movePicker) generateMoves(pos *backend.Position) {
+	moves := pos.GenerateAllMoves(mp.buffer[:])
+	rightIdx := -1
+	leftIdx := len(moves) - 1
+	for {
+		for {
+			rightIdx++
+			if rightIdx > len(moves) || !moves[rightIdx].IsCaptureOrPromotion() {
+				break
+			}
+		}
+		for {
+			leftIdx--
+			if leftIdx < 0 || moves[leftIdx].IsCaptureOrPromotion() {
+				break
+			}
+		}
+		if leftIdx <= rightIdx {
+			break
+		}
+		moves[rightIdx], moves[leftIdx] = moves[leftIdx], moves[rightIdx]
+		rightIdx++
+		leftIdx--
+	}
+	mp.split = uint8(rightIdx)
+	mp.noisySize = uint8(rightIdx)
+	mp.quietsSize = uint8(len(moves) - rightIdx)
+	mp.badNoisySize = 0
+}
+
 func (mp *movePicker) nextMove(pos *backend.Position, mv *MoveEvaluator, height int) backend.Move {
 	var bestMove backend.Move
 Top:
@@ -135,11 +165,8 @@ Top:
 		}
 		fallthrough
 	case stageGenerateNoisy:
-		mp.noisySize = 0
-		mp.badNoisySize = 0
-		pos.GenerateAllCaptures(mp.buffer[:], &mp.noisySize)
+		mp.generateMoves(pos)
 		EvaluateNoisy(mp.buffer[:mp.noisySize])
-		mp.split = mp.noisySize
 		mp.stage = stageGoodNoisy
 		fallthrough
 	case stageGoodNoisy:
@@ -188,9 +215,6 @@ Top:
 		fallthrough
 	case stageGenerateQuiets:
 		mp.stage = stageQuiets
-		mp.quietsSize = 0
-		pos.GenerateQuiets(mp.buffer[mp.split:], &mp.quietsSize)
-		mv.EvaluateQuiets(pos, mp.buffer[mp.split:mp.split+mp.quietsSize], height)
 		fallthrough
 	case stageQuiets:
 	Quiets:
