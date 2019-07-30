@@ -37,10 +37,9 @@ type movePicker struct {
 	counterMove backend.Move
 	stage
 	kind
-	noisySize    uint8
-	quietsSize   uint8
-	split        uint8
-	badNoisySize uint8
+	noisySize  uint8
+	quietsSize uint8
+	split      uint8
 }
 
 func (mp *movePicker) loadSpecialMoves(t *thread, hashMove backend.Move, height int) {
@@ -81,89 +80,26 @@ func (mp *movePicker) initQs(t *thread, hashMove backend.Move, height int) {
 	mp.counterMove = backend.NullMove
 }
 
-func (mp *movePicker) bestMoveToFirst(start, end uint8) {
-	best := start
+func (mp *movePicker) bestMoveIdx(start, end uint8) (best uint8) {
+	best = start
 	for i := start + 1; i < end; i++ {
 		if mp.buffer[i].Value > mp.buffer[best].Value {
 			best = i
 		}
 	}
-	mp.buffer[start], mp.buffer[best] = mp.buffer[best], mp.buffer[start]
+	return
 }
 
-func (mp *movePicker) popBadNoisy() backend.Move {
-	ret := mp.buffer[mp.noisySize].Move
-	mp.noisySize++
-	mp.badNoisySize--
-	return ret
-}
-
-func (mp *movePicker) noteBadNoisyMove() {
-	mp.noisySize--
-	mp.badNoisySize++
-}
-
-func (mp *movePicker) popGoodNoisyMove() backend.Move {
-	ret := mp.buffer[mp.badNoisySize].Move
-	mp.noisySize--
-	mp.buffer[mp.badNoisySize], mp.buffer[mp.noisySize] = mp.buffer[mp.noisySize], mp.buffer[mp.badNoisySize]
-	return ret
-}
-
-func (mp *movePicker) popQuietMove() backend.Move {
-	ret := mp.buffer[mp.split].Move
-	mp.quietsSize--
-	mp.buffer[mp.split], mp.buffer[mp.split+mp.quietsSize] = mp.buffer[mp.split+mp.quietsSize], mp.buffer[mp.split]
-	return ret
-}
-
-func (mp *movePicker) resetAfterSingular(quietsSize uint8) {
-	mp.quietsSize = quietsSize
-	mp.noisySize = mp.split - mp.badNoisySize
-	mp.kind = kindNormal
-	mp.stage = stageGoodNoisy
-}
-
-func (mp *movePicker) generateMoves(pos *backend.Position) {
-	var moves []backend.EvaledMove
-	if mp.kind&kindNoQuiets == 0 {
-		moves = pos.GenerateAllMoves(mp.buffer[:])
-		rightIdx := -1
-		leftIdx := len(moves) - 1
-		for {
-			for {
-				rightIdx++
-				if rightIdx >= len(moves) || !moves[rightIdx].IsCaptureOrPromotion() {
-					break
-				}
-			}
-			for {
-				leftIdx--
-				if leftIdx < 0 || moves[leftIdx].IsCaptureOrPromotion() {
-					break
-				}
-			}
-			if leftIdx <= rightIdx {
-				break
-			}
-			moves[rightIdx], moves[leftIdx] = moves[leftIdx], moves[rightIdx]
-			rightIdx++
-			leftIdx--
-		}
-		mp.noisySize = uint8(rightIdx)
-		mp.split = mp.noisySize
-		mp.badNoisySize = 0
-		mp.quietsSize = uint8(len(moves) - rightIdx)
-	} else {
-		moves = pos.GenerateAllCaptures(mp.buffer[:])
-		mp.noisySize = uint8(len(moves))
-		mp.split = mp.noisySize
-		mp.badNoisySize = 0
-	}
+func (mp *movePicker) popMove(index, sizeOffset uint8, size *uint8) (move backend.Move) {
+	move = mp.buffer[index].Move
+	*size--
+	mp.buffer[index] = mp.buffer[sizeOffset+*size]
+	return
 }
 
 func (mp *movePicker) nextMove(pos *backend.Position, mv *MoveEvaluator, height int) backend.Move {
 	var bestMove backend.Move
+	var idx uint8
 Top:
 	switch mp.stage {
 	case stageTT:
@@ -173,23 +109,27 @@ Top:
 		}
 		fallthrough
 	case stageGenerateNoisy:
-		mp.generateMoves(pos)
+		moves := pos.GenerateAllCaptures(mp.buffer[:])
+		mp.noisySize = uint8(len(moves))
+		mp.split = mp.noisySize
 		EvaluateNoisy(mp.buffer[:mp.noisySize])
 		mp.stage = stageGoodNoisy
 		fallthrough
 	case stageGoodNoisy:
 	GoodNoisy:
 		if mp.noisySize > 0 {
-			mp.bestMoveToFirst(mp.badNoisySize, mp.badNoisySize+mp.noisySize)
-			if !evaluation.SeeSign(pos, mp.buffer[mp.badNoisySize].Move) {
-				mp.noteBadNoisyMove()
-				goto GoodNoisy
-			} else {
-				bestMove = mp.popGoodNoisyMove()
-				if bestMove == mp.hashMove {
+			idx = mp.bestMoveIdx(0, mp.split)
+			if mp.buffer[idx].Value > 0 {
+				if !evaluation.SeeSign(pos, mp.buffer[idx].Move) {
+					mp.buffer[idx].Value = -1
 					goto GoodNoisy
+				} else {
+					bestMove = mp.popMove(idx, 0, &mp.noisySize)
+					if bestMove == mp.hashMove {
+						goto GoodNoisy
+					}
+					return bestMove
 				}
-				return bestMove
 			}
 		}
 		if mp.kind&kindNoQuiets != 0 {
@@ -222,13 +162,15 @@ Top:
 		}
 		fallthrough
 	case stageGenerateQuiets:
+		moves := pos.GenerateQuiets(mp.buffer[mp.split:])
+		mp.quietsSize = uint8(len(moves))
 		mp.stage = stageQuiets
 		fallthrough
 	case stageQuiets:
 	Quiets:
 		if mp.quietsSize > 0 {
-			mp.bestMoveToFirst(mp.split, mp.split+mp.quietsSize)
-			bestMove = mp.popQuietMove()
+			idx = mp.bestMoveIdx(0, mp.split)
+			bestMove = mp.popMove(idx, mp.split, &mp.quietsSize)
 			if bestMove == mp.hashMove || bestMove == mp.killerMove1 || bestMove == mp.killerMove2 || bestMove == mp.counterMove {
 				goto Quiets
 			}
@@ -238,8 +180,8 @@ Top:
 		fallthrough
 	case stageBadNoisy:
 	badNoisy:
-		if mp.badNoisySize > 0 && mp.kind&kindNoBadCaptures == 0 {
-			bestMove = mp.popBadNoisy()
+		if mp.noisySize > 0 && mp.kind&kindNoBadCaptures == 0 {
+			bestMove = mp.popMove(idx, 0, &mp.noisySize)
 			if bestMove == mp.hashMove {
 				goto badNoisy
 			}

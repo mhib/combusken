@@ -415,10 +415,11 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 	return buffer[:counter]
 }
 
-func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
+func (pos *Position) GenerateQuiets(buffer []EvaledMove) []EvaledMove {
 	allOccupation := pos.White | pos.Black
 	var fromBB, from, toBB, to, ourOccupation uint64
 	var fromId, toId int
+	counter := 0
 	if pos.WhiteMove {
 		ourOccupation = pos.White
 		for fromBB = pos.Pawns & pos.White & (^RANK_7_BB); fromBB > 0; fromBB &= (fromBB - 1) {
@@ -426,22 +427,22 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 			from = SquareMask[uint(fromId)]
 			to = from << 8
 			if allOccupation&to == 0 {
-				buffer[*counter].Move = NewMove(fromId, fromId+8, Pawn, None, 0)
-				*counter++
+				buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, 0)
+				counter++
 				if from&RANK_2_BB != 0 && allOccupation&(from<<16) == 0 {
-					buffer[*counter].Move = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
-					*counter++
+					buffer[counter].Move = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
+					counter++
 				}
 			}
 		}
 
 		if allOccupation&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, false) && !pos.IsSquareAttacked(F1, false) {
-			buffer[*counter].Move = WhiteKingSideCastle
-			*counter++
+			buffer[counter].Move = WhiteKingSideCastle
+			counter++
 		}
 		if allOccupation&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, false) && !pos.IsSquareAttacked(D1, false) {
-			buffer[*counter].Move = WhiteQueenSideCastle
-			*counter++
+			buffer[counter].Move = WhiteQueenSideCastle
+			counter++
 		}
 
 	} else {
@@ -451,22 +452,22 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 			from = SquareMask[uint(fromId)]
 			to = SquareMask[fromId-8]
 			if allOccupation&to == 0 {
-				buffer[*counter].Move = NewMove(fromId, fromId-8, Pawn, None, 0)
-				*counter++
+				buffer[counter].Move = NewMove(fromId, fromId-8, Pawn, None, 0)
+				counter++
 				if from&RANK_7_BB != 0 && allOccupation&(from>>16) == 0 {
-					buffer[*counter].Move = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
-					*counter++
+					buffer[counter].Move = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
+					counter++
 				}
 			}
 		}
 
 		if allOccupation&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, true) && !pos.IsSquareAttacked(F8, true) {
-			buffer[*counter].Move = BlackKingSideCastle
-			*counter++
+			buffer[counter].Move = BlackKingSideCastle
+			counter++
 		}
 		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, true) && !pos.IsSquareAttacked(D8, true) {
-			buffer[*counter].Move = BlackQueenSideCastle
-			*counter++
+			buffer[counter].Move = BlackQueenSideCastle
+			counter++
 		}
 	}
 
@@ -476,8 +477,8 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 		for toBB = KnightAttacks[fromId] & ^allOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
-			buffer[*counter].Move = NewMove(fromId, toId, Knight, None, NewType(0, 0, 0, 0))
-			*counter++
+			buffer[counter].Move = NewMove(fromId, toId, Knight, None, NewType(0, 0, 0, 0))
+			counter++
 		}
 	}
 	// end of knights
@@ -488,8 +489,8 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 	for toBB = KingAttacks[fromId] & ^allOccupation; toBB != 0; toBB &= (toBB - 1) {
 		toId = BitScan(toBB)
 		to = SquareMask[uint(toId)]
-		buffer[*counter].Move = NewMove(fromId, toId, King, None, NewType(0, 0, 0, 0))
-		*counter++
+		buffer[counter].Move = NewMove(fromId, toId, King, None, NewType(0, 0, 0, 0))
+		counter++
 	}
 	// end of Kings
 
@@ -499,8 +500,8 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 		for toBB = RookAttacks(fromId, allOccupation) & ^allOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
-			buffer[*counter].Move = NewMove(fromId, toId, Rook, None, NewType(0, 0, 0, 0))
-			*counter++
+			buffer[counter].Move = NewMove(fromId, toId, Rook, None, NewType(0, 0, 0, 0))
+			counter++
 		}
 	}
 	// end of Rooks
@@ -511,8 +512,8 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 		for toBB = BishopAttacks(fromId, allOccupation) & ^allOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
-			buffer[*counter].Move = NewMove(fromId, toId, Bishop, None, NewType(0, 0, 0, 0))
-			*counter++
+			buffer[counter].Move = NewMove(fromId, toId, Bishop, None, NewType(0, 0, 0, 0))
+			counter++
 		}
 	}
 	// end of Bishops
@@ -523,9 +524,10 @@ func (pos *Position) GenerateQuiets(buffer []EvaledMove, counter *uint8) {
 		for toBB = QueenAttacks(fromId, allOccupation) & ^allOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
-			buffer[*counter].Move = NewMove(fromId, toId, Queen, None, NewType(0, 0, 0, 0))
-			*counter++
+			buffer[counter].Move = NewMove(fromId, toId, Queen, None, NewType(0, 0, 0, 0))
+			counter++
 		}
 	}
+	return buffer[:counter]
 	// end of Queens
 }
