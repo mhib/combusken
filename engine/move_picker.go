@@ -19,13 +19,13 @@ const (
 	stageDone
 )
 
+const kindNormal = 0
 const (
-	kindNormal        kind = iota // 00
-	kindNoBadCaptures             // 01
-	kindNoQuiets                  // 10
+	kindNoBadCaptures = 1 << iota
+	kindNoQuiets
 )
 
-const kindQs kind = kindNoBadCaptures | kindNoQuiets // 11
+const kindQs kind = kindNoBadCaptures | kindNoQuiets
 
 const noneMove = backend.Move(1)
 
@@ -125,33 +125,41 @@ func (mp *movePicker) resetAfterSingular(quietsSize uint8) {
 }
 
 func (mp *movePicker) generateMoves(pos *backend.Position) {
-	moves := pos.GenerateAllMoves(mp.buffer[:])
-	rightIdx := -1
-	leftIdx := len(moves) - 1
-	for {
+	var moves []backend.EvaledMove
+	if mp.kind&kindNoQuiets == 0 {
+		moves = pos.GenerateAllMoves(mp.buffer[:])
+		rightIdx := -1
+		leftIdx := len(moves) - 1
 		for {
+			for {
+				rightIdx++
+				if rightIdx >= len(moves) || !moves[rightIdx].IsCaptureOrPromotion() {
+					break
+				}
+			}
+			for {
+				leftIdx--
+				if leftIdx < 0 || moves[leftIdx].IsCaptureOrPromotion() {
+					break
+				}
+			}
+			if leftIdx <= rightIdx {
+				break
+			}
+			moves[rightIdx], moves[leftIdx] = moves[leftIdx], moves[rightIdx]
 			rightIdx++
-			if rightIdx > len(moves) || !moves[rightIdx].IsCaptureOrPromotion() {
-				break
-			}
-		}
-		for {
 			leftIdx--
-			if leftIdx < 0 || moves[leftIdx].IsCaptureOrPromotion() {
-				break
-			}
 		}
-		if leftIdx <= rightIdx {
-			break
-		}
-		moves[rightIdx], moves[leftIdx] = moves[leftIdx], moves[rightIdx]
-		rightIdx++
-		leftIdx--
+		mp.noisySize = uint8(rightIdx)
+		mp.split = mp.noisySize
+		mp.badNoisySize = 0
+		mp.quietsSize = uint8(len(moves) - rightIdx)
+	} else {
+		moves = pos.GenerateAllCaptures(mp.buffer[:])
+		mp.noisySize = uint8(len(moves))
+		mp.split = mp.noisySize
+		mp.badNoisySize = 0
 	}
-	mp.split = uint8(rightIdx)
-	mp.noisySize = uint8(rightIdx)
-	mp.quietsSize = uint8(len(moves) - rightIdx)
-	mp.badNoisySize = 0
 }
 
 func (mp *movePicker) nextMove(pos *backend.Position, mv *MoveEvaluator, height int) backend.Move {

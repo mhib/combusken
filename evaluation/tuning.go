@@ -72,9 +72,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		if alpha < val {
 			alpha = val
 		}
-		counter := uint8(0)
-		pos.GenerateAllCaptures(t.stack[height].moves[:], &counter)
-		evaled = t.stack[height].moves[:counter]
+		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
 	}
 
 	for i := range evaled {
