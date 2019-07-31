@@ -75,7 +75,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	var move Move
 	for {
 		move = picker.nextMove(pos, &t.MoveEvaluator, height)
-		if move == noneMove {
+		if move == NullMove {
 			break
 		}
 		if !pos.MakeMove(move, child) {
@@ -192,7 +192,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	var move Move
 	for {
 		move = picker.nextMove(pos, &t.MoveEvaluator, height)
-		if move == noneMove {
+		if move == NullMove {
 			break
 		}
 		if !pos.MakeMove(move, child) {
@@ -309,7 +309,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int)
 	picker.initSingular(t, hashMove, height)
 	for {
 		move = picker.nextMove(pos, &t.MoveEvaluator, height)
-		if move == noneMove {
+		if move == NullMove {
 			break
 		}
 		if !pos.MakeMove(move, child) {

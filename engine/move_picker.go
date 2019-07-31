@@ -27,8 +27,6 @@ const (
 
 const kindQs kind = kindNoBadCaptures | kindNoQuiets
 
-const noneMove = backend.Move(1)
-
 type movePicker struct {
 	buffer      [256]backend.EvaledMove
 	hashMove    backend.Move
@@ -135,7 +133,7 @@ Top:
 		if mp.kind&kindNoQuiets != 0 {
 			if mp.kind&kindNoBadCaptures != 0 {
 				mp.stage = stageDone
-				return noneMove
+				return backend.NullMove
 			}
 			mp.stage = stageBadNoisy
 			goto Top
@@ -191,7 +189,7 @@ Top:
 		mp.stage = stageDone
 		fallthrough
 	case stageDone:
-		return noneMove
+		return backend.NullMove
 	}
-	return noneMove
+	return backend.NullMove
 }
