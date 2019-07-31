@@ -175,12 +175,16 @@ Top:
 			}
 			return bestMove
 		}
+		if mp.kind&kindNoBadCaptures != 0 {
+			mp.stage = stageDone
+			return backend.NullMove
+		}
 		mp.stage = stageBadNoisy
 		fallthrough
 	case stageBadNoisy:
 	badNoisy:
-		if mp.noisySize > 0 && mp.kind&kindNoBadCaptures == 0 {
-			bestMove = mp.popMove(idx, 0, &mp.noisySize)
+		if mp.noisySize > 0 {
+			bestMove = mp.popMove(0, 0, &mp.noisySize)
 			if bestMove == mp.hashMove {
 				goto badNoisy
 			}
@@ -189,7 +193,8 @@ Top:
 		mp.stage = stageDone
 		fallthrough
 	case stageDone:
+		fallthrough
+	default:
 		return backend.NullMove
 	}
-	return backend.NullMove
 }
