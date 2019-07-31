@@ -163,12 +163,12 @@ Top:
 		moves := pos.GenerateQuiets(mp.buffer[mp.split:])
 		mp.quietsSize = uint8(len(moves))
 		mp.stage = stageQuiets
-		mv.EvaluateQuiets(pos, mp.buffer[mp.split:])
+		mv.EvaluateQuiets(pos, mp.buffer[mp.split:mp.split+mp.quietsSize])
 		fallthrough
 	case stageQuiets:
 	Quiets:
 		if mp.quietsSize > 0 {
-			idx = mp.bestMoveIdx(0, mp.split)
+			idx = mp.bestMoveIdx(mp.split, mp.quietsSize)
 			bestMove = mp.popMove(idx, mp.split, &mp.quietsSize)
 			if bestMove == mp.hashMove || bestMove == mp.killerMove1 || bestMove == mp.killerMove2 || bestMove == mp.counterMove {
 				goto Quiets
