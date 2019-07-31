@@ -97,12 +97,12 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 
 var mvvlvaScores = [...]int{0, 10, 40, 45, 68, 145, 256}
 
-func mvvlva(move Move) int {
-	captureScore := mvvlvaScores[move.CapturedPiece()]
-	if move.IsPromotion() {
-		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
+func mvvlva(move Move) (score int) {
+	score = mvvlvaScores[move.CapturedPiece()] - move.MovedPiece()
+	if move.IsPromotion() && move.PromotedPiece() == Queen {
+		score += mvvlvaScores[Queen]
 	}
-	return captureScore - move.MovedPiece()
+	return
 }
 
 func EvaluateNoisy(moves []EvaledMove) {
@@ -132,7 +132,6 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCh
 func (mv *MoveEvaluator) EvaluateQuiets(pos *Position, moves []EvaledMove) {
 	side := pos.IntSide()
 	for i := range moves {
-		moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+		moves[i].Value = mv.EvalHistory[side][moves[i].From()][moves[i].To()]
 	}
-
 }
