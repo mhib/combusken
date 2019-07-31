@@ -28,16 +28,16 @@ const (
 const kindQs kind = kindNoBadCaptures | kindNoQuiets
 
 type movePicker struct {
+	stage
+	kind
+	noisySize   uint8
+	quietsSize  uint8
+	split       uint8
 	buffer      [256]backend.EvaledMove
 	hashMove    backend.Move
 	killerMove1 backend.Move
 	killerMove2 backend.Move
 	counterMove backend.Move
-	stage
-	kind
-	noisySize  uint8
-	quietsSize uint8
-	split      uint8
 }
 
 func (mp *movePicker) loadSpecialMoves(t *thread, hashMove backend.Move, height int) {

@@ -33,7 +33,7 @@ func (manager *timeManager) isSoftTimeout(depth, nodes int) bool {
 }
 
 func compareSoftTimeout(manager *timeManager, depth, nodes int) bool {
-	return time.Now().Sub(manager.startedAt) >= manager.softTimeout
+	return time.Since(manager.startedAt) >= manager.softTimeout
 }
 
 func neverSoftTimeout(manager *timeManager, depth, nodes int) bool {
