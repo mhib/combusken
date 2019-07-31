@@ -99,8 +99,8 @@ var mvvlvaScores = [...]int{0, 10, 40, 45, 68, 145, 256}
 
 func mvvlva(move Move) (score int) {
 	score = mvvlvaScores[move.CapturedPiece()] - move.MovedPiece()
-	if move.IsPromotion() && move.PromotedPiece() == Queen {
-		score += mvvlvaScores[Queen]
+	if move.IsPromotion() {
+		score += mvvlvaScores[move.PromotedPiece()]
 	}
 	return
 }
