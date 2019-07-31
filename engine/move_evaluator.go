@@ -129,7 +129,7 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCh
 	}
 }
 
-func (mv *MoveEvaluator) EvaluateQuiets(pos *Position, moves []EvaledMove, height int) {
+func (mv *MoveEvaluator) EvaluateQuiets(pos *Position, moves []EvaledMove) {
 	side := pos.IntSide()
 	for i := range moves {
 		moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]

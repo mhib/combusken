@@ -165,6 +165,7 @@ Top:
 		moves := pos.GenerateQuiets(mp.buffer[mp.split:])
 		mp.quietsSize = uint8(len(moves))
 		mp.stage = stageQuiets
+		mv.EvaluateQuiets(pos, mp.buffer[mp.split:])
 		fallthrough
 	case stageQuiets:
 	Quiets:
