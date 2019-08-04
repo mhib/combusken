@@ -194,6 +194,12 @@ var rookOnFile = [2]Score{Score{22, 39}, Score{86, 2}}
 // this bonus only improves midScore
 var pawnShieldBonus = [...]Score{Score{11, 0}, Score{-11, 0}} // score for every pawn
 
+var kingDefenders = [12]Score{
+	Score{-26, 0}, Score{-7, -3}, Score{1, 2}, Score{8, 5},
+	Score{17, 6}, Score{27, 4}, Score{31, -2}, Score{13, 0},
+	Score{12, 6}, Score{12, 6}, Score{12, 6}, Score{12, 6},
+}
+
 var blackPassedMask [64]uint64
 var whitePassedMask [64]uint64
 
@@ -203,6 +209,9 @@ var blackOutpostMask [64]uint64
 var distanceBetween [64][64]int16
 
 var adjacentFilesMask [8]uint64
+
+var whiteKingAreaMask [64]uint64
+var blackKingAreaMask [64]uint64
 
 // King shield bitboards
 const whiteKingKingSide = F1 | G1 | H1
@@ -323,6 +332,19 @@ func init() {
 			distanceBetween[y][x] = int16(Max(Abs(Rank(y)-Rank(x)), Abs(File(y)-File(x))))
 		}
 	}
+
+	for y := 0; y < 64; y++ {
+		whiteKingAreaMask[y] = KingAttacks[y] | SquareMask[y] | North(KingAttacks[y])
+		blackKingAreaMask[y] = KingAttacks[y] | SquareMask[y] | South(KingAttacks[y])
+		if File(y) > FILE_A {
+			whiteKingAreaMask[y] |= West(whiteKingAreaMask[y])
+			blackKingAreaMask[y] |= West(blackKingAreaMask[y])
+		}
+		if File(y) < FILE_H {
+			whiteKingAreaMask[y] |= East(whiteKingAreaMask[y])
+			blackKingAreaMask[y] |= East(blackKingAreaMask[y])
+		}
+	}
 }
 
 // CounterGO's version
@@ -346,35 +368,9 @@ func Evaluate(pos *Position) int {
 	blackMobilityArea := ^((pos.Pawns & pos.Black) | (WhitePawnsAttacks(pos.Pawns & pos.White)))
 	allOccupation := pos.White | pos.Black
 
-	// white king
 	whiteKingLocation := BitScan(pos.Kings & pos.White)
-	midResult += int(whiteKingPos[whiteKingLocation].Middle)
-	endResult += int(whiteKingPos[whiteKingLocation].End)
-	// Kingside shield bonus
-	if (pos.Kings&pos.White)&whiteKingKingSide != 0 {
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingKingSideShield2) * int(pawnShieldBonus[1].Middle)
-	}
-	// Queenside shield bonus
-	if (pos.Kings&pos.White)&whiteKingQueenSide != 0 {
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult += PopCount(pos.White&pos.Pawns&whiteKingQueenSideShield2) * int(pawnShieldBonus[1].Middle)
-	}
 
-	// black king
 	blackKingLocation := BitScan(pos.Kings & pos.Black)
-	midResult -= int(blackKingPos[blackKingLocation].Middle)
-	endResult -= int(blackKingPos[blackKingLocation].End)
-	// Kingside shield bonus
-	if (pos.Kings&pos.Black)&blackKingKingSide != 0 {
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingKingSideShield2) * int(pawnShieldBonus[1].Middle)
-	}
-	// Queenside shield bonus
-	if (pos.Kings&pos.Black)&blackKingQueenSide != 0 {
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield1) * int(pawnShieldBonus[0].Middle)
-		midResult -= PopCount(pos.Black&pos.Pawns&blackKingQueenSideShield2) * int(pawnShieldBonus[1].Middle)
-	}
 
 	// white pawns
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
@@ -668,6 +664,24 @@ func Evaluate(pos *Position) int {
 	if phase < 0 {
 		phase = 0
 	}
+
+	// white king
+	whiteKingDefenders := PopCount(
+		(pos.Pawns | pos.Bishops | pos.Knights) & pos.White & whiteKingAreaMask[whiteKingLocation],
+	)
+	midResult += int(whiteKingPos[whiteKingLocation].Middle)
+	endResult += int(whiteKingPos[whiteKingLocation].End)
+	midResult += int(kingDefenders[whiteKingDefenders].Middle)
+	midResult += int(kingDefenders[whiteKingDefenders].End)
+
+	// black king
+	blackKingDefenders := PopCount(
+		(pos.Pawns | pos.Bishops | pos.Knights) & pos.Black & blackKingAreaMask[blackKingLocation],
+	)
+	midResult -= int(blackKingPos[blackKingLocation].Middle)
+	endResult -= int(blackKingPos[blackKingLocation].End)
+	midResult -= int(kingDefenders[blackKingDefenders].Middle)
+	midResult -= int(kingDefenders[blackKingDefenders].End)
 
 	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
