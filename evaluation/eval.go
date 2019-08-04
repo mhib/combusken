@@ -191,9 +191,6 @@ var tempo = Score{39, 50}
 // Rook on semiopen, open file
 var rookOnFile = [2]Score{Score{22, 39}, Score{86, 2}}
 
-// this bonus only improves midScore
-var pawnShieldBonus = [...]Score{Score{11, 0}, Score{-11, 0}} // score for every pawn
-
 var kingDefenders = [12]Score{
 	Score{-26, 0}, Score{-7, -3}, Score{1, 2}, Score{8, 5},
 	Score{17, 6}, Score{27, 4}, Score{31, -2}, Score{13, 0},
