@@ -257,9 +257,14 @@ var index64 = [64]int{0, 47, 1, 56, 48, 27, 2, 60,
 
 const debruijn64 uint64 = 0x03f79d71b4cb0a89
 
+// Least significant bit
 // https://www.chessprogramming.org/index.php?title=BitScan
 func BitScan(bb uint64) int {
 	return index64[((bb^(bb-1))*debruijn64)>>58]
+}
+
+func MostSignificantBit(bb uint64) int {
+	return bits.LeadingZeros64(bb)
 }
 
 func MoreThanOne(bb uint64) bool {
@@ -297,6 +302,8 @@ func South(set uint64) uint64 {
 func SouthEast(set uint64) uint64 {
 	return set >> 7
 }
+
+var FileMirror = [8]int{FILE_A, FILE_B, FILE_C, FILE_D, FILE_D, FILE_C, FILE_B, FILE_A}
 
 func initArray(array *[64]uint64, method func(mask uint64) uint64) {
 	for i := uint32(0); i <= 63; i++ {

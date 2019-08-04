@@ -28,3 +28,12 @@ func Min(l, r int) int {
 	}
 	return r
 }
+
+func BoolToInt(input bool) (res int) {
+	if input {
+		res = 1
+	} else {
+		res = 0
+	}
+	return
+}
