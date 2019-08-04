@@ -416,8 +416,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {
-		// No need to check if move was valid
-		pos.MakeMove(moves[i].Move, child)
+		pos.MakeLegalMove(moves[i].Move, child)
 		moveCount++
 		if !moves[i].IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, moves[i].Move)
