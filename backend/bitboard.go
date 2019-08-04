@@ -245,8 +245,13 @@ var (
 	KnightAttacks, KingAttacks         [64]uint64
 )
 
+// Least significant bit
 func BitScan(bb uint64) int {
 	return bits.TrailingZeros64(bb)
+}
+
+func MostSignificantBit(bb uint64) int {
+	return bits.LeadingZeros64(bb)
 }
 
 func MoreThanOne(bb uint64) bool {
@@ -284,6 +289,8 @@ func South(set uint64) uint64 {
 func SouthEast(set uint64) uint64 {
 	return set >> 7
 }
+
+var FileMirror = [8]int{FILE_A, FILE_B, FILE_C, FILE_D, FILE_D, FILE_C, FILE_B, FILE_A}
 
 func initArray(array *[64]uint64, method func(mask uint64) uint64) {
 	for i := uint32(0); i <= 63; i++ {

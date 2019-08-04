@@ -197,6 +197,60 @@ var kingDefenders = [12]Score{
 	Score{76, 0}, Score{49, 9}, Score{12, 6}, Score{12, 6},
 }
 
+var kingShelter = [2][8][8]Score{
+	{{Score{-11, 3}, Score{15, -26}, Score{20, -9}, Score{12, 4},
+		Score{6, 4}, Score{1, 2}, Score{-3, -33}, Score{-49, 18}},
+		{Score{17, -8}, Score{20, -18}, Score{1, -5}, Score{-14, 4},
+			Score{-30, 15}, Score{-70, 68}, Score{92, 82}, Score{-25, 1}},
+		{Score{35, -4}, Score{14, -9}, Score{-28, 7}, Score{-11, -8},
+			Score{-20, -4}, Score{-11, 1}, Score{0, 66}, Score{-12, -2}},
+		{Score{4, 11}, Score{21, -11}, Score{4, -11}, Score{15, -22},
+			Score{25, -36}, Score{-58, 5}, Score{-136, 52}, Score{5, -7}},
+		{Score{-15, 7}, Score{4, -4}, Score{-26, 1}, Score{-18, 5},
+			Score{-20, -6}, Score{-41, -1}, Score{33, -17}, Score{-6, -2}},
+		{Score{46, -18}, Score{22, -17}, Score{-21, 2}, Score{-12, -18},
+			Score{5, -24}, Score{17, -21}, Score{41, -30}, Score{-24, 1}},
+		{Score{25, -13}, Score{-1, -16}, Score{-23, -2}, Score{-19, -8},
+			Score{-30, -7}, Score{-36, 32}, Score{0, 44}, Score{-10, 1}},
+		{Score{-9, -12}, Score{6, -19}, Score{7, 0}, Score{-2, 11},
+			Score{-11, 15}, Score{-9, 37}, Score{-190, 87}, Score{-17, 14}}},
+	{{Score{0, 0}, Score{-11, -23}, Score{4, -18}, Score{-40, 16},
+		Score{-22, 2}, Score{3, 42}, Score{-167, -8}, Score{-46, 7}},
+		{Score{0, 0}, Score{24, -21}, Score{7, -7}, Score{-18, -1},
+			Score{-1, -12}, Score{26, 66}, Score{-184, -3}, Score{-39, 3}},
+		{Score{0, 0}, Score{30, -11}, Score{-2, -7}, Score{7, -17},
+			Score{15, -7}, Score{-87, 47}, Score{-84, -73}, Score{-20, -5}},
+		{Score{0, 0}, Score{-3, 9}, Score{-2, 0}, Score{-17, 2},
+			Score{-27, 1}, Score{-99, 31}, Score{7, -41}, Score{-22, -7}},
+		{Score{0, 0}, Score{12, 2}, Score{11, -5}, Score{14, -11},
+			Score{14, -26}, Score{-57, 15}, Score{-104, -61}, Score{-1, -7}},
+		{Score{0, 0}, Score{6, -8}, Score{-20, 0}, Score{-27, -6},
+			Score{17, -24}, Score{-38, 3}, Score{55, 38}, Score{-18, -6}},
+		{Score{0, 0}, Score{22, -15}, Score{11, -13}, Score{-9, -7},
+			Score{-27, 9}, Score{-9, 15}, Score{-56, -49}, Score{-31, 11}},
+		{Score{0, 0}, Score{12, -38}, Score{19, -27}, Score{-18, -4},
+			Score{-17, 18}, Score{-5, 20}, Score{-228, -55}, Score{-22, 1}}},
+}
+
+var kingStorm = [2][4][8]Score{
+	{{Score{-4, 28}, Score{117, -8}, Score{-25, 26}, Score{-19, 8},
+		Score{-14, 2}, Score{-8, -4}, Score{-17, 5}, Score{-22, -2}},
+		{Score{-3, 49}, Score{57, 12}, Score{-19, 24}, Score{-5, 11},
+			Score{-4, 5}, Score{5, -4}, Score{-1, 0}, Score{-11, 0}},
+		{Score{8, 38}, Score{17, 23}, Score{-23, 21}, Score{-11, 9},
+			Score{3, 2}, Score{7, 0}, Score{9, -7}, Score{3, -1}},
+		{Score{-2, 25}, Score{16, 21}, Score{-17, 9}, Score{-14, 2},
+			Score{-13, 2}, Score{7, -11}, Score{1, -8}, Score{-13, 2}}},
+	{{Score{0, 0}, Score{-15, -16}, Score{-17, -1}, Score{18, -17},
+		Score{9, -7}, Score{3, -18}, Score{-3, -1}, Score{17, 29}},
+		{Score{0, 0}, Score{-16, -34}, Score{-3, -8}, Score{35, -12},
+			Score{-1, -2}, Score{13, -23}, Score{-7, -10}, Score{-17, 2}},
+		{Score{0, 0}, Score{-28, -49}, Score{-27, -6}, Score{11, -11},
+			Score{3, -2}, Score{-8, -14}, Score{-13, -15}, Score{-11, 6}},
+		{Score{0, 0}, Score{-2, -18}, Score{-16, -18}, Score{-12, -4},
+			Score{-4, -7}, Score{4, -26}, Score{72, -11}, Score{13, 20}}},
+}
+
 var blackPassedMask [64]uint64
 var whitePassedMask [64]uint64
 
@@ -209,6 +263,9 @@ var adjacentFilesMask [8]uint64
 
 var whiteKingAreaMask [64]uint64
 var blackKingAreaMask [64]uint64
+
+var whiteForwardRanksMask [8]uint64
+var blackForwardRanksMasks [8]uint64
 
 // King shield bitboards
 const whiteKingKingSide = F1 | G1 | H1
@@ -341,6 +398,13 @@ func init() {
 			whiteKingAreaMask[y] |= East(whiteKingAreaMask[y])
 			blackKingAreaMask[y] |= East(blackKingAreaMask[y])
 		}
+	}
+
+	for rank := RANK_1; rank <= RANK_8; rank++ {
+		for y := rank; y <= RANK_8; y++ {
+			whiteForwardRanksMask[rank] |= RANKS[y]
+		}
+		blackForwardRanksMasks[rank] = (^whiteForwardRanksMask[rank]) | RANKS[rank]
 	}
 }
 
@@ -670,6 +734,29 @@ func Evaluate(pos *Position) int {
 	endResult += int(whiteKingPos[whiteKingLocation].End)
 	midResult += int(kingDefenders[whiteKingDefenders].Middle)
 	midResult += int(kingDefenders[whiteKingDefenders].End)
+	for file := Max(File(whiteKingLocation)-1, FILE_A); file <= Min(File(whiteKingLocation)+1, FILE_H); file++ {
+		ours := pos.Pawns & FILES[file] & pos.White & whiteForwardRanksMask[Rank(whiteKingLocation)]
+		var ourDist int
+		if ours == 0 {
+			ourDist = 7
+		} else {
+			ourDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(ours)))
+		}
+		theirs := pos.Pawns & FILES[file] & pos.Black & whiteForwardRanksMask[Rank(whiteKingLocation)]
+		var theirDist int
+		if theirs == 0 {
+			theirDist = 7
+		} else {
+			theirDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(theirs)))
+		}
+		sameFile := BoolToInt(file == File(whiteKingLocation))
+		midResult += int(kingShelter[sameFile][file][ourDist].Middle)
+		endResult += int(kingShelter[sameFile][file][ourDist].End)
+
+		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
+		midResult += int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
+		endResult += int(kingStorm[blocked][FileMirror[file]][theirDist].End)
+	}
 
 	// black king
 	blackKingDefenders := PopCount(
@@ -679,6 +766,29 @@ func Evaluate(pos *Position) int {
 	endResult -= int(blackKingPos[blackKingLocation].End)
 	midResult -= int(kingDefenders[blackKingDefenders].Middle)
 	midResult -= int(kingDefenders[blackKingDefenders].End)
+	for file := Max(File(blackKingLocation)-1, FILE_A); file <= Min(File(blackKingLocation)+1, FILE_H); file++ {
+		ours := pos.Pawns & FILES[file] & pos.Black & blackForwardRanksMasks[Rank(blackKingLocation)]
+		var ourDist int
+		if ours == 0 {
+			ourDist = 7
+		} else {
+			ourDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(ours)))
+		}
+		theirs := pos.Pawns & FILES[file] & pos.White & blackForwardRanksMasks[Rank(blackKingLocation)]
+		var theirDist int
+		if theirs == 0 {
+			theirDist = 7
+		} else {
+			theirDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(theirs)))
+		}
+		sameFile := BoolToInt(file == File(blackKingLocation))
+		midResult -= int(kingShelter[sameFile][file][ourDist].Middle)
+		endResult -= int(kingShelter[sameFile][file][ourDist].End)
+
+		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
+		midResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
+		endResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].End)
+	}
 
 	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase

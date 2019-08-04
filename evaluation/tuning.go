@@ -459,6 +459,19 @@ func loadScoresToSlice() (res []*Score) {
 	for y := 0; y < 12; y++ {
 		res = append(res, &kingDefenders[y])
 	}
-
+	for x := 0; x < 2; x++ {
+		for y := 0; y < 8; y++ {
+			for z := 0; z < 8; z++ {
+				res = append(res, &kingShelter[x][y][z])
+			}
+		}
+	}
+	for x := 0; x < 2; x++ {
+		for y := 0; y < 4; y++ {
+			for z := 0; z < 8; z++ {
+				res = append(res, &kingStorm[x][y][z])
+			}
+		}
+	}
 	return
 }
