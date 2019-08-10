@@ -7,6 +7,7 @@ import (
 var zobrist [6][2][64]uint64
 var zobristEpSquare [64]uint64
 var zobristFlags [16]uint64
+var zobristFifty [4]uint64
 var zobristColor uint64
 
 func initZobrist() {
@@ -23,6 +24,9 @@ func initZobrist() {
 	}
 	for y := 0; y < 16; y++ {
 		zobristFlags[y] = r.Uint64()
+	}
+	for y := 0; y < 4; y++ {
+		zobristFifty[y] = r.Uint64()
 	}
 	zobristColor = r.Uint64()
 }
@@ -86,6 +90,7 @@ func HashPosition(pos *Position) {
 		pos.Key ^= zobristColor
 	}
 	pos.Key ^= zobristEpSquare[pos.EpSquare]
+	pos.Key ^= zobristFifty[pos.FiftyMove&3]
 }
 
 func init() {

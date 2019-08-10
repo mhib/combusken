@@ -190,13 +190,14 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.White = pos.White
 	res.Black = pos.Black
 	res.Flags = pos.Flags
-	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags] ^ zobristFifty[pos.FiftyMove&3]
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0
 	} else {
 		res.FiftyMove = pos.FiftyMove + 1
 	}
+	res.Key ^= zobristFifty[res.FiftyMove&3]
 
 	res.EpSquare = 0
 
@@ -389,13 +390,14 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 	res.White = pos.White
 	res.Black = pos.Black
 	res.Flags = pos.Flags
-	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags] ^ zobristFifty[pos.FiftyMove&3]
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0
 	} else {
 		res.FiftyMove = pos.FiftyMove + 1
 	}
+	res.Key ^= zobristFifty[res.FiftyMove&3]
 
 	res.EpSquare = 0
 
