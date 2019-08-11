@@ -106,11 +106,13 @@ func mvvlva(move Move) int {
 }
 
 // In Quiescent search it is expected that SEE will be check anyway
-func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCheck bool) {
+func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, bestMove Move, inCheck bool) {
 	side := pos.IntSide()
 	if inCheck {
 		for i := range moves {
-			if moves[i].Move.IsCaptureOrPromotion() {
+			if moves[i].Move == bestMove {
+				moves[i].Value = 100000
+			} else if moves[i].Move.IsCaptureOrPromotion() {
 				moves[i].Value = mvvlva(moves[i].Move) + 50000
 			} else {
 				moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
@@ -118,7 +120,11 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, inCh
 		}
 	} else {
 		for i := range moves {
-			moves[i].Value = mvvlva(moves[i].Move)
+			if moves[i].Move == bestMove {
+				moves[i].Value = 100000
+			} else {
+				moves[i].Value = mvvlva(moves[i].Move)
+			}
 		}
 	}
 }
