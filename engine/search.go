@@ -20,6 +20,9 @@ const SMPCycles = 16
 const WindowSize = 50
 const WindowDepth = 6
 
+const QSDepthChecks = 0
+const QSDepthNoChecks = -1
+
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
@@ -34,7 +37,7 @@ func depthToMate(val int) int {
 	return val - Mate
 }
 
-func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
+func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 	pos := &t.stack[height].position
@@ -44,8 +47,14 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
-	hashOk, hashValue, _, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
-	if hashOk {
+	var ttDepth int
+	if inCheck || depth >= QSDepthChecks {
+		ttDepth = QSDepthChecks
+	} else {
+		ttDepth = QSDepthNoChecks
+	}
+	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
+	if hashOk && int(hashDepth) >= ttDepth {
 		tmpHashValue := int(hashValue)
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
@@ -54,6 +63,8 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	}
 
 	child := &t.stack[height+1].position
+
+	bestMove := NullMove
 
 	moveCount := 0
 
@@ -75,8 +86,6 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	t.EvaluateQsMoves(pos, evaled, hashMove, inCheck)
 
-	bestMove := NullMove
-
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
 		// Ignore move with negative SEE unless checked
@@ -85,12 +94,12 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
-		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
+		val = -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
 		if val > alpha {
 			alpha = val
 			bestMove = evaled[i].Move
 			if val >= beta {
-				return beta
+				break
 			}
 			t.stack[height].PV.assign(evaled[i].Move, &t.stack[height+1].PV)
 		}
@@ -108,7 +117,8 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	t.engine.TransTable.Set(pos.Key, alpha, 0, bestMove, flag, height)
+
+	t.engine.TransTable.Set(pos.Key, alpha, ttDepth, bestMove, flag, height)
 
 	return alpha
 }
@@ -145,7 +155,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	if hashOk {
 		tmpVal = int(hashValue)
 		// Hash pruning
-		if hashDepth >= uint8(depth) {
+		if hashDepth >= int16(depth) {
 			if hashFlag == TransExact {
 				return tmpVal
 			}
@@ -174,7 +184,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	if depth == 0 {
-		return t.quiescence(alpha, beta, height, inCheck)
+		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
 
 	// https://en.wikipedia.org/wiki/Lazy_evaluation
@@ -528,7 +538,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 	}
 	// Depth skipping pattern taken from Ethereal
 	cycle := idx % SMPCycles
-	for depth := 1; depth < MAX_HEIGHT; depth++ {
+	for depth := 1; depth <= MAX_HEIGHT; depth++ {
 		lastValue = t.aspirationWindow(depth, lastValue, moves, resultChan)
 		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
 			depth += SkipSize[cycle]
