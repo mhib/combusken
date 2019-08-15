@@ -450,8 +450,9 @@ func loadScoresToSlice() (res []*Score) {
 	res = append(res, &tempo)
 	res = append(res, &rookOnFile[0])
 	res = append(res, &rookOnFile[1])
-	res = append(res, &pawnShieldBonus[0])
-	res = append(res, &pawnShieldBonus[1])
+	for y := 0; y < 12; y++ {
+		res = append(res, &kingDefenders[y])
+	}
 
 	return
 }
