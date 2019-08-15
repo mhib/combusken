@@ -430,6 +430,12 @@ func loadScoresToSlice() (res []*Score) {
 	for y := 0; y < 28; y++ {
 		res = append(res, &mobilityBonus[3][y])
 	}
+	for y := 0; y < 8; y++ {
+		res = append(res, &passedFriendlyDistance[y])
+	}
+	for y := 0; y < 8; y++ {
+		res = append(res, &passedEnemyDistance[y])
+	}
 	for y := 0; y < 7; y++ {
 		res = append(res, &passedRank[y])
 	}
