@@ -90,7 +90,7 @@ func (t *SingleThreadTransTable) Clear() {
 // bits:
 // value 16
 // depth 8
-// flag 3
+// flag 2
 // move 32
 
 type atomicTransEntry struct {
@@ -121,8 +121,8 @@ func (t *AtomicTransTable) Get(key uint64, height int) (ok bool, value int16, de
 		return
 	}
 	ok = true
-	value = valueFromTrans(int16(int(data>>43)-maxValue), height)
-	depth = int16((data>>35)&0xFF) + NoneDepth
+	value = valueFromTrans(int16(int(data>>42)-maxValue), height)
+	depth = int16((data>>34)&0xFF) + NoneDepth
 	flag = uint8((data >> 32) & 3)
 	move = backend.Move(data & 0xFFFFFFFF)
 	return
@@ -131,8 +131,8 @@ func (t *AtomicTransTable) Get(key uint64, height int) (ok bool, value int16, de
 func (t *AtomicTransTable) Set(key uint64, value, depth int, bestMove backend.Move, flag int, height int) {
 	idx := key & t.Mask
 	var data uint64
-	data |= uint64(valueToTrans(value, height)+maxValue) << 43
-	data |= uint64((depth - NoneDepth) << 35)
+	data |= uint64(valueToTrans(value, height)+maxValue) << 42
+	data |= uint64((depth - NoneDepth) << 34)
 	data |= uint64(flag << 32)
 	data |= uint64(bestMove)
 	atomic.StoreUint64(&t.Entries[idx].key, key^data)
