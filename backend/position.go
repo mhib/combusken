@@ -174,7 +174,7 @@ func (pos *Position) MakeNullMove(res *Position) {
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
 
-	res.FiftyMove = pos.FiftyMove
+	res.FiftyMove = pos.FiftyMove + 1
 	res.LastMove = NullMove
 	res.EpSquare = 0
 }
