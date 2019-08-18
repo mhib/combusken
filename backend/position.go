@@ -60,8 +60,14 @@ var InitialPosition Position = Position{
 	0x8100000000000081, 0x800000000000008, 0x1000000000000010,
 	0xffff, 0xffff000000000000, 0, 0, true, 0, 0, 0}
 
+var rookCastleFlags [64]uint8
+
 func init() {
 	HashPosition(&InitialPosition)
+	rookCastleFlags[A1] = WhiteQueenSideCastleFlag
+	rookCastleFlags[H1] = WhiteKingSideCastleFlag
+	rookCastleFlags[H8] = BlackKingSideCastleFlag
+	rookCastleFlags[A8] = BlackQueenSideCastleFlag
 }
 
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
@@ -103,19 +109,7 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 	case Rook:
 		p.Rooks ^= b
 		p.Key ^= zobrist[3][intSide][from] ^ zobrist[3][intSide][to]
-		if side {
-			if from == H1 {
-				p.Flags |= WhiteKingSideCastleFlag
-			} else if from == A1 {
-				p.Flags |= WhiteQueenSideCastleFlag
-			}
-		} else {
-			if from == H8 {
-				p.Flags |= BlackKingSideCastleFlag
-			} else if from == A8 {
-				p.Flags |= BlackQueenSideCastleFlag
-			}
-		}
+		p.Flags |= int(rookCastleFlags[from])
 	case Queen:
 		p.Queens ^= b
 		p.Key ^= zobrist[4][intSide][from] ^ zobrist[4][intSide][to]
@@ -209,16 +203,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 		case Capture:
 			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
 			if move.CapturedPiece() == Rook {
-				switch move.To() {
-				case A1:
-					res.Flags |= WhiteQueenSideCastleFlag
-				case H1:
-					res.Flags |= WhiteKingSideCastleFlag
-				case H8:
-					res.Flags |= BlackKingSideCastleFlag
-				case A8:
-					res.Flags |= BlackQueenSideCastleFlag
-				}
+				res.Flags |= int(rookCastleFlags[move.To()])
 			}
 		case KingCastle:
 			if pos.WhiteMove {
@@ -243,11 +228,17 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 		case QueenCapturePromotion:
 			res.TogglePiece(Queen, pos.WhiteMove, move.To())
 			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			if move.CapturedPiece() == Rook {
+				res.Flags |= int(rookCastleFlags[move.To()])
+			}
 		case RookPromotion:
 			res.TogglePiece(Rook, pos.WhiteMove, move.To())
 		case RookCapturePromotion:
 			res.TogglePiece(Rook, pos.WhiteMove, move.To())
 			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			if move.CapturedPiece() == Rook {
+				res.Flags |= int(rookCastleFlags[move.To()])
+			}
 		case KnightPromotion:
 			res.TogglePiece(Knight, pos.WhiteMove, move.To())
 		case BishopPromotion:
@@ -255,9 +246,15 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 		case KnightCapturePromotion:
 			res.TogglePiece(Knight, pos.WhiteMove, move.To())
 			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			if move.CapturedPiece() == Rook {
+				res.Flags |= int(rookCastleFlags[move.To()])
+			}
 		case BishopCapturePromotion:
 			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
 			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+			if move.CapturedPiece() == Rook {
+				res.Flags |= int(rookCastleFlags[move.To()])
+			}
 		}
 	}
 
