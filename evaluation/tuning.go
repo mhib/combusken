@@ -448,6 +448,7 @@ func loadScoresToSlice() (res []*Score) {
 	res = append(res, &backwardOpen)
 	res = append(res, &bishopPair)
 	res = append(res, &bishopRammedPawns)
+	res = append(res, &longDiagonalBishop)
 	res = append(res, &bishopOutpostUndefendedBonus)
 	res = append(res, &bishopOutpostDefendedBonus)
 	res = append(res, &knightOutpostUndefendedBonus)
