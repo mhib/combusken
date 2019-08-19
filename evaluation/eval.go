@@ -186,6 +186,7 @@ var backwardOpen = Score{-27, -11}
 
 var bishopPair = Score{81, 103}
 var bishopRammedPawns = Score{-13, -22}
+var longDiagonalBishop = Score{45, 0}
 
 var bishopOutpostUndefendedBonus = Score{70, -6}
 var bishopOutpostDefendedBonus = Score{136, 3}
@@ -760,6 +761,13 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 			whiteKingAttackersCount++
 			whiteKingAttackersWeight += kingSafetyAttacksWeights[Bishop]
 		}
+
+		// Bonus for bishop on a long diagonal which can "see" both center squares
+		if MoreThanOne(BishopAttacks(fromId, pos.Pawns) & CENTER) {
+			midResult += int(longDiagonalBishop.Middle)
+			endResult += int(longDiagonalBishop.End)
+		}
+		phase -= bishopPhase
 	}
 
 	// Bishop pair bonus
@@ -812,6 +820,13 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 			blackKingAttackersCount++
 			blackKingAttackersWeight += kingSafetyAttacksWeights[Bishop]
 		}
+
+		// Bonus for bishop on a long diagonal which can "see" both center squares
+		if MoreThanOne(BishopAttacks(fromId, pos.Pawns) & CENTER) {
+			midResult -= int(longDiagonalBishop.Middle)
+			endResult -= int(longDiagonalBishop.End)
+		}
+		phase -= bishopPhase
 	}
 
 	if MoreThanOne(pos.Pieces[Bishop] & pos.Colours[Black]) {
