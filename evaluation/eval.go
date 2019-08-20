@@ -177,7 +177,7 @@ var backwardOpen = Score{-29, -10}
 
 var bishopPair = Score{99, 109}
 var bishopRammedPawns = Score{-11, -23}
-var longDiagonalBishop = Score{45, 0}
+var longDiagonalBishop = Score{13, 4}
 
 var bishopOutpostUndefendedBonus = Score{69, -10}
 var bishopOutpostDefendedBonus = Score{133, 2}
