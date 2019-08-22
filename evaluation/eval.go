@@ -285,15 +285,15 @@ const blackKingQueenSideShield2 = (blackKingQueenSide >> 16) // two ranks down
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
-var kingSafetyAttacksWeights = [King + 1]int16{0, 0, 16, 6, 10, 8, 0}
-var kingSafetyAttackValue int16 = 44
-var kingSafetyWeakSquares int16 = 38
-var kingSafetyFriendlyPawns int16 = -22
-var kingSafetyNoEnemyQueens int16 = -276
-var kingSafetySafeQueenCheck int16 = 95
-var kingSafetySafeRookCheck int16 = 94
-var kingSafetySafeBishopCheck int16 = 51
-var kingSafetySafeKnightCheck int16 = 123
+var kingSafetyAttacksWeights = [King + 1]int16{0, 0, -13, -10, 8, 75, 0}
+var kingSafetyAttackValue int16 = 92
+var kingSafetyWeakSquares int16 = 22
+var kingSafetyFriendlyPawns int16 = 1
+var kingSafetyNoEnemyQueens int16 = -127
+var kingSafetySafeQueenCheck int16 = 105
+var kingSafetySafeRookCheck int16 = 134
+var kingSafetySafeBishopCheck int16 = 136
+var kingSafetySafeKnightCheck int16 = 193
 var kingSafetyAdjustment int16 = -18
 
 func loadScoresToPieceSquares() {

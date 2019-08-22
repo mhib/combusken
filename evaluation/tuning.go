@@ -99,7 +99,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 type tuner struct {
 	k       float64
-	weights []*Score
+	weights []EvaluationValue
 	entries []tuneEntry
 }
 
@@ -242,94 +242,81 @@ func (t *tuner) regularization() float64 {
 	alpha := 0.2e-7
 	sum := 0
 	for _, score := range t.weights {
-		sum += absScore(score.Middle)
-		sum += absScore(score.End)
+		if score.regularized() {
+			for i := 0; i < score.phaseCount(); i++ {
+				sum += absScore(score.get(i))
+			}
+		}
 	}
 	return alpha * float64(sum)
 }
 
 // I've tried annealing but, I was unable to make it work
-func (t *tuner) annealing() (improved bool) {
-	energy := func() float64 {
-		return (t.computeError() - t.regularization()) * 5000000
-	}
-	bestEnergy := energy()
-	prevEnergy := bestEnergy
-	fmt.Println(bestEnergy)
+//func (t *tuner) annealing() (improved bool) {
+//energy := func() float64 {
+//return (t.computeError() - t.regularization()) * 5000000
+//}
+//bestEnergy := energy()
+//prevEnergy := bestEnergy
+//fmt.Println(bestEnergy)
 
-	bestWeights := make([]Score, len(t.weights))
-	prevWeights := make([]Score, len(t.weights))
-	for i := range t.weights {
-		bestWeights[i] = *t.weights[i]
-		prevWeights[i] = *t.weights[i]
-	}
+//bestWeights := make([]Score, len(t.weights))
+//prevWeights := make([]Score, len(t.weights))
+//for i := range t.weights {
+//bestWeights[i] = *t.weights[i]
+//prevWeights[i] = *t.weights[i]
+//}
 
-	maxTemperature := 1000.0
-	minTemperature := 2.5
-	tFactor := -math.Log(maxTemperature / minTemperature)
+//maxTemperature := 1000.0
+//minTemperature := 2.5
+//tFactor := -math.Log(maxTemperature / minTemperature)
 
-	steps := 50000
-	currentEnergy := bestEnergy
+//steps := 50000
+//currentEnergy := bestEnergy
 
-	for i := 1; i <= steps; i++ {
-		for i := range t.weights {
-			t.weights[i].Middle += int16(rand.NormFloat64() * 1)
-			t.weights[i].End += int16(rand.NormFloat64() * 1)
-		}
-		loadScoresToPieceSquares()
-		temperature := maxTemperature * math.Exp(tFactor*float64(i)/float64(steps))
-		currentEnergy = energy()
-		dEnergy := currentEnergy - prevEnergy
-		fmt.Printf("D: %f Temperature: %f Error: %f Exp: %f\r", dEnergy, temperature, currentEnergy, math.Exp(-dEnergy/temperature))
-		if dEnergy > 0 && math.Exp(-dEnergy/temperature) < rand.Float64() {
-			// Previous state
-			for i := range t.weights {
-				*t.weights[i] = prevWeights[i]
-			}
-		} else {
-			for i := range t.weights {
-				prevWeights[i] = *t.weights[i]
-			}
-			prevEnergy = currentEnergy
-			if currentEnergy < bestEnergy {
-				fmt.Println("Yay!")
-				fmt.Println(currentEnergy)
-				fmt.Println(t.weights)
-				improved = true
-				for i := range t.weights {
-					bestWeights[i] = *t.weights[i]
-				}
-			}
-		}
-	}
-	fmt.Printf("\nlastEnergy: %f\n", currentEnergy)
+//for i := 1; i <= steps; i++ {
+//for i := range t.weights {
+//t.weights[i].Middle += int16(rand.NormFloat64() * 1)
+//t.weights[i].End += int16(rand.NormFloat64() * 1)
+//}
+//loadScoresToPieceSquares()
+//temperature := maxTemperature * math.Exp(tFactor*float64(i)/float64(steps))
+//currentEnergy = energy()
+//dEnergy := currentEnergy - prevEnergy
+//fmt.Printf("D: %f Temperature: %f Error: %f Exp: %f\r", dEnergy, temperature, currentEnergy, math.Exp(-dEnergy/temperature))
+//if dEnergy > 0 && math.Exp(-dEnergy/temperature) < rand.Float64() {
+//// Previous state
+//for i := range t.weights {
+//*t.weights[i] = prevWeights[i]
+//}
+//} else {
+//for i := range t.weights {
+//prevWeights[i] = *t.weights[i]
+//}
+//prevEnergy = currentEnergy
+//if currentEnergy < bestEnergy {
+//fmt.Println("Yay!")
+//fmt.Println(currentEnergy)
+//fmt.Println(t.weights)
+//improved = true
+//for i := range t.weights {
+//bestWeights[i] = *t.weights[i]
+//}
+//}
+//}
+//}
+//fmt.Printf("\nlastEnergy: %f\n", currentEnergy)
 
-	for i := range t.weights {
-		*t.weights[i] = bestWeights[i]
-	}
-	if improved {
-		fmt.Println(t.weights)
-	}
-	return
-}
+//for i := range t.weights {
+//*t.weights[i] = bestWeights[i]
+//}
+//if improved {
+//fmt.Println(t.weights)
+//}
+//return
+//}
 
 func (t *tuner) coordinateDescent() {
-	getter := func(score *Score, phase int) int16 {
-		if phase == 0 {
-			return score.Middle
-		}
-		return score.End
-	}
-	setter := func(score *Score, phase int, value int16, idx int) {
-		if phase == 0 {
-			score.Middle = value
-		} else {
-			score.End = value
-		}
-		if idx < releventToPieceSquaresCount {
-			loadScoresToPieceSquares()
-		}
-	}
 	bestError := t.computeError()
 	bestErrorWithRegularization := bestError + t.regularization()
 	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", bestError, t.regularization())
@@ -346,12 +333,12 @@ func (t *tuner) coordinateDescent() {
 		})
 		for _, idx := range indexes {
 			score := t.weights[idx]
-			for phase := 0; phase < 2; phase++ {
-				oldValue := getter(score, phase)
+			for phase := 0; phase < score.phaseCount(); phase++ {
+				oldValue := score.get(phase)
 				bestValue := oldValue
 				// try increasing
 				for i := int16(1); i <= 64; i *= 2 {
-					setter(score, phase, oldValue+i, idx)
+					score.set(phase, oldValue+i)
 					newError := t.computeError()
 					newErrorWithRegularization := newError + t.regularization()
 					// First compare to prevent decreasing parameter just to lower regularization(as some parameters may be irrelevant in test positions)
@@ -361,14 +348,14 @@ func (t *tuner) coordinateDescent() {
 						bestErrorWithRegularization = newErrorWithRegularization
 						improved = true
 					} else {
-						setter(score, phase, bestValue, idx)
+						score.set(phase, bestValue)
 						break
 					}
 				}
 				// try decreasing
 				if bestValue == oldValue {
 					for i := int16(1); i <= 64; i *= 2 {
-						setter(score, phase, oldValue-i, idx)
+						score.set(phase, oldValue-i)
 						newError := t.computeError()
 						newErrorWithRegularization := newError + t.regularization()
 						if newError < bestError && newErrorWithRegularization < bestErrorWithRegularization {
@@ -377,7 +364,7 @@ func (t *tuner) coordinateDescent() {
 							bestErrorWithRegularization = newErrorWithRegularization
 							improved = true
 						} else {
-							setter(score, phase, bestValue, idx)
+							score.set(phase, bestValue)
 							break
 						}
 					}
@@ -394,84 +381,154 @@ func (t *tuner) coordinateDescent() {
 
 const releventToPieceSquaresCount = 5 + 5*8*4 + 6*8 + 8*4
 
-func loadScoresToSlice() (res []*Score) {
-	res = append(res, &PawnValue)
-	res = append(res, &KnightValue)
-	res = append(res, &BishopValue)
-	res = append(res, &RookValue)
-	res = append(res, &QueenValue)
+type EvaluationValue interface {
+	phaseCount() int
+	set(phase int, value int16)
+	get(phase int) int16
+	regularized() bool
+}
+
+type ScoreValue struct {
+	*Score
+}
+
+func (ScoreValue) phaseCount() int {
+	return 2
+}
+
+func (ScoreValue) regularized() bool {
+	return true
+}
+
+func (sv ScoreValue) set(phase int, value int16) {
+	if phase == 0 {
+		sv.Score.Middle = value
+	} else {
+		sv.Score.End = value
+	}
+}
+
+func (sv ScoreValue) get(phase int) int16 {
+	if phase == 0 {
+		return sv.Score.Middle
+	}
+	return sv.Score.End
+}
+
+type SingleValue struct {
+	*int16
+}
+
+func (SingleValue) phaseCount() int {
+	return 1
+}
+
+func (sv SingleValue) set(phase int, value int16) {
+	*sv.int16 = value
+}
+
+func (sv SingleValue) get(phase int) int16 {
+	return *sv.int16
+}
+
+func (SingleValue) regularized() bool {
+	return false
+}
+
+func (sv SingleValue) String() string {
+	return fmt.Sprintf("%d", *sv.int16)
+}
+
+func loadScoresToSlice() (res []EvaluationValue) {
+	res = append(res, ScoreValue{&PawnValue})
+	res = append(res, ScoreValue{&KnightValue})
+	res = append(res, ScoreValue{&BishopValue})
+	res = append(res, ScoreValue{&RookValue})
+	res = append(res, ScoreValue{&QueenValue})
 
 	for i := 2; i <= 6; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
-				res = append(res, &pieceScores[i][y][x])
+				res = append(res, ScoreValue{&pieceScores[i][y][x]})
 			}
 		}
 	}
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
-			res = append(res, &pawnScores[y][x])
+			res = append(res, ScoreValue{&pawnScores[y][x]})
 		}
 	}
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 4; x++ {
-			res = append(res, &pawnsConnected[y][x])
+			res = append(res, ScoreValue{&pawnsConnected[y][x]})
 		}
 	}
 	for y := 0; y < 9; y++ {
-		res = append(res, &mobilityBonus[0][y])
+		res = append(res, ScoreValue{&mobilityBonus[0][y]})
 	}
 	for y := 0; y < 14; y++ {
-		res = append(res, &mobilityBonus[1][y])
+		res = append(res, ScoreValue{&mobilityBonus[1][y]})
 	}
 	for y := 0; y < 15; y++ {
-		res = append(res, &mobilityBonus[2][y])
+		res = append(res, ScoreValue{&mobilityBonus[2][y]})
 	}
 	for y := 0; y < 28; y++ {
-		res = append(res, &mobilityBonus[3][y])
+		res = append(res, ScoreValue{&mobilityBonus[3][y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, &passedFriendlyDistance[y])
+		res = append(res, ScoreValue{&passedFriendlyDistance[y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, &passedEnemyDistance[y])
+		res = append(res, ScoreValue{&passedEnemyDistance[y]})
 	}
 	for y := 0; y < 7; y++ {
-		res = append(res, &passedRank[y])
+		res = append(res, ScoreValue{&passedRank[y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, &passedFile[y])
+		res = append(res, ScoreValue{&passedFile[y]})
 	}
-	res = append(res, &isolated)
-	res = append(res, &doubled)
-	res = append(res, &backward)
-	res = append(res, &backwardOpen)
-	res = append(res, &bishopPair)
-	res = append(res, &bishopRammedPawns)
-	res = append(res, &bishopOutpostUndefendedBonus)
-	res = append(res, &bishopOutpostDefendedBonus)
-	res = append(res, &knightOutpostUndefendedBonus)
-	res = append(res, &knightOutpostDefendedBonus)
-	res = append(res, &minorBehindPawn)
-	res = append(res, &tempo)
-	res = append(res, &rookOnFile[0])
-	res = append(res, &rookOnFile[1])
+	res = append(res, ScoreValue{&isolated})
+	res = append(res, ScoreValue{&doubled})
+	res = append(res, ScoreValue{&backward})
+	res = append(res, ScoreValue{&backwardOpen})
+	res = append(res, ScoreValue{&bishopPair})
+	res = append(res, ScoreValue{&bishopRammedPawns})
+	res = append(res, ScoreValue{&bishopOutpostUndefendedBonus})
+	res = append(res, ScoreValue{&bishopOutpostDefendedBonus})
+	res = append(res, ScoreValue{&knightOutpostUndefendedBonus})
+	res = append(res, ScoreValue{&knightOutpostDefendedBonus})
+	res = append(res, ScoreValue{&minorBehindPawn})
+	res = append(res, ScoreValue{&tempo})
+	res = append(res, ScoreValue{&rookOnFile[0]})
+	res = append(res, ScoreValue{&rookOnFile[1]})
 	for y := 0; y < 12; y++ {
-		res = append(res, &kingDefenders[y])
+		res = append(res, ScoreValue{&kingDefenders[y]})
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
-				res = append(res, &kingShelter[x][y][z])
+				res = append(res, ScoreValue{&kingShelter[x][y][z]})
 			}
 		}
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 4; y++ {
 			for z := 0; z < 8; z++ {
-				res = append(res, &kingStorm[x][y][z])
+				res = append(res, ScoreValue{&kingStorm[x][y][z]})
 			}
 		}
 	}
+	for x := Knight; x <= Queen; x++ {
+		res = append(res, SingleValue{&kingSafetyAttacksWeights[x]})
+	}
+	res = append(res, SingleValue{&kingSafetyAttackValue})
+	res = append(res, SingleValue{&kingSafetyWeakSquares})
+	res = append(res, SingleValue{&kingSafetyFriendlyPawns})
+	res = append(res, SingleValue{&kingSafetyNoEnemyQueens})
+	res = append(res, SingleValue{&kingSafetySafeQueenCheck})
+	res = append(res, SingleValue{&kingSafetySafeRookCheck})
+	res = append(res, SingleValue{&kingSafetySafeBishopCheck})
+	res = append(res, SingleValue{&kingSafetySafeKnightCheck})
+	res = append(res, SingleValue{&kingSafetyAdjustment})
 	return
 }
