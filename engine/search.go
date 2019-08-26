@@ -68,7 +68,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := Evaluate(pos)
+	val := Evaluate(pos, t.engine.PawnKingTable)
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -188,7 +188,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	// https://en.wikipedia.org/wiki/Lazy_evaluation
-	lazyEval := lazyEval{position: pos}
+	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
 	val := MinInt
 
 	// Internal iterative deepening
@@ -637,6 +637,7 @@ func recoverFromTimeout() {
 }
 
 type lazyEval struct {
+	PawnKingTable
 	position *Position
 	hasValue bool
 	value    int
@@ -644,7 +645,7 @@ type lazyEval struct {
 
 func (le *lazyEval) Value() int {
 	if !le.hasValue {
-		le.value = Evaluate(le.position)
+		le.value = Evaluate(le.position, le.PawnKingTable)
 		le.hasValue = true
 	}
 	return le.value

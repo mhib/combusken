@@ -29,12 +29,14 @@ func initZobrist() {
 
 func HashPosition(pos *Position) {
 	pos.Key = 0
+	pos.PawnKey = 0
 	var fromId int
 	var fromBB uint64
 
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		pos.Key ^= zobrist[0][0][fromId]
+		pos.PawnKey ^= zobrist[0][0][fromId]
 	}
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
@@ -55,11 +57,13 @@ func HashPosition(pos *Position) {
 	for fromBB = pos.Kings & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		pos.Key ^= zobrist[5][0][fromId]
+		pos.PawnKey ^= zobrist[5][0][fromId]
 	}
 
 	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		pos.Key ^= zobrist[0][1][fromId]
+		pos.PawnKey ^= zobrist[0][1][fromId]
 	}
 	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
@@ -80,10 +84,12 @@ func HashPosition(pos *Position) {
 	for fromBB = pos.Kings & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		pos.Key ^= zobrist[5][1][fromId]
+		pos.PawnKey ^= zobrist[5][1][fromId]
 	}
 	pos.Key ^= zobristFlags[pos.Flags]
 	if pos.WhiteMove {
 		pos.Key ^= zobristColor
+		pos.PawnKey ^= zobristColor
 	}
 	pos.Key ^= zobristEpSquare[pos.EpSquare]
 }

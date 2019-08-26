@@ -25,10 +25,12 @@ type TransTable interface {
 }
 
 type Engine struct {
-	Hash    IntUciOption
-	Threads IntUciOption
-	done    <-chan struct{}
+	Hash     IntUciOption
+	Threads  IntUciOption
+	PawnHash IntUciOption
+	done     <-chan struct{}
 	TransTable
+	evaluation.PawnKingTable
 	MoveHistory map[uint64]int
 	MovesCount  int
 	Update      func(SearchInfo)
@@ -101,12 +103,13 @@ func (e *Engine) GetInfo() (name, version, author string) {
 }
 
 func (e *Engine) GetOptions() []*IntUciOption {
-	return []*IntUciOption{&e.Hash, &e.Threads}
+	return []*IntUciOption{&e.Hash, &e.Threads, &e.PawnHash}
 }
 
 func NewEngine() (ret Engine) {
 	ret.Hash = IntUciOption{"Hash", 4, 2048, 256}
 	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 1}
+	ret.PawnHash = IntUciOption{"PawnHash", 0, 2, 8}
 	ret.threads = make([]thread, 1)
 	return
 }
@@ -146,6 +149,7 @@ func (e *Engine) NewGame() {
 		e.threads[i].MoveEvaluator = MoveEvaluator{}
 		e.threads[i].engine = e
 	}
+	e.PawnKingTable = evaluation.NewPKTable(e.PawnHash.Val)
 }
 
 func (e *Engine) callUpdate(s SearchInfo) {
