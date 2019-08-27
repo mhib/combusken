@@ -109,7 +109,7 @@ func (e *Engine) GetOptions() []*IntUciOption {
 func NewEngine() (ret Engine) {
 	ret.Hash = IntUciOption{"Hash", 4, 2048, 256}
 	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 1}
-	ret.PawnHash = IntUciOption{"PawnHash", 0, 2, 8}
+	ret.PawnHash = IntUciOption{"PawnHash", 0, 8, 2}
 	ret.threads = make([]thread, 1)
 	return
 }
