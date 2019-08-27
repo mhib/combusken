@@ -439,94 +439,110 @@ func IsLateEndGame(pos *Position) bool {
 	}
 }
 
-func evaluateKingPawns(pos *Position, pkTable PawnKingTable) Score {
-	if ok, score := pkTable.Get(pos.PawnKey); ok {
-		return score
+func evaluateKingPawns(pos *Position, pkTable PawnKingTable) (int, int) {
+	if ok, midScore, endScore := pkTable.Get(pos.PawnKey); ok {
+		return midScore, endScore
 	}
-	score := Score{0, 0}
 	var fromBB uint64
 	var fromId int
 	whiteKingLocation := BitScan(pos.Kings & pos.White)
 	blackKingLocation := BitScan(pos.Kings & pos.Black)
+	midResult := 0
+	endResult := 0
+
+	// white pawns
 	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		score.Add(whitePawnsPos[fromId])
+		midResult += int(whitePawnsPos[fromId].Middle)
+		endResult += int(whitePawnsPos[fromId].End)
 
 		// Passed bonus
 		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 {
 			// Bonus is calculated based on rank, file, distance from friendly and enemy king
-			score.Middle +=
+			midResult += int(
 				passedRank[Rank(fromId)].Middle +
 					passedFile[File(fromId)].Middle +
 					passedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]].Middle +
-					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].Middle
-			score.End +=
+					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].Middle,
+			)
+			endResult += int(
 				passedRank[Rank(fromId)].End +
 					passedFile[File(fromId)].End +
 					passedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]].End +
-					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].End
+					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].End,
+			)
 		}
 		// Isolated pawn penalty
 		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.White) == 0 {
-			score.Add(isolated)
+			midResult += int(isolated.Middle)
+			endResult += int(isolated.End)
 		}
 
 		// Pawn is backward if there are no pawns behind it and cannot increase rank without being attacked by enemy pawn
 		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 &&
 			WhitePawnAttacks[fromId+8]&(pos.Pawns&pos.Black) != 0 {
 			if FILES[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
-				score.Add(backwardOpen)
+				midResult += int(backwardOpen.Middle)
+				endResult += int(backwardOpen.End)
 			} else {
-				score.Add(backward)
+				midResult += int(backward.Middle)
+				endResult += int(backward.End)
 			}
 		} else if whitePawnsConnectedMask[fromId]&(pos.White&pos.Pawns) != 0 {
-			score.Add(whitePawnsConnected[fromId])
+			midResult += int(whitePawnsConnected[fromId].Middle)
+			endResult += int(whitePawnsConnected[fromId].End)
 		}
 	}
 
 	// white doubled pawns
-	doubledCount := int16(PopCount(pos.Pawns & pos.White & South(pos.Pawns&pos.White)))
-	score.Middle += doubledCount * doubled.Middle
-	score.End += doubledCount * doubled.End
+	doubledCount := PopCount(pos.Pawns & pos.White & South(pos.Pawns&pos.White))
+	midResult += doubledCount * int(doubled.Middle)
+	endResult += doubledCount * int(doubled.End)
 
 	// black pawns
 	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		score.Subtract(blackPawnsPos[fromId])
+		midResult -= int(blackPawnsPos[fromId].Middle)
+		endResult -= int(blackPawnsPos[fromId].End)
 		if blackPassedMask[fromId]&(pos.Pawns&pos.White) == 0 {
-			score.Middle -=
+			midResult -= int(
 				passedRank[7-Rank(fromId)].Middle +
 					passedFile[File(fromId)].Middle +
 					passedFriendlyDistance[distanceBetween[blackKingLocation][fromId]].Middle +
-					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]].Middle
-			score.End -=
+					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]].Middle,
+			)
+			endResult -= int(
 				passedRank[7-Rank(fromId)].End +
 					passedFile[File(fromId)].End +
 					passedFriendlyDistance[distanceBetween[blackKingLocation][fromId]].End +
-					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]].End
+					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]].End,
+			)
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pawns&pos.Black) == 0 {
-			score.Subtract(isolated)
+			midResult -= int(isolated.Middle)
+			endResult -= int(isolated.End)
 		}
 		if whitePassedMask[fromId]&(pos.Pawns&pos.Black) == 0 &&
 			BlackPawnAttacks[fromId-8]&(pos.Pawns&pos.White) != 0 {
-
 			if FILES[File(fromId)]&(pos.Pawns&pos.White) == 0 {
-				score.Subtract(backwardOpen)
+				midResult -= int(backwardOpen.Middle)
+				endResult -= int(backwardOpen.End)
 			} else {
-				score.Subtract(backward)
+				midResult -= int(backward.Middle)
+				endResult -= int(backward.End)
 			}
 		} else if blackPawnsConnectedMask[fromId]&(pos.Black&pos.Pawns) != 0 {
-			score.Subtract(blackPawnsConnected[fromId])
+			midResult -= int(blackPawnsConnected[fromId].Middle)
+			endResult -= int(blackPawnsConnected[fromId].End)
 		}
 	}
 
 	// black doubled pawns
-	doubledCount = int16(PopCount(pos.Pawns & pos.Black & North(pos.Pawns&pos.Black)))
-	score.Middle -= doubledCount * doubled.Middle
-	score.End -= doubledCount * doubled.End
+	doubledCount = PopCount(pos.Pawns & pos.Black & North(pos.Pawns&pos.Black))
+	midResult -= doubledCount * int(doubled.Middle)
+	endResult -= doubledCount * int(doubled.End)
 
 	// White king storm shelter
 	for file := Max(File(whiteKingLocation)-1, FILE_A); file <= Min(File(whiteKingLocation)+1, FILE_H); file++ {
@@ -545,10 +561,12 @@ func evaluateKingPawns(pos *Position, pkTable PawnKingTable) Score {
 			theirDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(theirs)))
 		}
 		sameFile := BoolToInt(file == File(whiteKingLocation))
-		score.Add(kingShelter[sameFile][file][ourDist])
+		midResult += int(kingShelter[sameFile][file][ourDist].Middle)
+		endResult += int(kingShelter[sameFile][file][ourDist].End)
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
-		score.Add(kingStorm[blocked][FileMirror[file]][theirDist])
+		midResult += int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
+		endResult += int(kingStorm[blocked][FileMirror[file]][theirDist].End)
 	}
 
 	// Black king storm / shelter
@@ -568,13 +586,15 @@ func evaluateKingPawns(pos *Position, pkTable PawnKingTable) Score {
 			theirDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(theirs)))
 		}
 		sameFile := BoolToInt(file == File(blackKingLocation))
-		score.Subtract(kingShelter[sameFile][file][ourDist])
+		midResult -= int(kingShelter[sameFile][file][ourDist].Middle)
+		endResult -= int(kingShelter[sameFile][file][ourDist].End)
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
-		score.Subtract(kingStorm[blocked][FileMirror[file]][theirDist])
+		midResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
+		endResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].End)
 	}
-	pkTable.Set(pos.PawnKey, score)
-	return score
+	pkTable.Set(pos.PawnKey, midResult, endResult)
+	return midResult, endResult
 }
 
 func Evaluate(pos *Position, pkTable PawnKingTable) int {
@@ -626,9 +646,7 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 	//blackAttackedBy[Pawn] |= attacks
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 
-	kingPawnScore := evaluateKingPawns(pos, pkTable)
-	midResult := int(kingPawnScore.Middle)
-	endResult := int(kingPawnScore.End)
+	midResult, endResult := evaluateKingPawns(pos, pkTable)
 
 	// white knights
 	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {

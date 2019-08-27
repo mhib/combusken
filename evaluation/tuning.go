@@ -50,11 +50,11 @@ func (pv *pv) Moves() []Move {
 type emptyPKTableType struct {
 }
 
-func (t *emptyPKTableType) Get(uint64) (bool, Score) {
-	return false, Score{}
+func (t *emptyPKTableType) Get(uint64) (bool, int, int) {
+	return false, 0, 0
 }
 
-func (t *emptyPKTableType) Set(uint64, Score) {
+func (t *emptyPKTableType) Set(uint64, int, int) {
 }
 
 func (t *emptyPKTableType) Clear() {
