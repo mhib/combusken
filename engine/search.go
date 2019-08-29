@@ -168,28 +168,32 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 	}
 
+	if depth == 0 {
+		return t.quiescence(0, alpha, beta, height, inCheck)
+	}
+
 	var child *Position = &t.stack[height+1].position
+
+	// https://en.wikipedia.org/wiki/Lazy_evaluation
+	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
+	val := MinInt
 
 	// Node is not pv if it is searched with null window
 	pvNode := alpha != beta+1
 
 	// Null move pruning
-	if pos.LastMove != NullMove && depth >= 4 && !inCheck && !IsLateEndGame(pos) {
+	if pos.LastMove != NullMove && depth >= 2 && !inCheck && !IsLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		reduction := max(1+depth/3, 3)
-		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
+		if reduction >= depth {
+			tmpVal = -t.quiescence(0, -beta, -beta+1, height+1, child.IsInCheck())
+		} else {
+			tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
+		}
 		if tmpVal >= beta {
 			return beta
 		}
 	}
-
-	if depth == 0 {
-		return t.quiescence(0, alpha, beta, height, inCheck)
-	}
-
-	// https://en.wikipedia.org/wiki/Lazy_evaluation
-	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
-	val := MinInt
 
 	// Internal iterative deepening
 	// https://www.chessprogramming.org/Internal_Iterative_Deepening
