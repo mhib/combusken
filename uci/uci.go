@@ -24,12 +24,11 @@ type UciProtocol struct {
 }
 
 func NewUciProtocol(e Engine) *UciProtocol {
-	var initPosition = backend.InitialPosition
 	e.Update = updateUci
 	var uci = &UciProtocol{
 		messages:  make(chan interface{}),
 		engine:    e,
-		positions: []backend.Position{initPosition},
+		positions: []backend.Position{backend.InitialPosition},
 	}
 	uci.commands = map[string]func(){
 		"uci":        uci.uciCommand,
@@ -257,7 +256,11 @@ func (uci *UciProtocol) setOptionCommand() {
 		debugUci("invalid setoption arguments")
 		return
 	}
-	var name, value = uci.fields[1], uci.fields[3]
+
+	var valIdx = findIndexString(uci.fields, "value")
+	var name = strings.Join(uci.fields[1:valIdx], " ")
+	var value = uci.fields[valIdx+1]
+
 	for _, option := range uci.engine.GetOptions() {
 		if strings.EqualFold(option.Name, name) {
 			v, err := strconv.Atoi(value)
