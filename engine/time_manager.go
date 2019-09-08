@@ -84,7 +84,7 @@ func newTournamentTimeManager(limits LimitsType, overhead int, whiteMove bool) *
 		hard = ((limit/movesToGo + 7) + inc) * 4
 	} else {
 		ideal = (limit + 25*inc) / 50
-		hard = 10 * (limit + 25*inc) / 50
+		hard = 5 * (limit + 25*inc) / 50
 	}
 	res.ideal = time.Duration(Min(ideal, limit-overhead)) * time.Millisecond
 	res.hard = time.Duration(Min(hard, limit-overhead)) * time.Millisecond
