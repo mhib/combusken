@@ -118,6 +118,7 @@ func (uci *UciProtocol) uciCommand() {
 }
 
 func (uci *UciProtocol) isReadyCommand() {
+	uci.engine.NewGame()
 	fmt.Println("readyok")
 }
 
