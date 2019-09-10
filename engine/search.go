@@ -25,8 +25,8 @@ const QSDepthChecks = 0
 const QSDepthNoChecks = -1
 
 const seePruningDepth = 6
-const seeQuietMargin = -80
-const seeNoisyMargin = -18
+const seeQuietMargin = -85
+const seeNoisyMargin = -16
 
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
