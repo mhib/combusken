@@ -8,11 +8,9 @@ func NearestPowerOfTwo(input int) uint64 {
 	return res
 }
 
-func Abs(input int) int {
-	if input < 0 {
-		return -input
-	}
-	return input
+func Abs(input int64) int64 {
+	y := input >> 63
+	return (input ^ y) - y
 }
 
 func Max(l, r int) int {

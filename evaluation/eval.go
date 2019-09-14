@@ -404,7 +404,7 @@ func init() {
 
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
-			distanceBetween[y][x] = int16(Max(Abs(Rank(y)-Rank(x)), Abs(File(y)-File(x))))
+			distanceBetween[y][x] = int16(Max(int(Abs(int64(Rank(y)-Rank(x)))), int(Abs(int64(File(y)-File(x))))))
 		}
 	}
 
@@ -551,14 +551,14 @@ func evaluateKingPawns(pos *Position, pkTable PawnKingTable) (int, int) {
 		if ours == 0 {
 			ourDist = 7
 		} else {
-			ourDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(ours)))
+			ourDist = int(Abs(int64((Rank(whiteKingLocation) - Rank(BitScan(ours))))))
 		}
 		theirs := pos.Pawns & FILES[file] & pos.Black & whiteForwardRanksMask[Rank(whiteKingLocation)]
 		var theirDist int
 		if theirs == 0 {
 			theirDist = 7
 		} else {
-			theirDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(theirs)))
+			theirDist = int(Abs(int64((Rank(whiteKingLocation) - Rank(BitScan(theirs))))))
 		}
 		sameFile := BoolToInt(file == File(whiteKingLocation))
 		midResult += int(kingShelter[sameFile][file][ourDist].Middle)
@@ -576,14 +576,14 @@ func evaluateKingPawns(pos *Position, pkTable PawnKingTable) (int, int) {
 		if ours == 0 {
 			ourDist = 7
 		} else {
-			ourDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(ours)))
+			ourDist = int(Abs(int64((Rank(blackKingLocation) - Rank(MostSignificantBit(ours))))))
 		}
 		theirs := pos.Pawns & FILES[file] & pos.White & blackForwardRanksMasks[Rank(blackKingLocation)]
 		var theirDist int
 		if theirs == 0 {
 			theirDist = 7
 		} else {
-			theirDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(theirs)))
+			theirDist = int(Abs(int64((Rank(blackKingLocation) - Rank(MostSignificantBit(theirs))))))
 		}
 		sameFile := BoolToInt(file == File(blackKingLocation))
 		midResult -= int(kingShelter[sameFile][file][ourDist].Middle)

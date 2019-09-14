@@ -19,43 +19,41 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			if from&RANK_7_BB != 0 {
 				to = from << 8
 				if allOccupation&to == 0 {
-					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
+					buffer[counter].Move = NewMove(fromId, fromId+8, PromotionMove, PromoteToQueen)
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 1))
+					buffer[counter].Move = NewMove(fromId, fromId+8, PromotionMove, PromoteToRook)
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 0))
+					buffer[counter].Move = NewMove(fromId, fromId+8, PromotionMove, PromoteToBishop)
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 0))
+					buffer[counter].Move = NewMove(fromId, fromId+8, PromotionMove, PromoteToKnight)
 					counter++
 				}
 				for toBB = WhitePawnAttacks[fromId] & pos.Black; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToQueen)
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToRook)
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToBishop)
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToKnight)
 					counter++
 				}
 			} else {
 				to = from << 8
 				if allOccupation&to == 0 {
-					buffer[counter].Move = NewMove(fromId, fromId+8, Pawn, None, 0)
+					buffer[counter].Move = NewMove(fromId, fromId+8, NormalMove, QuietMove)
 					counter++
 					if from&RANK_2_BB != 0 && allOccupation&(from<<16) == 0 {
-						buffer[counter].Move = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
+						buffer[counter].Move = NewMove(fromId, fromId+16, NormalMove, QuietMove)
 						counter++
 					}
 				}
 				for toBB = WhitePawnAttacks[fromId] & pos.Black; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[toId]
-					captureType := pos.TypeOnSquare(SquareMask[toId])
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
+					buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 					counter++
 				}
 			}
@@ -64,7 +62,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
 			for fromBB = epBB & pos.Pawns & pos.White; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
-				buffer[counter].Move = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
+				buffer[counter].Move = NewMove(fromId, pos.EpSquare+8, EnpassMove, CaptureMove)
 				counter++
 			}
 		}
@@ -77,43 +75,41 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			if from&RANK_2_BB != 0 {
 				to = from >> 8
 				if allOccupation&to == 0 {
-					buffer[counter].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
+					buffer[counter].Move = NewMove(fromId, fromId-8, PromotionMove, PromoteToQueen)
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 0))
+					buffer[counter].Move = NewMove(fromId, fromId-8, PromotionMove, PromoteToRook)
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 1))
+					buffer[counter].Move = NewMove(fromId, fromId-8, PromotionMove, PromoteToBishop)
 					counter++
-					buffer[counter].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 0))
+					buffer[counter].Move = NewMove(fromId, fromId-8, PromotionMove, PromoteToKnight)
 					counter++
 				}
 				for toBB = BlackPawnAttacks[fromId] & pos.White; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToQueen)
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToRook)
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToBishop)
 					counter++
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 0))
+					buffer[counter].Move = NewMove(fromId, toId, PromotionMove, PromoteToKnight)
 					counter++
 				}
 			} else {
 				to = SquareMask[fromId-8]
 				if allOccupation&to == 0 {
-					buffer[counter].Move = NewMove(fromId, fromId-8, Pawn, None, 0)
+					buffer[counter].Move = NewMove(fromId, fromId-8, NormalMove, QuietMove)
 					counter++
 					if from&RANK_7_BB != 0 && allOccupation&(from>>16) == 0 {
-						buffer[counter].Move = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
+						buffer[counter].Move = NewMove(fromId, fromId-16, NormalMove, QuietMove)
 						counter++
 					}
 				}
 				for toBB = BlackPawnAttacks[fromId] & pos.White; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
-					buffer[counter].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
+					buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 					counter++
 				}
 			}
@@ -122,7 +118,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
 			for fromBB = epBB & pos.Pawns & pos.Black; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
-				buffer[counter].Move = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
+				buffer[counter].Move = NewMove(fromId, pos.EpSquare-8, EnpassMove, CaptureMove)
 				counter++
 			}
 		}
@@ -135,10 +131,10 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			if to&theirOccupation != 0 {
-				buffer[counter].Move = NewMove(fromId, toId, Knight, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 				counter++
 			} else {
-				buffer[counter].Move = NewMove(fromId, toId, Knight, None, NewType(0, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, QuietMove)
 				counter++
 			}
 		}
@@ -152,10 +148,10 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 		toId = BitScan(toBB)
 		to = SquareMask[uint(toId)]
 		if to&theirOccupation != 0 {
-			buffer[counter].Move = NewMove(fromId, toId, King, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+			buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 			counter++
 		} else {
-			buffer[counter].Move = NewMove(fromId, toId, King, None, NewType(0, 0, 0, 0))
+			buffer[counter].Move = NewMove(fromId, toId, NormalMove, QuietMove)
 			counter++
 		}
 	}
@@ -168,10 +164,10 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			if to&theirOccupation != 0 {
-				buffer[counter].Move = NewMove(fromId, toId, Rook, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 				counter++
 			} else {
-				buffer[counter].Move = NewMove(fromId, toId, Rook, None, NewType(0, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, QuietMove)
 				counter++
 			}
 		}
@@ -185,10 +181,10 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			if to&theirOccupation != 0 {
-				buffer[counter].Move = NewMove(fromId, toId, Bishop, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 				counter++
 			} else {
-				buffer[counter].Move = NewMove(fromId, toId, Bishop, None, NewType(0, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, QuietMove)
 				counter++
 			}
 		}
@@ -202,10 +198,10 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			toId = BitScan(toBB)
 			to = SquareMask[uint(toId)]
 			if to&theirOccupation != 0 {
-				buffer[counter].Move = NewMove(fromId, toId, Queen, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 				counter++
 			} else {
-				buffer[counter].Move = NewMove(fromId, toId, Queen, None, NewType(0, 0, 0, 0))
+				buffer[counter].Move = NewMove(fromId, toId, NormalMove, QuietMove)
 				counter++
 			}
 		}
@@ -239,8 +235,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 }
 
 func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
-	var fromBB, toBB, to, ourOccupation, theirOccupation uint64
-	var fromId, toId, what int
+	var fromBB, toBB, ourOccupation, theirOccupation uint64
+	var fromId, toId int
 
 	allOccupation := pos.White | pos.Black
 
@@ -260,7 +256,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
 			for fromBB = epBB & pos.Pawns & pos.White; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
-				buffer[counter] = EvaledMove{NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1)), 0}
+				buffer[counter].Move = NewMove(fromId, pos.EpSquare+8, EnpassMove, CaptureMove)
 				counter++
 			}
 		}
@@ -268,28 +264,24 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			if Rank(fromId) == RANK_7 {
 				if SquareMask[fromId+8]&allOccupation == 0 {
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId+8, PromotionMove, PromoteToQueen)
 					counter++
 				}
 				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 1, 1, 1)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId+7, PromotionMove, PromoteToQueen)
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 1, 1, 1)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId+9, PromotionMove, PromoteToQueen)
 					counter++
 				}
 			} else {
 				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 0, 0, 0)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId+7, NormalMove, CaptureMove)
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 0, 0, 0)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId+9, NormalMove, CaptureMove)
 					counter++
 				}
 			}
@@ -299,7 +291,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
 			for fromBB = epBB & pos.Pawns & pos.Black; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
-				buffer[counter] = EvaledMove{NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1)), 0}
+				buffer[counter].Move = NewMove(fromId, pos.EpSquare-8, EnpassMove, CaptureMove)
 				counter++
 			}
 		}
@@ -307,28 +299,24 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			if Rank(fromId) == RANK_2 {
 				if SquareMask[fromId-8]&allOccupation == 0 {
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId-8, PromotionMove, PromoteToQueen)
 					counter++
 				}
 				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 1, 1, 1)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId-9, PromotionMove, PromoteToQueen)
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 1, 1, 1)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId-7, PromotionMove, PromoteToQueen)
 					counter++
 				}
 			} else {
 				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-9])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 0, 0, 0)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId-9, NormalMove, CaptureMove)
 					counter++
 				}
 				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-7])
-					buffer[counter] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 0, 0, 0)), 0}
+					buffer[counter].Move = NewMove(fromId, fromId-7, NormalMove, CaptureMove)
 					counter++
 				}
 			}
@@ -341,9 +329,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = KnightAttacks[fromId] & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Knight, what, NewType(1, 0, 0, 0)), 0}
+			buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 			counter++
 		}
 	}
@@ -354,9 +340,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = BishopAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Bishop, what, NewType(1, 0, 0, 0)), 0}
+			buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 			counter++
 		}
 	}
@@ -367,9 +351,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = RookAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Rook, what, NewType(1, 0, 0, 0)), 0}
+			buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 			counter++
 		}
 	}
@@ -380,9 +362,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = QueenAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
-			buffer[counter] = EvaledMove{NewMove(fromId, toId, Queen, what, NewType(1, 0, 0, 0)), 0}
+			buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 			counter++
 		}
 	}
@@ -393,9 +373,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 	fromId = BitScan(fromBB)
 	for toBB = KingAttacks[fromId] & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 		toId = BitScan(toBB)
-		to = SquareMask[uint(toId)]
-		what = pos.TypeOnSquare(to)
-		buffer[counter] = EvaledMove{NewMove(fromId, toId, King, what, NewType(1, 0, 0, 0)), 0}
+		buffer[counter].Move = NewMove(fromId, toId, NormalMove, CaptureMove)
 		counter++
 	}
 	// end of Kings

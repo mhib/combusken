@@ -12,11 +12,11 @@ func SeeSign(pos *Position, move Move) bool {
 // based on laser implementation
 func SeeAbove(pos *Position, move Move, cutoff int) bool {
 	// Special case for ep and castling
-	if move.Type() == EPCapture || move.IsCastling() {
+	if move.Type() == EnpassMove || move.IsCastling() {
 		return cutoff <= 0
 	}
-	lastPiece := move.MovedPiece()
-	capturedValue := SEEValues[move.CapturedPiece()]
+	lastPiece := pos.TypeOnSquare(SquareMask[move.From()])
+	capturedValue := SEEValues[pos.TypeOnSquare(SquareMask[move.To()])]
 	if move.IsPromotion() {
 		lastPiece = move.PromotedPiece()
 		capturedValue += SEEValues[lastPiece] - SEEValues[Pawn]

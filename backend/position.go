@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	"github.com/mhib/combusken/utils"
 	"strconv"
 	"strings"
 )
@@ -150,6 +151,7 @@ func (p *Position) TogglePiece(piece int, side bool, square int) {
 	case Rook:
 		p.Rooks ^= b
 		p.Key ^= zobrist[3][intSide][square]
+		p.Flags |= int(rookCastleFlags[square])
 	case Queen:
 		p.Queens ^= b
 		p.Key ^= zobrist[4][intSide][square]
@@ -193,7 +195,9 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
 	res.PawnKey = pos.PawnKey ^ zobristColor
 
-	if move.MovedPiece() == Pawn || move.IsCapture() {
+	movedPiece := pos.TypeOnSquare(SquareMask[move.From()])
+
+	if movedPiece == Pawn || move.IsCaptureOrPromotion() {
 		res.FiftyMove = 0
 	} else {
 		res.FiftyMove = pos.FiftyMove + 1
@@ -201,68 +205,38 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 
 	res.EpSquare = 0
 
-	if !move.IsPromotion() {
-		res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
-		switch move.Type() {
-		case DoublePawnPush:
+	switch move.Type() {
+	case NormalMove:
+		res.MovePiece(movedPiece, pos.WhiteMove, move.From(), move.To())
+		if move.Special() == CaptureMove {
+			capturedPiece := pos.TypeOnSquare(SquareMask[move.To()])
+			res.TogglePiece(capturedPiece, !pos.WhiteMove, move.To())
+		} else if movedPiece == Pawn && move.Special() == QuietMove && utils.Abs(int64(move.From()-move.To())) == 16 {
 			res.EpSquare = move.To()
 			res.Key ^= zobristEpSquare[move.To()]
-		case Capture:
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= int(rookCastleFlags[move.To()])
-			}
-		case KingCastle:
-			if pos.WhiteMove {
-				res.MovePiece(Rook, true, H1, F1)
-			} else {
-				res.MovePiece(Rook, false, H8, F8)
-			}
-		case QueenCastle:
-			if pos.WhiteMove {
-				res.MovePiece(Rook, true, A1, D1)
-			} else {
-				res.MovePiece(Rook, false, A8, D8)
-			}
-		case EPCapture:
-			res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
 		}
-	} else {
+	case CastleMove:
+		res.MovePiece(King, pos.WhiteMove, move.From(), move.To())
+		switch move {
+		case WhiteKingSideCastle:
+			res.MovePiece(Rook, true, H1, F1)
+		case WhiteQueenSideCastle:
+			res.MovePiece(Rook, true, A1, D1)
+		case BlackKingSideCastle:
+			res.MovePiece(Rook, false, H8, F8)
+		case BlackQueenSideCastle:
+			res.MovePiece(Rook, false, A8, D8)
+		}
+	case EnpassMove:
+		res.MovePiece(Pawn, pos.WhiteMove, move.From(), move.To())
+		res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
+	case PromotionMove:
 		res.TogglePiece(Pawn, pos.WhiteMove, move.From())
-		switch move.Type() {
-		case QueenPromotion:
-			res.TogglePiece(Queen, pos.WhiteMove, move.To())
-		case QueenCapturePromotion:
-			res.TogglePiece(Queen, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= int(rookCastleFlags[move.To()])
-			}
-		case RookPromotion:
-			res.TogglePiece(Rook, pos.WhiteMove, move.To())
-		case RookCapturePromotion:
-			res.TogglePiece(Rook, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= int(rookCastleFlags[move.To()])
-			}
-		case KnightPromotion:
-			res.TogglePiece(Knight, pos.WhiteMove, move.To())
-		case BishopPromotion:
-			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
-		case KnightCapturePromotion:
-			res.TogglePiece(Knight, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= int(rookCastleFlags[move.To()])
-			}
-		case BishopCapturePromotion:
-			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= int(rookCastleFlags[move.To()])
-			}
+		capturedPiece := pos.TypeOnSquare(SquareMask[move.To()])
+		if capturedPiece != None {
+			res.TogglePiece(capturedPiece, !pos.WhiteMove, move.To())
 		}
+		res.TogglePiece(move.PromotedPiece(), pos.WhiteMove, move.To())
 	}
 
 	if res.IsInCheck() {
@@ -396,7 +370,9 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
 	res.PawnKey = pos.PawnKey ^ zobristColor
 
-	if move.MovedPiece() == Pawn || move.IsCapture() {
+	movedPiece := pos.TypeOnSquare(SquareMask[move.From()])
+
+	if movedPiece == Pawn || move.IsCaptureOrPromotion() {
 		res.FiftyMove = 0
 	} else {
 		res.FiftyMove = pos.FiftyMove + 1
@@ -404,65 +380,39 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 
 	res.EpSquare = 0
 
-	if !move.IsPromotion() {
-		res.MovePiece(move.MovedPiece(), pos.WhiteMove, move.From(), move.To())
-		switch move.Type() {
-		case DoublePawnPush:
+	switch move.Type() {
+	case NormalMove:
+		res.MovePiece(movedPiece, pos.WhiteMove, move.From(), move.To())
+		if move.Special() == CaptureMove {
+			capturedPiece := pos.TypeOnSquare(SquareMask[move.To()])
+			res.TogglePiece(capturedPiece, !pos.WhiteMove, move.To())
+		} else if movedPiece == Pawn && move.Special() == QuietMove && utils.Abs(int64(move.From()-move.To())) == 16 {
 			res.EpSquare = move.To()
 			res.Key ^= zobristEpSquare[move.To()]
-		case Capture:
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-			if move.CapturedPiece() == Rook {
-				switch move.To() {
-				case A1:
-					res.Flags |= WhiteQueenSideCastleFlag
-				case H1:
-					res.Flags |= WhiteKingSideCastleFlag
-				case H8:
-					res.Flags |= BlackKingSideCastleFlag
-				case A8:
-					res.Flags |= BlackQueenSideCastleFlag
-				}
-			}
-		case KingCastle:
-			if pos.WhiteMove {
-				res.MovePiece(Rook, true, H1, F1)
-			} else {
-				res.MovePiece(Rook, false, H8, F8)
-			}
-		case QueenCastle:
-			if pos.WhiteMove {
-				res.MovePiece(Rook, true, A1, D1)
-			} else {
-				res.MovePiece(Rook, false, A8, D8)
-			}
-		case EPCapture:
-			res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
 		}
-	} else {
+	case CastleMove:
+		switch move {
+		case WhiteKingSideCastle:
+			res.MovePiece(Rook, true, H1, F1)
+		case WhiteQueenSideCastle:
+			res.MovePiece(Rook, true, A1, D1)
+		case BlackKingSideCastle:
+			res.MovePiece(Rook, false, H8, F8)
+		case BlackQueenSideCastle:
+			res.MovePiece(Rook, false, A8, D8)
+		}
+	case EnpassMove:
+		res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
+	case PromotionMove:
 		res.TogglePiece(Pawn, pos.WhiteMove, move.From())
-		switch move.Type() {
-		case QueenPromotion:
-			res.TogglePiece(Queen, pos.WhiteMove, move.To())
-		case QueenCapturePromotion:
-			res.TogglePiece(Queen, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-		case RookPromotion:
-			res.TogglePiece(Rook, pos.WhiteMove, move.To())
-		case RookCapturePromotion:
-			res.TogglePiece(Rook, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-		case KnightPromotion:
-			res.TogglePiece(Knight, pos.WhiteMove, move.To())
-		case BishopPromotion:
-			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
-		case KnightCapturePromotion:
-			res.TogglePiece(Knight, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
-		case BishopCapturePromotion:
-			res.TogglePiece(Bishop, pos.WhiteMove, move.To())
-			res.TogglePiece(move.CapturedPiece(), !pos.WhiteMove, move.To())
+		capturedPiece := pos.TypeOnSquare(SquareMask[move.To()])
+		if capturedPiece != None {
+			res.TogglePiece(capturedPiece, !pos.WhiteMove, move.To())
+			if capturedPiece == Rook {
+				res.Flags |= int(rookCastleFlags[move.To()])
+			}
 		}
+		res.TogglePiece(move.PromotedPiece(), pos.WhiteMove, move.To())
 	}
 
 	res.Key ^= zobristFlags[res.Flags]

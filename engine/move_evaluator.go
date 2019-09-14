@@ -78,9 +78,9 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 			moves[i].Value = 100000
 		} else if moves[i].Move.IsCaptureOrPromotion() {
 			if SeeSign(pos, moves[i].Move) {
-				moves[i].Value = mvvlva(moves[i].Move) + 50000
+				moves[i].Value = mvvlva(pos, moves[i].Move) + 50000
 			} else {
-				moves[i].Value = mvvlva(moves[i].Move) - 100000
+				moves[i].Value = mvvlva(pos, moves[i].Move) - 100000
 			}
 		} else {
 			if moves[i].Move == mv.KillerMoves[height][0] {
@@ -98,12 +98,13 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 
 var mvvlvaScores = [...]int{0, 10, 40, 45, 68, 145, 256}
 
-func mvvlva(move Move) int {
-	captureScore := mvvlvaScores[move.CapturedPiece()]
+func mvvlva(pos *Position, move Move) int {
+	movedPiece := pos.TypeOnSquare(SquareMask[move.From()])
+	captureScore := mvvlvaScores[pos.TypeOnSquare(SquareMask[move.To()])]
 	if move.IsPromotion() {
 		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
 	}
-	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
+	return captureScore*8 - mvvlvaScores[movedPiece]
 }
 
 // In Quiescent search it is expected that SEE will be check anyway
@@ -114,7 +115,7 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, best
 			if moves[i].Move == bestMove {
 				moves[i].Value = 100000
 			} else if moves[i].Move.IsCaptureOrPromotion() {
-				moves[i].Value = mvvlva(moves[i].Move) + 50000
+				moves[i].Value = mvvlva(pos, moves[i].Move) + 50000
 			} else {
 				moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
 			}
@@ -124,7 +125,7 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, best
 			if moves[i].Move == bestMove {
 				moves[i].Value = 100000
 			} else {
-				moves[i].Value = mvvlva(moves[i].Move)
+				moves[i].Value = mvvlva(pos, moves[i].Move)
 			}
 		}
 	}
