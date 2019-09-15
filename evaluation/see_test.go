@@ -71,15 +71,15 @@ var testFENs = []string{
 func see(pos *Position, mv Move) int {
 	var from = mv.From()
 	var to = mv.To()
-	var piece = mv.MovedPiece()
+	var piece = pos.TypeOnSquare(SquareMask[mv.From()])
 	var side = pos.WhiteMove
 	var score = 0
 	// special case for ep and castling
-	if mv.Type() == EPCapture || mv.IsCastling() {
+	if mv.Type() == EnpassMove || mv.IsCastling() {
 		return 0
 	}
-	if mv.CapturedPiece() != None {
-		score += SEEValues[mv.CapturedPiece()]
+	if pos.TypeOnSquare(SquareMask[mv.To()]) != None {
+		score += SEEValues[pos.TypeOnSquare(SquareMask[mv.To()])]
 	}
 	if mv.IsPromotion() {
 		piece = mv.PromotedPiece()
