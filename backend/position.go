@@ -197,11 +197,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 
 	movedPiece := pos.TypeOnSquare(SquareMask[move.From()])
 
-	if movedPiece == Pawn || move.IsCaptureOrPromotion() {
-		res.FiftyMove = 0
-	} else {
-		res.FiftyMove = pos.FiftyMove + 1
-	}
+	res.FiftyMove = pos.FiftyMove + 1
 
 	res.EpSquare = 0
 
@@ -209,11 +205,15 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	case NormalMove:
 		res.MovePiece(movedPiece, pos.WhiteMove, move.From(), move.To())
 		if move.Special() == CaptureMove {
+			res.FiftyMove = 0
 			capturedPiece := pos.TypeOnSquare(SquareMask[move.To()])
 			res.TogglePiece(capturedPiece, !pos.WhiteMove, move.To())
-		} else if movedPiece == Pawn && move.Special() == QuietMove && utils.Abs(int64(move.From()-move.To())) == 16 {
-			res.EpSquare = move.To()
-			res.Key ^= zobristEpSquare[move.To()]
+		} else if movedPiece == Pawn {
+			res.FiftyMove = 0
+			if move.Special() == QuietMove && utils.Abs(int64(move.From()-move.To())) == 16 {
+				res.EpSquare = move.To()
+				res.Key ^= zobristEpSquare[move.To()]
+			}
 		}
 	case CastleMove:
 		res.MovePiece(King, pos.WhiteMove, move.From(), move.To())
@@ -228,9 +228,11 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 			res.MovePiece(Rook, false, A8, D8)
 		}
 	case EnpassMove:
+		res.FiftyMove = 0
 		res.MovePiece(Pawn, pos.WhiteMove, move.From(), move.To())
 		res.TogglePiece(Pawn, !pos.WhiteMove, pos.EpSquare)
 	case PromotionMove:
+		res.FiftyMove = 0
 		res.TogglePiece(Pawn, pos.WhiteMove, move.From())
 		capturedPiece := pos.TypeOnSquare(SquareMask[move.To()])
 		if capturedPiece != None {

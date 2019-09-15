@@ -48,13 +48,13 @@ func moveToSAN(pos *Position, ml []EvaledMove, mv Move) string {
 		return "O-O-O"
 	}
 	var strPiece, strCapture, strFrom, strTo, strPromotion string
-	if mv.MovedPiece() != Pawn {
-		strPiece = string(PieceNames[mv.MovedPiece()-Knight])
+	if pos.TypeOnSquare(SquareMask[mv.From()]) != Pawn {
+		strPiece = string(PieceNames[pos.TypeOnSquare(SquareMask[mv.From()])-Knight])
 	}
 	strTo = SquareString[mv.To()]
-	if mv.CapturedPiece() != None {
+	if pos.TypeOnSquare(SquareMask[mv.To()]) != None {
 		strCapture = "x"
-		if mv.MovedPiece() == Pawn {
+		if pos.TypeOnSquare(SquareMask[mv.From()]) == Pawn {
 			strFrom = SquareString[mv.From()][:1]
 		}
 	}
@@ -72,7 +72,8 @@ func moveToSAN(pos *Position, ml []EvaledMove, mv Move) string {
 		if mv1.To() != mv.To() {
 			continue
 		}
-		if mv1.MovedPiece() != mv.MovedPiece() {
+
+		if pos.TypeOnSquare(SquareMask[mv.From()]) != pos.TypeOnSquare(SquareMask[mv1.From()]) {
 			continue
 		}
 		ambiguity = true
