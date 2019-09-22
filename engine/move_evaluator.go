@@ -99,8 +99,8 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 var mvvlvaScores = [...]int{0, 10, 40, 45, 68, 145, 256}
 
 func mvvlva(pos *Position, move Move) int {
-	movedPiece := pos.TypeOnSquare(SquareMask[move.From()])
-	captureScore := mvvlvaScores[pos.TypeOnSquare(SquareMask[move.To()])]
+	movedPiece := pos.TypeOnSquare(move.From())
+	captureScore := mvvlvaScores[pos.TypeOnSquare(move.To())]
 	if move.IsPromotion() {
 		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
 	}

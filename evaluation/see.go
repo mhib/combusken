@@ -15,8 +15,8 @@ func SeeAbove(pos *Position, move Move, cutoff int) bool {
 	if move.Type() == EnpassMove || move.IsCastling() {
 		return cutoff <= 0
 	}
-	lastPiece := pos.TypeOnSquare(SquareMask[move.From()])
-	capturedValue := SEEValues[pos.TypeOnSquare(SquareMask[move.To()])]
+	lastPiece := pos.TypeOnSquare(move.From())
+	capturedValue := SEEValues[pos.TypeOnSquare(move.To())]
 	if move.IsPromotion() {
 		lastPiece = move.PromotedPiece()
 		capturedValue += SEEValues[lastPiece] - SEEValues[Pawn]

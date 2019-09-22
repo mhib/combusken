@@ -64,23 +64,32 @@ func ParseFen(input string) Position {
 }
 
 func insertPiece(pos *Position, piece rune, bit uint64) {
+	var intSide int
 	if unicode.IsUpper(piece) {
+		intSide = 1
 		pos.White |= bit
 	} else {
+		intSide = 0
 		pos.Black |= bit
 	}
 	switch byte(unicode.ToLower(piece)) {
 	case 'p':
+		pos.Pieces[BitScan(bit)] = NewPiece(Pawn, intSide)
 		pos.Pawns |= bit
 	case 'r':
+		pos.Pieces[BitScan(bit)] = NewPiece(Rook, intSide)
 		pos.Rooks |= bit
 	case 'n':
+		pos.Pieces[BitScan(bit)] = NewPiece(Knight, intSide)
 		pos.Knights |= bit
 	case 'b':
+		pos.Pieces[BitScan(bit)] = NewPiece(Bishop, intSide)
 		pos.Bishops |= bit
 	case 'q':
+		pos.Pieces[BitScan(bit)] = NewPiece(Queen, intSide)
 		pos.Queens |= bit
 	case 'k':
+		pos.Pieces[BitScan(bit)] = NewPiece(King, intSide)
 		pos.Kings |= bit
 	}
 }
