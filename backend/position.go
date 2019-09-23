@@ -229,15 +229,14 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 			res.FiftyMove = 0
 			capturedPiece := pos.TypeOnSquare(move.To())
 			res.RemovePiece(capturedPiece, !pos.WhiteMove, move.To())
-			res.MovePiece(movedPiece, pos.WhiteMove, move.From(), move.To())
 		} else if movedPiece == Pawn {
 			res.FiftyMove = 0
 			if move.Special() == QuietMove && utils.Abs(int64(move.From()-move.To())) == 16 {
 				res.EpSquare = move.To()
 				res.Key ^= zobristEpSquare[move.To()]
 			}
-			res.MovePiece(movedPiece, pos.WhiteMove, move.From(), move.To())
 		}
+		res.MovePiece(movedPiece, pos.WhiteMove, move.From(), move.To())
 	case CastleMove:
 		res.MovePiece(King, pos.WhiteMove, move.From(), move.To())
 		switch move {
