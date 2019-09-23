@@ -27,13 +27,13 @@ const (
 type Position struct {
 	Pieces                                                      [64]Piece
 	Pawns, Knights, Bishops, Rooks, Queens, Kings, White, Black uint64
-	Flags                                                       int
-	EpSquare                                                    int
-	WhiteMove                                                   bool
-	FiftyMove                                                   int32
-	LastMove                                                    Move
 	Key                                                         uint64
 	PawnKey                                                     uint64
+	EpSquare                                                    int
+	FiftyMove                                                   int
+	LastMove                                                    Move
+	WhiteMove                                                   bool
+	Flags                                                       uint8
 }
 
 func (pos *Position) Inspect() string {
@@ -74,7 +74,7 @@ func (pos *Position) TypeOnSquare(square int) int {
 	return pos.Pieces[square].Type()
 }
 
-var kingCastlingFlags = [2]int{BlackKingSideCastleFlag | BlackQueenSideCastleFlag, WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag}
+var kingCastlingFlags = [2]uint8{BlackKingSideCastleFlag | BlackQueenSideCastleFlag, WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag}
 
 func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 	var b = SquareMask[from] ^ SquareMask[to]
@@ -101,7 +101,7 @@ func (p *Position) MovePiece(piece int, side bool, from int, to int) {
 	case Rook:
 		p.Rooks ^= b
 		p.Key ^= zobrist[3][intSide][from] ^ zobrist[3][intSide][to]
-		p.Flags |= int(rookCastleFlags[from])
+		p.Flags |= rookCastleFlags[from]
 	case Queen:
 		p.Queens ^= b
 		p.Key ^= zobrist[4][intSide][from] ^ zobrist[4][intSide][to]
@@ -137,7 +137,7 @@ func (p *Position) RemovePiece(piece int, side bool, square int) {
 	case Rook:
 		p.Rooks ^= b
 		p.Key ^= zobrist[3][intSide][square]
-		p.Flags |= int(rookCastleFlags[square])
+		p.Flags |= rookCastleFlags[square]
 	case Queen:
 		p.Queens ^= b
 		p.Key ^= zobrist[4][intSide][square]
@@ -172,7 +172,7 @@ func (p *Position) SetPiece(piece int, side bool, square int) {
 	case Rook:
 		p.Rooks ^= b
 		p.Key ^= zobrist[3][intSide][square]
-		p.Flags |= int(rookCastleFlags[square])
+		p.Flags |= rookCastleFlags[square]
 	case Queen:
 		p.Queens ^= b
 		p.Key ^= zobrist[4][intSide][square]

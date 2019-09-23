@@ -55,7 +55,7 @@ func ParseFen(input string) Position {
 
 	if len(slices) >= 5 {
 		parsed, _ := strconv.Atoi(slices[4])
-		res.FiftyMove = int32(parsed)
+		res.FiftyMove = parsed
 	}
 
 	HashPosition(&res)
