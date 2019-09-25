@@ -431,7 +431,7 @@ func init() {
 
 // CounterGO's version
 func IsLateEndGame(pos *Position) bool {
-	if pos.WhiteMove {
+	if pos.SideToMove {
 		return ((pos.Rooks|pos.Queens)&pos.White) == 0 && !MoreThanOne((pos.Knights|pos.Bishops)&pos.White)
 
 	} else {
@@ -932,7 +932,7 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 	}
 
 	// tempo bonus
-	if pos.WhiteMove {
+	if pos.SideToMove {
 		midResult += int(tempo.Middle)
 		endResult += int(tempo.End)
 	} else {
@@ -1031,7 +1031,7 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
 	result := (midResult*(256-phase) + (endResult * phase)) / 256
 
-	if pos.WhiteMove {
+	if pos.SideToMove {
 		return result
 	}
 	return -result

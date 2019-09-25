@@ -2,14 +2,14 @@ package backend
 
 type Piece uint8
 
-const NoPiece = Piece(0)
+const NoPiece = Piece(None * 4)
 
-func (p Piece) Type() int {
-	return int(p / 4)
+func (s Piece) Type() int {
+	return int(s / 4)
 }
 
-func (p Piece) Colour() int {
-	return int(p & 1)
+func (s Piece) Colour() int {
+	return int(s & 1)
 }
 
 func NewPiece(figure, colour int) Piece {

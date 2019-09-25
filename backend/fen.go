@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"github.com/mhib/combusken/utils"
 	"strconv"
 	"strings"
 	"unicode"
@@ -10,6 +11,11 @@ const InitialPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
 
 func ParseFen(input string) Position {
 	var res Position
+
+	for i := 0; i < 64; i++ {
+		res.Squares[i] = NoPiece
+	}
+
 	slices := strings.Split(input, " ")
 	res.Flags |= WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag |
 		BlackKingSideCastleFlag | BlackQueenSideCastleFlag
@@ -29,7 +35,7 @@ func ParseFen(input string) Position {
 		}
 	}
 
-	res.WhiteMove = slices[1] == "w"
+	res.SideToMove = utils.BoolToInt(slices[1] == "w")
 
 	for _, char := range slices[2] {
 		switch char {
@@ -46,7 +52,7 @@ func ParseFen(input string) Position {
 
 	if slices[3] != "-" {
 		square := (int(slices[3][0]) - int('a')) + (int(slices[3][1])-int('1'))*8
-		if res.WhiteMove {
+		if res.SideToMove == White {
 			res.EpSquare = square - 8
 		} else {
 			res.EpSquare = square + 8
@@ -67,29 +73,29 @@ func insertPiece(pos *Position, piece rune, bit uint64) {
 	var intSide int
 	if unicode.IsUpper(piece) {
 		intSide = 1
-		pos.White |= bit
+		pos.Colours[1] |= bit
 	} else {
 		intSide = 0
-		pos.Black |= bit
+		pos.Colours[0] |= bit
 	}
 	switch byte(unicode.ToLower(piece)) {
 	case 'p':
-		pos.Pieces[BitScan(bit)] = NewPiece(Pawn, intSide)
-		pos.Pawns |= bit
+		pos.Squares[BitScan(bit)] = NewPiece(Pawn, intSide)
+		pos.Pieces[Pawn] |= bit
 	case 'r':
-		pos.Pieces[BitScan(bit)] = NewPiece(Rook, intSide)
-		pos.Rooks |= bit
+		pos.Squares[BitScan(bit)] = NewPiece(Rook, intSide)
+		pos.Pieces[Rook] |= bit
 	case 'n':
-		pos.Pieces[BitScan(bit)] = NewPiece(Knight, intSide)
-		pos.Knights |= bit
+		pos.Squares[BitScan(bit)] = NewPiece(Knight, intSide)
+		pos.Pieces[Knight] |= bit
 	case 'b':
-		pos.Pieces[BitScan(bit)] = NewPiece(Bishop, intSide)
-		pos.Bishops |= bit
+		pos.Squares[BitScan(bit)] = NewPiece(Bishop, intSide)
+		pos.Pieces[Bishop] |= bit
 	case 'q':
-		pos.Pieces[BitScan(bit)] = NewPiece(Queen, intSide)
-		pos.Queens |= bit
+		pos.Squares[BitScan(bit)] = NewPiece(Queen, intSide)
+		pos.Pieces[Queen] |= bit
 	case 'k':
-		pos.Pieces[BitScan(bit)] = NewPiece(King, intSide)
-		pos.Kings |= bit
+		pos.Squares[BitScan(bit)] = NewPiece(King, intSide)
+		pos.Pieces[King] |= bit
 	}
 }

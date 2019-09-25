@@ -72,7 +72,7 @@ func see(pos *Position, mv Move) int {
 	var from = mv.From()
 	var to = mv.To()
 	var piece = pos.TypeOnSquare(SquareMask[mv.From()])
-	var side = pos.WhiteMove
+	var side = pos.SideToMove
 	var score = 0
 	// special case for ep and castling
 	if mv.Type() == EnpassMove || mv.IsCastling() {

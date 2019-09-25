@@ -35,7 +35,7 @@ func SeeAbove(pos *Position, move Move, cutoff int) bool {
 
 	to := move.To()
 	occ := (pos.White ^ pos.Black ^ SquareMask[move.From()]) | SquareMask[to]
-	side := !pos.WhiteMove
+	side := !pos.SideToMove
 	for {
 		nextVictim, from := getLeastValuableAttacker(pos, to, side, occ)
 		if nextVictim == None {
@@ -56,7 +56,7 @@ func SeeAbove(pos *Position, move Move, cutoff int) bool {
 			break
 		}
 	}
-	return side != pos.WhiteMove
+	return side != pos.SideToMove
 }
 
 func getLeastValuableAttacker(pos *Position, to int, side bool, occupancy uint64) (piece, from int) {

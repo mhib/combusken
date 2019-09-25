@@ -68,10 +68,10 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 	}
 }
 
-func newTournamentTimeManager(limits LimitsType, overhead int, whiteMove bool) *tournamentTimeManager {
+func newTournamentTimeManager(limits LimitsType, overhead int, SideToMove bool) *tournamentTimeManager {
 	res := &tournamentTimeManager{startedAt: time.Now()}
 	var limit, inc int
-	if whiteMove {
+	if SideToMove {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
 	} else {
 		limit, inc = limits.BlackTime, limits.BlackIncrement
@@ -91,9 +91,9 @@ func newTournamentTimeManager(limits LimitsType, overhead int, whiteMove bool) *
 	return res
 }
 
-func newTimeManager(limits LimitsType, overhead int, whiteMove bool) timeManager {
+func newTimeManager(limits LimitsType, overhead int, SideToMove bool) timeManager {
 	if limits.WhiteTime > 0 || limits.BlackTime > 0 {
-		return newTournamentTimeManager(limits, overhead, whiteMove)
+		return newTournamentTimeManager(limits, overhead, SideToMove)
 	} else if limits.MoveTime > 0 {
 		return &depthMoveTimeManager{duration: limits.MoveTime}
 	} else if limits.Depth > 0 {

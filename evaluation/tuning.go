@@ -162,7 +162,7 @@ func (t *tuner) computeError() float64 {
 			for y := idx; y < len(t.entries); y += numCPU {
 				entry := t.entries[y]
 				evaluation := float64(Evaluate(&entry.Position, &emptyPKTable))
-				if !entry.Position.WhiteMove {
+				if !entry.Position.SideToMove {
 					evaluation *= -1
 				}
 				diff := entry.result - sigmoid(t.k, evaluation)
