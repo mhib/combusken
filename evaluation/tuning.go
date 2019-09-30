@@ -7,10 +7,12 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 type tuneEntry struct {
@@ -113,9 +115,13 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 }
 
 type tuner struct {
-	k       float64
-	weights []EvaluationValue
-	entries []tuneEntry
+	k                       float64
+	weights                 []EvaluationValue
+	entries                 []tuneEntry
+	bestWeights             []EvaluationValue
+	bestError               float64
+	bestErrorRegularization float64
+	done                    bool
 }
 
 func Tune() {
@@ -137,7 +143,7 @@ func Tune() {
 		wg.Wait()
 		close(resultChan)
 	}()
-	t := &tuner{}
+	t := &tuner{done: false}
 	for entry := range resultChan {
 		t.entries = append(t.entries, entry)
 	}
@@ -145,13 +151,39 @@ func Tune() {
 	fmt.Println(len(t.entries))
 	t.calculateOptimalK()
 	fmt.Printf("Optimal k: %.17g\n", t.k)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		fmt.Printf("\nBest values; error: %.17g; regularization: %.17g\n", t.bestError, t.bestErrorRegularization)
+		fmt.Println(t.bestWeights)
+		t.done = true
+	}()
+
 	t.weights = loadScoresToSlice()
-	t.coordinateDescent()
-	fmt.Println("Generated weights in coordinate descent:")
-	fmt.Println(t.weights)
+	t.saveEvaluationValues()
+	for {
+		res := t.coordinateDescent()
+		if t.done {
+			return
+		}
+		// After coordinate descent current weights are the best, so no need to reload weights
+		res = res || t.gradientDescent()
+		if t.done {
+			return
+		}
+		if !res {
+			break
+		}
+		// After gradient descent current weights are probably not best weights
+		t.loadEvaluationValues()
+	}
+	fmt.Printf("\nBest values; error: %.17g; regularization: %.17g\n", t.bestError, t.bestErrorRegularization)
+	fmt.Println(t.bestWeights)
+
 }
 
-func (t *tuner) computeError() float64 {
+func (t *tuner) computeError(entriesCount int) float64 {
 	numCPU := runtime.NumCPU()
 	results := make([]float64, numCPU)
 	wg := &sync.WaitGroup{}
@@ -159,7 +191,7 @@ func (t *tuner) computeError() float64 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			for y := idx; y < len(t.entries); y += numCPU {
+			for y := idx; y < entriesCount; y += numCPU {
 				entry := t.entries[y]
 				evaluation := float64(Evaluate(&entry.Position, &emptyPKTable))
 				if !entry.Position.WhiteMove {
@@ -183,12 +215,12 @@ func (t *tuner) calculateOptimalK() {
 	end := 10.0
 	delta := 1.0
 	t.k = start
-	best := t.computeError()
+	best := t.computeError(len(t.entries))
 	for i := 0; i < 10; i++ {
 		t.k = start - delta
 		for t.k < end {
 			t.k += delta
-			err := t.computeError()
+			err := t.computeError(len(t.entries))
 			if err <= best {
 				best = err
 				start = t.k
@@ -254,7 +286,7 @@ func absScore(num int16) int {
 }
 
 func (t *tuner) regularization() float64 {
-	alpha := 0.2e-7
+	alpha := 0.2e-8
 	sum := 0
 	for _, score := range t.weights {
 		if score.regularized() {
@@ -331,10 +363,11 @@ func (t *tuner) regularization() float64 {
 //return
 //}
 
-func (t *tuner) coordinateDescent() {
-	bestError := t.computeError()
-	bestErrorWithRegularization := bestError + t.regularization()
-	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", bestError, t.regularization())
+func (t *tuner) coordinateDescent() bool {
+	anyImprovements := false
+	t.bestError = t.computeError(len(t.entries))
+	t.bestErrorRegularization = t.regularization()
+	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", t.bestError, t.bestErrorRegularization)
 	fmt.Println(t.weights)
 
 	indexes := make([]int, len(t.weights))
@@ -349,21 +382,31 @@ func (t *tuner) coordinateDescent() {
 		for _, idx := range indexes {
 			score := t.weights[idx]
 			for phase := 0; phase < score.phaseCount(); phase++ {
+				if t.done {
+					return false
+				}
 				oldValue := score.get(phase)
 				bestValue := oldValue
 				// try increasing
 				for i := int16(1); i <= 64; i *= 2 {
 					score.set(phase, oldValue+i)
-					newError := t.computeError()
-					newErrorWithRegularization := newError + t.regularization()
+					if idx < releventToPieceSquaresCount {
+						loadScoresToPieceSquares()
+					}
+					newError := t.computeError(len(t.entries))
+					newErrorRegularization := t.regularization()
 					// First compare to prevent decreasing parameter just to lower regularization(as some parameters may be irrelevant in test positions)
-					if newError < bestError && newErrorWithRegularization < bestErrorWithRegularization {
+					if newError < t.bestError && newError+newErrorRegularization < t.bestError+t.bestErrorRegularization {
 						bestValue = oldValue + i
-						bestError = newError
-						bestErrorWithRegularization = newErrorWithRegularization
+						t.bestError = newError
+						t.bestErrorRegularization = newErrorRegularization
 						improved = true
+						anyImprovements = true
 					} else {
 						score.set(phase, bestValue)
+						if idx < releventToPieceSquaresCount {
+							loadScoresToPieceSquares()
+						}
 						break
 					}
 				}
@@ -371,27 +414,172 @@ func (t *tuner) coordinateDescent() {
 				if bestValue == oldValue {
 					for i := int16(1); i <= 64; i *= 2 {
 						score.set(phase, oldValue-i)
-						newError := t.computeError()
-						newErrorWithRegularization := newError + t.regularization()
-						if newError < bestError && newErrorWithRegularization < bestErrorWithRegularization {
+						if idx < releventToPieceSquaresCount {
+							loadScoresToPieceSquares()
+						}
+						newError := t.computeError(len(t.entries))
+						newErrorRegularization := t.regularization()
+						if newError < t.bestError && newError+newErrorRegularization < t.bestError+t.bestErrorRegularization {
 							bestValue = oldValue - i
-							bestError = newError
-							bestErrorWithRegularization = newErrorWithRegularization
+							t.bestError = newError
+							t.bestErrorRegularization = newErrorRegularization
 							improved = true
+							anyImprovements = true
 						} else {
 							score.set(phase, bestValue)
+							if idx < releventToPieceSquaresCount {
+								loadScoresToPieceSquares()
+							}
 							break
 						}
 					}
 				}
 			}
 		}
-		fmt.Printf("Iteration %d; error: %.17g; regularization: %.17g\n", iter+1, bestError, t.regularization())
+		t.saveEvaluationValues()
+		fmt.Printf("Iteration %d; error: %.17g; regularization: %.17g\n", iter+1, t.bestError, t.bestErrorRegularization)
 		fmt.Println(t.weights)
 		if !improved {
 			break
 		}
 	}
+	return anyImprovements
+}
+
+func (t *tuner) symmetricDerivative(batchSize, idx, phase, h int) float64 {
+	weight := t.weights[idx]
+	oldValue := weight.get(phase)
+
+	weight.set(phase, oldValue+1)
+	if idx < releventToPieceSquaresCount {
+		loadScoresToPieceSquares()
+	}
+	newError1 := t.computeError(batchSize) + t.regularization()
+
+	weight.set(phase, oldValue-1)
+	if idx < releventToPieceSquaresCount {
+		loadScoresToPieceSquares()
+	}
+	newError2 := t.computeError(batchSize) + t.regularization()
+
+	weight.set(phase, oldValue)
+	if idx < releventToPieceSquaresCount {
+		loadScoresToPieceSquares()
+	}
+
+	return (newError1 - newError2) / (2.0 * float64(h))
+}
+
+func (t *tuner) richardsExtrapolationDerivative(batchSize, idx, phase, h int) float64 {
+	return (4.0*t.symmetricDerivative(batchSize, idx, phase, h) -
+		t.symmetricDerivative(batchSize, idx, phase, 2*h)) /
+		3.0
+}
+
+const normalizeGradient = false
+
+func (t *tuner) calculateGradient(batchSize int) []EvaluationGradientVariable {
+	res := make([]EvaluationGradientVariable, 0, len(t.weights))
+	for idx, weight := range t.weights {
+		if t.done {
+			break
+		}
+		gradient := newGradient(weight.phaseCount())
+		for phase := 0; phase < weight.phaseCount(); phase++ {
+			gradient.phases[phase] = t.symmetricDerivative(batchSize, idx, phase, 1)
+		}
+		res = append(res, gradient)
+	}
+
+	if normalizeGradient {
+		length := 0.0
+		for _, elem := range res {
+			for _, value := range elem.phases {
+				length += value * value
+			}
+		}
+		length = math.Sqrt(length)
+		for elIdx := range res {
+			for idx := range res[elIdx].phases {
+				res[elIdx].phases[idx] /= length
+			}
+		}
+	}
+
+	return res
+}
+
+func (t *tuner) gradientDescent() bool {
+	anyImprovements := false
+	var bestError, bestErrorRegularization float64
+	const momentumRatio = 0.1
+	prevGradient := make([]EvaluationGradientVariable, len(t.weights))
+	for idx, weight := range t.weights {
+		prevGradient[idx].phases = make([]float64, weight.phaseCount())
+	}
+	bestError = t.computeError(len(t.entries))
+	bestErrorRegularization = t.regularization()
+	t.saveEvaluationValues()
+	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", bestError, bestErrorRegularization)
+	fmt.Println(t.weights)
+	batchSize := len(t.entries) / 10
+	iterationsSinceImprovement := 0
+
+	for iter := 0; iter < 20000; iter++ {
+		rand.Shuffle(len(t.entries), func(i, j int) {
+			t.entries[i], t.entries[j] = t.entries[j], t.entries[i]
+		})
+		gradient := t.calculateGradient(batchSize)
+		anyChanges := false
+
+		if t.done {
+			break
+		}
+
+		max := 0.0
+		for idx, weight := range t.weights {
+			for phase := 0; phase < weight.phaseCount(); phase++ {
+				max = math.Max(max, math.Abs(gradient[idx].phases[phase]))
+			}
+		}
+		learningRate := 2.0 / max
+
+		fmt.Println(max, learningRate)
+		for idx, weight := range t.weights {
+			for phase := 0; phase < weight.phaseCount(); phase++ {
+				oldValue := weight.get(phase)
+				diff := prevGradient[idx].phases[phase]*momentumRatio + learningRate*(1-momentumRatio)*gradient[idx].phases[phase]
+				weight.set(phase, oldValue-int16(math.RoundToEven(diff)))
+				prevGradient[idx].phases[phase] = diff
+				if oldValue != weight.get(phase) {
+					anyChanges = true
+				}
+			}
+		}
+		if t.done {
+			break
+		}
+		iterationsSinceImprovement++
+		currentError := t.computeError(len(t.entries))
+		currentRegularization := t.regularization()
+		fmt.Printf("Iteration %d; error: %.17g; regularization: %.17g\n", iter+1, currentError, currentRegularization)
+		fmt.Println(t.weights)
+
+		if currentError+currentRegularization < bestError+bestErrorRegularization {
+			bestError = currentError
+			bestErrorRegularization = currentRegularization
+			t.saveEvaluationValues()
+			iterationsSinceImprovement = 0
+			anyImprovements = true
+		}
+
+		if !anyChanges || iterationsSinceImprovement > 50 {
+			break
+		}
+	}
+	fmt.Printf("error: %.17g; regularization: %.17g\n", bestError, bestErrorRegularization)
+	fmt.Println(t.bestWeights)
+	return anyImprovements
 }
 
 const releventToPieceSquaresCount = 5 + 5*8*4 + 6*8 + 8*4
@@ -401,6 +589,46 @@ type EvaluationValue interface {
 	set(phase int, value int16)
 	get(phase int) int16
 	regularized() bool
+}
+
+func (t *tuner) saveEvaluationValues() {
+	res := make([]EvaluationValue, len(t.weights))
+	for idx := range t.weights {
+		tmp, _ := copyEvaluationValue(t.weights[idx])
+		res[idx] = tmp
+	}
+	t.bestWeights = res
+}
+
+func (t *tuner) loadEvaluationValues() {
+	for idx, weight := range t.weights {
+		for phase := 0; phase < weight.phaseCount(); phase++ {
+			weight.set(phase, t.bestWeights[idx].get(phase))
+		}
+	}
+	loadScoresToPieceSquares()
+}
+
+func copyEvaluationValue(ev EvaluationValue) (EvaluationValue, error) {
+	switch v := ev.(type) {
+	case ScoreValue:
+		return ScoreValue{&Score{ev.get(0), ev.get(1)}}, nil
+	case SingleValue:
+		val := ev.get(0)
+		return SingleValue{&val}, nil
+	default:
+		return nil, fmt.Errorf("Unknown type %s", v)
+	}
+}
+
+type EvaluationGradientVariable struct {
+	phases []float64
+}
+
+func newGradient(counter int) EvaluationGradientVariable {
+	return EvaluationGradientVariable{
+		phases: make([]float64, counter),
+	}
 }
 
 type ScoreValue struct {
