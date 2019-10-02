@@ -41,7 +41,7 @@ func addScore(first, second Score) Score {
 
 var PawnValue = Score{173, 203}
 var KnightValue = Score{865, 727}
-var BishopValue = Score{804, 718}
+var BishopValue = Score{814, 717}
 var RookValue = Score{1115, 1175}
 var QueenValue = Score{2395, 2299}
 
@@ -59,14 +59,14 @@ var pieceScores = [King + 1][8][4]Score{
 		{Score{-369, -122}, Score{-133, -133}, Score{-224, -60}, Score{-1, -102}},
 	},
 	{ // Bishop
-		{Score{-18, -23}, Score{10, -8}, Score{10, -16}, Score{10, -9}},
-		{Score{5, -45}, Score{66, -51}, Score{44, -32}, Score{9, -12}},
-		{Score{18, -34}, Score{44, -21}, Score{42, -3}, Score{19, 8}},
-		{Score{-1, -40}, Score{7, -33}, Score{10, -4}, Score{49, -2}},
-		{Score{-38, -24}, Score{0, -25}, Score{-3, -1}, Score{43, 3}},
-		{Score{-98, -3}, Score{-28, -27}, Score{-12, -5}, Score{-32, -16}},
-		{Score{-130, 0}, Score{37, -16}, Score{-25, 2}, Score{1, -25}},
-		{Score{-9, -48}, Score{-60, -33}, Score{-197, -9}, Score{-159, -7}},
+		{Score{-44, -22}, Score{11, -14}, Score{8, -17}, Score{8, -11}},
+		{Score{2, -47}, Score{35, -63}, Score{34, -34}, Score{7, -7}},
+		{Score{14, -35}, Score{41, -22}, Score{9, -11}, Score{19, 9}},
+		{Score{-15, -38}, Score{6, -34}, Score{13, -1}, Score{43, -5}},
+		{Score{-40, -20}, Score{1, -25}, Score{-1, -1}, Score{44, -1}},
+		{Score{-87, 3}, Score{-28, -19}, Score{-54, -4}, Score{-31, -12}},
+		{Score{-130, 16}, Score{-10, -22}, Score{-20, 8}, Score{0, -23}},
+		{Score{-25, -58}, Score{-57, -32}, Score{-140, -9}, Score{-159, -7}},
 	},
 	{ // Rook
 		{Score{-7, -30}, Score{-22, -8}, Score{13, -18}, Score{18, -25}},
@@ -125,9 +125,9 @@ var pawnsConnected = [8][4]Score{
 var mobilityBonus = [...][32]Score{
 	{Score{-74, -196}, Score{-56, -120}, Score{-38, -67}, Score{-39, -29}, Score{-10, -32}, Score{7, -15}, // Knights
 		Score{25, -23}, Score{43, -26}, Score{62, -55}},
-	{Score{-52, -134}, Score{-23, -103}, Score{11, -48}, Score{19, -16}, Score{40, 2}, Score{58, 12}, // Bishops
-		Score{69, 15}, Score{75, 17}, Score{81, 27}, Score{93, 20}, Score{114, -1}, Score{154, 3},
-		Score{86, 39}, Score{114, 13}},
+	{Score{-54, -114}, Score{-24, -102}, Score{13, -50}, Score{23, -17}, Score{39, 5}, Score{57, 8}, // Bishops
+		Score{66, 13}, Score{71, 15}, Score{79, 23}, Score{88, 14}, Score{105, -3}, Score{141, -8},
+		Score{89, 32}, Score{115, 4}},
 	{Score{-47, -63}, Score{-59, -51}, Score{-35, 16}, Score{-17, 59}, Score{-6, 83}, Score{1, 100}, // Rooks
 		Score{7, 114}, Score{25, 116}, Score{26, 114}, Score{53, 115}, Score{59, 119}, Score{66, 124},
 		Score{82, 124}, Score{104, 115}, Score{156, 98}},
@@ -184,12 +184,12 @@ var doubled = Score{-20, -57}
 var backward = Score{8, -6}
 var backwardOpen = Score{-27, -11}
 
-var bishopPair = Score{81, 103}
-var bishopRammedPawns = Score{-13, -22}
-var longDiagonalBishop = Score{45, 0}
+var bishopPair = Score{83, 101}
+var bishopRammedPawns = Score{-16, -21}
+var bishopLongDiagonal = Score{41, 6}
 
-var bishopOutpostUndefendedBonus = Score{70, -6}
-var bishopOutpostDefendedBonus = Score{136, 3}
+var bishopOutpostUndefendedBonus = Score{64, -10}
+var bishopOutpostDefendedBonus = Score{134, -5}
 
 var knightOutpostUndefendedBonus = Score{52, -27}
 var knightOutpostDefendedBonus = Score{91, 20}
@@ -202,9 +202,9 @@ var tempo = Score{46, 49}
 var rookOnFile = [2]Score{Score{19, 37}, Score{97, -7}}
 
 var kingDefenders = [12]Score{
-	Score{-147, -1}, Score{-107, -8}, Score{-56, -3}, Score{-16, -2},
-	Score{4, 3}, Score{31, 3}, Score{52, 4}, Score{67, 3},
-	Score{85, 0}, Score{71, 7}, Score{12, 6}, Score{12, 6},
+	Score{-114, 1}, Score{-91, -7}, Score{-52, -4}, Score{-18, -5},
+	Score{-1, -1}, Score{24, 2}, Score{46, 1}, Score{61, 1},
+	Score{77, -1}, Score{65, 6}, Score{12, 6}, Score{12, 6},
 }
 
 var kingShelter = [2][8][8]Score{
@@ -299,12 +299,12 @@ var kingSafetyAttacksWeights = [King + 1]int16{0, -4, -3, 1, 22, 0}
 var kingSafetyAttackValue int16 = 122
 var kingSafetyWeakSquares int16 = 21
 var kingSafetyFriendlyPawns int16 = -10
-var kingSafetyNoEnemyQueens int16 = 30
+var kingSafetyNoEnemyQueens int16 = 69
 var kingSafetySafeQueenCheck int16 = 98
 var kingSafetySafeRookCheck int16 = 136
-var kingSafetySafeBishopCheck int16 = 114
+var kingSafetySafeBishopCheck int16 = 102
 var kingSafetySafeKnightCheck int16 = 190
-var kingSafetyAdjustment int16 = -40
+var kingSafetyAdjustment int16 = -75
 
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
@@ -763,9 +763,9 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		}
 
 		// Bonus for bishop on a long diagonal which can "see" both center squares
-		if MoreThanOne(BishopAttacks(fromId, pos.Pawns) & CENTER) {
-			midResult += int(longDiagonalBishop.Middle)
-			endResult += int(longDiagonalBishop.End)
+		if MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & CENTER) {
+			midResult += int(bishopLongDiagonal.Middle)
+			endResult += int(bishopLongDiagonal.End)
 		}
 		phase -= bishopPhase
 	}
@@ -822,9 +822,9 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		}
 
 		// Bonus for bishop on a long diagonal which can "see" both center squares
-		if MoreThanOne(BishopAttacks(fromId, pos.Pawns) & CENTER) {
-			midResult -= int(longDiagonalBishop.Middle)
-			endResult -= int(longDiagonalBishop.End)
+		if MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & CENTER) {
+			midResult -= int(bishopLongDiagonal.Middle)
+			endResult -= int(bishopLongDiagonal.End)
 		}
 		phase -= bishopPhase
 	}
