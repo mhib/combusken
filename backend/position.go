@@ -104,8 +104,14 @@ func (p *Position) TogglePiece(piece, side, square int) {
 }
 
 func (pos *Position) MakeNullMove(res *Position) {
-	copy(res.Colours[:], pos.Colours[:])
-	copy(res.Pieces[:], pos.Pieces[:])
+	res.Colours[Black] = pos.Colours[Black]
+	res.Colours[White] = pos.Colours[White]
+	res.Pieces[Pawn] = pos.Pieces[Pawn]
+	res.Pieces[Knight] = pos.Pieces[Knight]
+	res.Pieces[Bishop] = pos.Pieces[Bishop]
+	res.Pieces[Rook] = pos.Pieces[Rook]
+	res.Pieces[Queen] = pos.Pieces[Queen]
+	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove ^ 1
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
@@ -117,8 +123,14 @@ func (pos *Position) MakeNullMove(res *Position) {
 }
 
 func (pos *Position) MakeMove(move Move, res *Position) bool {
-	copy(res.Colours[:], pos.Colours[:])
-	copy(res.Pieces[:], pos.Pieces[:])
+	res.Colours[Black] = pos.Colours[Black]
+	res.Colours[White] = pos.Colours[White]
+	res.Pieces[Pawn] = pos.Pieces[Pawn]
+	res.Pieces[Knight] = pos.Pieces[Knight]
+	res.Pieces[Bishop] = pos.Pieces[Bishop]
+	res.Pieces[Rook] = pos.Pieces[Rook]
+	res.Pieces[Queen] = pos.Pieces[Queen]
+	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
@@ -251,8 +263,14 @@ func (pos *Position) GenerateAllLegalMoves() []EvaledMove {
 }
 
 func (pos *Position) MakeLegalMove(move Move, res *Position) {
-	copy(res.Colours[:], pos.Colours[:])
-	copy(res.Pieces[:], pos.Pieces[:])
+	res.Colours[Black] = pos.Colours[Black]
+	res.Colours[White] = pos.Colours[White]
+	res.Pieces[Pawn] = pos.Pieces[Pawn]
+	res.Pieces[Knight] = pos.Pieces[Knight]
+	res.Pieces[Bishop] = pos.Pieces[Bishop]
+	res.Pieces[Rook] = pos.Pieces[Rook]
+	res.Pieces[Queen] = pos.Pieces[Queen]
+	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
