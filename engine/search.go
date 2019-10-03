@@ -371,7 +371,8 @@ func (t *thread) isDraw(height int) bool {
 	}
 
 	// Cannot mate with only one minor piece and no pawns
-	if (pos.Pawns|pos.Rooks|pos.Queens) == 0 && !MoreThanOne(pos.Knights|pos.Bishops) {
+	if (pos.Pieces[Pawn]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 &&
+		!MoreThanOne(pos.Pieces[Knight]|pos.Pieces[Bishop]) {
 		return true
 	}
 

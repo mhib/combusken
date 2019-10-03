@@ -44,34 +44,32 @@ func (mv *MoveEvaluator) Clear() {
 }
 
 func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, depth, height int) {
-	side := pos.IntSide()
 	if pos.LastMove != NullMove {
 		if mv.KillerMoves[height][0] != bestMove {
 			mv.KillerMoves[height][0], mv.KillerMoves[height][1] = bestMove, mv.KillerMoves[height][0]
 		}
-		mv.CounterMoves[side][pos.LastMove.From()][pos.LastMove.To()] = bestMove
+		mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()] = bestMove
 	}
 	bonus := Min(depth*depth, HistoryMax)
 
 	for _, move := range moves {
 		if move == bestMove {
-			entry := mv.EvalHistory[side][move.From()][move.To()]
+			entry := mv.EvalHistory[pos.SideToMove][move.From()][move.To()]
 			entry += HistoryMultiplier*bonus - entry*bonus/HistoryDivisor
-			mv.EvalHistory[side][move.From()][move.To()] = entry
+			mv.EvalHistory[pos.SideToMove][move.From()][move.To()] = entry
 			break
 		} else {
-			entry := mv.EvalHistory[side][move.From()][move.To()]
+			entry := mv.EvalHistory[pos.SideToMove][move.From()][move.To()]
 			entry += HistoryMultiplier*-bonus - entry*bonus/HistoryDivisor
-			mv.EvalHistory[side][move.From()][move.To()] = entry
+			mv.EvalHistory[pos.SideToMove][move.From()][move.To()] = entry
 		}
 	}
 }
 
 func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
-	side := pos.IntSide()
 	var counter Move
 	if pos.LastMove != NullMove {
-		counter = mv.CounterMoves[side][pos.LastMove.From()][pos.LastMove.To()]
+		counter = mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()]
 	}
 	for i := range moves {
 		if moves[i].Move == fromTrans {
@@ -90,13 +88,13 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 			} else if moves[i].Move == counter {
 				moves[i].Value = 14999
 			} else {
-				moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+				moves[i].Value = mv.EvalHistory[pos.SideToMove][moves[i].Move.From()][moves[i].Move.To()]
 			}
 		}
 	}
 }
 
-var mvvlvaScores = [...]int{0, 10, 40, 45, 68, 145, 256}
+var mvvlvaScores = [King + 1]int{10, 40, 45, 68, 145, 256}
 
 func mvvlva(move Move) int {
 	captureScore := mvvlvaScores[move.CapturedPiece()]
@@ -108,7 +106,6 @@ func mvvlva(move Move) int {
 
 // In Quiescent search it is expected that SEE will be check anyway
 func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, bestMove Move, inCheck bool) {
-	side := pos.IntSide()
 	if inCheck {
 		for i := range moves {
 			if moves[i].Move == bestMove {
@@ -116,7 +113,7 @@ func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, best
 			} else if moves[i].Move.IsCaptureOrPromotion() {
 				moves[i].Value = mvvlva(moves[i].Move) + 50000
 			} else {
-				moves[i].Value = mv.EvalHistory[side][moves[i].Move.From()][moves[i].Move.To()]
+				moves[i].Value = mv.EvalHistory[pos.SideToMove][moves[i].Move.From()][moves[i].Move.To()]
 			}
 		}
 	} else {

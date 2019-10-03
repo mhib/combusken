@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"github.com/mhib/combusken/utils"
 	"strconv"
 	"strings"
 	"unicode"
@@ -29,7 +30,7 @@ func ParseFen(input string) Position {
 		}
 	}
 
-	res.WhiteMove = slices[1] == "w"
+	res.SideToMove = utils.BoolToInt(slices[1] == "w")
 
 	for _, char := range slices[2] {
 		switch char {
@@ -46,7 +47,7 @@ func ParseFen(input string) Position {
 
 	if slices[3] != "-" {
 		square := (int(slices[3][0]) - int('a')) + (int(slices[3][1])-int('1'))*8
-		if res.WhiteMove {
+		if res.SideToMove == White {
 			res.EpSquare = square - 8
 		} else {
 			res.EpSquare = square + 8
@@ -55,7 +56,7 @@ func ParseFen(input string) Position {
 
 	if len(slices) >= 5 {
 		parsed, _ := strconv.Atoi(slices[4])
-		res.FiftyMove = int32(parsed)
+		res.FiftyMove = parsed
 	}
 
 	HashPosition(&res)
@@ -64,23 +65,19 @@ func ParseFen(input string) Position {
 }
 
 func insertPiece(pos *Position, piece rune, bit uint64) {
-	if unicode.IsUpper(piece) {
-		pos.White |= bit
-	} else {
-		pos.Black |= bit
-	}
+	pos.Colours[utils.BoolToInt(unicode.IsUpper(piece))] |= bit
 	switch byte(unicode.ToLower(piece)) {
 	case 'p':
-		pos.Pawns |= bit
+		pos.Pieces[Pawn] |= bit
 	case 'r':
-		pos.Rooks |= bit
+		pos.Pieces[Rook] |= bit
 	case 'n':
-		pos.Knights |= bit
+		pos.Pieces[Knight] |= bit
 	case 'b':
-		pos.Bishops |= bit
+		pos.Pieces[Bishop] |= bit
 	case 'q':
-		pos.Queens |= bit
+		pos.Pieces[Queen] |= bit
 	case 'k':
-		pos.Kings |= bit
+		pos.Pieces[King] |= bit
 	}
 }

@@ -118,7 +118,7 @@ func NewEngine() (ret Engine) {
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
 	e.fillMoveHistory(searchParams.Positions)
-	e.timeManager = newTimeManager(searchParams.Limits, e.MoveOverhead.Val, searchParams.Positions[len(searchParams.Positions)-1].WhiteMove)
+	e.timeManager = newTimeManager(searchParams.Limits, e.MoveOverhead.Val, searchParams.Positions[len(searchParams.Positions)-1].SideToMove)
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
 	if e.hardTimeout() > 0 {

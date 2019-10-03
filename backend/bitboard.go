@@ -241,8 +241,8 @@ func PopCount(set uint64) int {
 }
 
 var (
-	WhitePawnAttacks, BlackPawnAttacks [64]uint64
-	KnightAttacks, KingAttacks         [64]uint64
+	PawnAttacks                [2][64]uint64
+	KnightAttacks, KingAttacks [64]uint64
 )
 
 // Least significant bit
@@ -371,8 +371,8 @@ func init() {
 	}
 	initArray(&KingAttacks, KingsAttacks)
 	initArray(&KnightAttacks, KnightsAttacks)
-	initArray(&WhitePawnAttacks, WhitePawnsAttacks)
-	initArray(&BlackPawnAttacks, BlackPawnsAttacks)
+	initArray(&PawnAttacks[White], WhitePawnsAttacks)
+	initArray(&PawnAttacks[Black], BlackPawnsAttacks)
 	for i := 0; i < 64; i++ {
 		SquareString[i] = squareString(i)
 	}

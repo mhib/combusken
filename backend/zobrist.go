@@ -11,14 +11,14 @@ var zobristColor uint64
 
 func initZobrist() {
 	var r = rand.New(rand.NewSource(0))
-	for y := 0; y < 6; y++ {
-		for x := 0; x < 2; x++ {
-			for z := 0; z < 64; z++ {
+	for y := Pawn; y <= King; y++ {
+		for x := Black; x <= White; x++ {
+			for z := A1; z <= H8; z++ {
 				zobrist[y][x][z] = r.Uint64()
 			}
 		}
 	}
-	for y := 24; y <= 39; y++ {
+	for y := A4; y <= H5; y++ {
 		zobristEpSquare[y] = r.Uint64()
 	}
 	for y := 0; y < 16; y++ {
@@ -33,61 +33,20 @@ func HashPosition(pos *Position) {
 	var fromId int
 	var fromBB uint64
 
-	for fromBB = pos.Pawns & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[0][0][fromId]
-		pos.PawnKey ^= zobrist[0][0][fromId]
-	}
-	for fromBB = pos.Knights & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[1][0][fromId]
-	}
-	for fromBB = pos.Bishops & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[2][0][fromId]
-	}
-	for fromBB = pos.Rooks & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[3][0][fromId]
-	}
-	for fromBB = pos.Queens & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[4][0][fromId]
-	}
-	for fromBB = pos.Kings & pos.White; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[5][0][fromId]
-		pos.PawnKey ^= zobrist[5][0][fromId]
+	for piece := Pawn; piece <= King; piece++ {
+		for colour := Black; colour <= White; colour++ {
+			for fromBB = pos.Pieces[piece] & pos.Colours[colour]; fromBB != 0; fromBB &= (fromBB - 1) {
+				fromId = BitScan(fromBB)
+				pos.Key ^= zobrist[piece][colour][fromId]
+				if piece == Pawn || piece == King {
+					pos.PawnKey ^= zobrist[piece][colour][fromId]
+				}
+			}
+		}
 	}
 
-	for fromBB = pos.Pawns & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[0][1][fromId]
-		pos.PawnKey ^= zobrist[0][1][fromId]
-	}
-	for fromBB = pos.Knights & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[1][1][fromId]
-	}
-	for fromBB = pos.Bishops & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[2][1][fromId]
-	}
-	for fromBB = pos.Rooks & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[3][1][fromId]
-	}
-	for fromBB = pos.Queens & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[4][1][fromId]
-	}
-	for fromBB = pos.Kings & pos.Black; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-		pos.Key ^= zobrist[5][1][fromId]
-		pos.PawnKey ^= zobrist[5][1][fromId]
-	}
 	pos.Key ^= zobristFlags[pos.Flags]
-	if pos.WhiteMove {
+	if pos.SideToMove == White {
 		pos.Key ^= zobristColor
 		pos.PawnKey ^= zobristColor
 	}

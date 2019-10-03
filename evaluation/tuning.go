@@ -194,7 +194,7 @@ func (t *tuner) computeError(entriesCount int) float64 {
 			for y := idx; y < entriesCount; y += numCPU {
 				entry := t.entries[y]
 				evaluation := float64(Evaluate(&entry.Position, &emptyPKTable))
-				if !entry.Position.WhiteMove {
+				if entry.Position.SideToMove == Black {
 					evaluation *= -1
 				}
 				diff := entry.result - sigmoid(t.k, evaluation)
@@ -689,7 +689,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&RookValue})
 	res = append(res, ScoreValue{&QueenValue})
 
-	for i := 2; i <= 6; i++ {
+	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
 				res = append(res, ScoreValue{&pieceScores[i][y][x]})
