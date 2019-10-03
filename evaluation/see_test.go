@@ -72,7 +72,7 @@ func see(pos *Position, mv Move) int {
 	var from = mv.From()
 	var to = mv.To()
 	var piece = mv.MovedPiece()
-	var side = pos.WhiteMove
+	var side = pos.SideToMove
 	var score = 0
 	// special case for ep and castling
 	if mv.Type() == EPCapture || mv.IsCastling() {
@@ -85,18 +85,18 @@ func see(pos *Position, mv Move) int {
 		piece = mv.PromotedPiece()
 		score += SEEValues[piece] - SEEValues[Pawn]
 	}
-	pieces := (pos.White ^ pos.Black ^ SquareMask[from]) | SquareMask[to]
-	score -= seeRec(pos, !side, to, pieces, piece)
+	pieces := (pos.Colours[Black] ^ pos.Colours[White] ^ SquareMask[from]) | SquareMask[to]
+	score -= seeRec(pos, side^1, to, pieces, piece)
 	return score
 }
 
-func seeRec(pos *Position, side bool, to int, pieces uint64, lastPiece int) int {
+func seeRec(pos *Position, side int, to int, pieces uint64, lastPiece int) int {
 	var maxScore = 0 // 0 if more captures are unprofitable
 	var piece, from = getLeastValuableAttacker(pos, to, side, pieces)
 	if from != NoSquare {
 		var score = SEEValues[lastPiece]
 		if lastPiece != King {
-			score -= seeRec(pos, !side, to, pieces&^SquareMask[from], piece)
+			score -= seeRec(pos, side^1, to, pieces&^SquareMask[from], piece)
 		}
 		if score > maxScore {
 			maxScore = score
