@@ -92,6 +92,7 @@ func (p *Position) TogglePiece(piece, side, square int) {
 	var b = SquareMask[square]
 	p.Colours[side] ^= b
 	p.Pieces[piece] ^= b
+	p.Key ^= zobrist[piece][side][square]
 	switch piece {
 	// Commented out as this function should not be called with King
 	//case King:
