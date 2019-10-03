@@ -2,7 +2,7 @@ package evaluation
 
 import . "github.com/mhib/combusken/backend"
 
-var SEEValues = [King + 1]int{100, 450, 450, 675, 1300, Mate / 2}
+var SEEValues = [None + 1]int{100, 450, 450, 675, 1300, Mate / 2, 0}
 
 // Returns true if see non-negative
 func SeeSign(pos *Position, move Move) bool {
@@ -59,32 +59,32 @@ func SeeAbove(pos *Position, move Move, cutoff int) bool {
 	return side != pos.SideToMove
 }
 
-func getLeastValuableAttacker(pos *Position, to int, side int, occupancy uint64) (piece, from int) {
-	from = NoSquare
+func getLeastValuableAttacker(pos *Position, to int, side int, occupancy uint64) (int, int) {
+	sideOccupancy := pos.Colours[side] & occupancy
 
-	if attacks := PawnAttacks[side^1][to] & (pos.Pieces[Pawn] & pos.Colours[side]); attacks != 0 {
+	if attacks := PawnAttacks[side^1][to] & (pos.Pieces[Pawn] & sideOccupancy); attacks != 0 {
 		return Pawn, BitScan(attacks)
 	}
 
-	if attacks := KnightAttacks[to] & (pos.Colours[side] & pos.Pieces[Knight]); attacks != 0 {
+	if attacks := KnightAttacks[to] & (sideOccupancy & pos.Pieces[Knight]); attacks != 0 {
 		return Knight, BitScan(attacks)
 	}
 
-	if attacks := BishopAttacks(to, occupancy) & (pos.Colours[side] & pos.Pieces[Bishop]); attacks != 0 {
+	if attacks := BishopAttacks(to, occupancy) & (sideOccupancy & pos.Pieces[Bishop]); attacks != 0 {
 		return Bishop, BitScan(attacks)
 	}
 
-	if attacks := RookAttacks(to, occupancy) & (pos.Colours[side] & pos.Pieces[Rook]); attacks != 0 {
+	if attacks := RookAttacks(to, occupancy) & (sideOccupancy & pos.Pieces[Rook]); attacks != 0 {
 		return Rook, BitScan(attacks)
 	}
 
-	if attacks := QueenAttacks(to, occupancy) & (pos.Colours[side] & pos.Pieces[Queen]); attacks != 0 {
+	if attacks := QueenAttacks(to, occupancy) & (sideOccupancy & pos.Pieces[Queen]); attacks != 0 {
 		return Queen, BitScan(attacks)
 	}
 
-	if attacks := KingAttacks[to] & (pos.Colours[side] & pos.Pieces[King]); attacks != 0 {
+	if attacks := KingAttacks[to] & (sideOccupancy & pos.Pieces[King]); attacks != 0 {
 		return King, BitScan(attacks)
 	}
 
-	return
+	return None, NoSquare
 }

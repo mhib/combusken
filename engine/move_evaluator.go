@@ -94,7 +94,7 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 	}
 }
 
-var mvvlvaScores = [King + 1]int{10, 40, 45, 68, 145, 256}
+var mvvlvaScores = [None + 1]int{10, 40, 45, 68, 145, 256, 0}
 
 func mvvlva(move Move) int {
 	captureScore := mvvlvaScores[move.CapturedPiece()]

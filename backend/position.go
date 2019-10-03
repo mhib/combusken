@@ -93,10 +93,13 @@ func (p *Position) TogglePiece(piece, side, square int) {
 	p.Colours[side] ^= b
 	p.Pieces[piece] ^= b
 	switch piece {
-	case King:
-		fallthrough
+	// Commented out as this function should not be called with King
+	//case King:
+	//fallthrough
 	case Pawn:
-		p.PawnKey ^= zobrist[piece][side][square]
+		p.PawnKey ^= zobrist[Pawn][side][square]
+	case Rook:
+		p.Flags |= rookCastleFlags[square]
 	}
 }
 
@@ -137,9 +140,6 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 			res.Key ^= zobristEpSquare[move.To()]
 		case Capture:
 			res.TogglePiece(move.CapturedPiece(), pos.SideToMove^1, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= rookCastleFlags[move.To()]
-			}
 		case KingCastle:
 			if pos.SideToMove == White {
 				res.MovePiece(Rook, White, H1, F1)
@@ -160,13 +160,12 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 		res.TogglePiece(move.PromotedPiece(), pos.SideToMove, move.To())
 		if move.IsCapture() {
 			res.TogglePiece(move.CapturedPiece(), pos.SideToMove^1, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= rookCastleFlags[move.To()]
-			}
 		}
 	}
 
-	if res.IsInCheck() {
+	// IsInCheck inlined
+	// Replace when Go will be better at inlining
+	if res.IsSquareAttacked(BitScan(res.Colours[res.SideToMove]&res.Pieces[King]), res.SideToMove^1) {
 		return false
 	}
 
@@ -182,23 +181,11 @@ func (pos *Position) IsInCheck() bool {
 
 func (pos *Position) IsSquareAttacked(square, side int) bool {
 	theirOccupation := pos.Colours[side]
-	if PawnAttacks[side^1][square]&pos.Pieces[Pawn]&theirOccupation != 0 {
-		return true
-	}
-	if KnightAttacks[square]&theirOccupation&pos.Pieces[Knight] != 0 {
-		return true
-	}
-	if KingAttacks[square]&pos.Pieces[King]&theirOccupation != 0 {
-		return true
-	}
-	allOccupation := pos.Colours[Black] | pos.Colours[White]
-	if BishopAttacks(square, allOccupation)&(pos.Pieces[Bishop]|pos.Pieces[Queen])&theirOccupation != 0 {
-		return true
-	}
-	if RookAttacks(square, allOccupation)&(pos.Pieces[Queen]|pos.Pieces[Rook])&theirOccupation != 0 {
-		return true
-	}
-	return false
+	return PawnAttacks[side^1][square]&pos.Pieces[Pawn]&theirOccupation != 0 ||
+		KnightAttacks[square]&theirOccupation&pos.Pieces[Knight] != 0 ||
+		KingAttacks[square]&pos.Pieces[King]&theirOccupation != 0 ||
+		BishopAttacks(square, pos.Colours[Black]|pos.Colours[White])&(pos.Pieces[Bishop]|pos.Pieces[Queen])&theirOccupation != 0 ||
+		RookAttacks(square, pos.Colours[Black]|pos.Colours[White])&(pos.Pieces[Queen]|pos.Pieces[Rook])&theirOccupation != 0
 }
 
 func (pos *Position) Print() {
