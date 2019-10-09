@@ -84,6 +84,11 @@ func (m Move) PromotedPiece() int {
 	return Knight + int(m>>20)
 }
 
+// Either quiete move or capture
+func (m Move) IsNormal() bool {
+	return int(m>>18) < 2
+}
+
 func NewMove(from, to, pieceType, capturedType, moveType int) Move {
 	return Move(from | (to << 6) | (pieceType << 12) | (capturedType << 15) | (moveType << 18))
 }

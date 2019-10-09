@@ -206,14 +206,71 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		_, _, _, hashMove, _ = t.engine.TransTable.Get(pos.Key, height)
 	}
 
-	evaled := pos.GenerateAllMoves(t.stack[height].moves[:])
-	t.EvaluateMoves(pos, evaled, hashMove, height, depth)
-
 	// Quiet moves are stored in order to reduce their history value at the end of search
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	bestMove := NullMove
 	moveCount := 0
 	movesSorted := false
+	hashMoveChecked := false
+	var evaled []EvaledMove
+
+	// Check hashMove before move generation
+	if pos.IsMovePseudoLegal(hashMove) {
+		hashMoveChecked = true
+		if pos.MakeMove(hashMove, child) {
+			moveCount++
+			childInCheck := child.IsInCheck()
+			newDepth := depth - 1
+			singularCandidate := depth >= 8 &&
+				int(hashDepth) >= depth-2 &&
+				hashFlag != TransAlpha
+			// Check extension
+			// Moves with positive SEE and gives check are searched with increased depth
+			if inCheck && SeeSign(pos, hashMove) {
+				newDepth++
+				// Singular extension
+				// https://www.chessprogramming.org/Singular_Extensions
+			} else if singularCandidate {
+				evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
+				t.EvaluateMoves(pos, evaled, hashMove, height, depth)
+				sortMoves(evaled)
+				movesSorted = true
+				evaled = evaled[1:]
+				if t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
+					newDepth++
+				}
+			}
+			// Store move if it is quiet
+			if hashMove.IsCaptureOrPromotion() {
+				quietsSearched = append(quietsSearched, hashMove)
+			}
+
+			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
+
+			if tmpVal > val {
+				val = tmpVal
+				if val > alpha {
+					alpha = val
+					bestMove = hashMove
+					if alpha >= beta {
+						goto afterLoop
+					}
+					t.stack[height].PV.assign(hashMove, &t.stack[height+1].PV)
+				}
+			}
+		}
+	}
+
+	// Generate moves if not generated in hashMove Check
+	if !movesSorted {
+		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
+		t.EvaluateMoves(pos, evaled, hashMove, height, depth)
+		if hashMoveChecked {
+			maxMoveToFirst(evaled)
+			evaled = evaled[1:] // Ignore hash move
+		}
+	}
+
 	for i := range evaled {
 		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
@@ -256,20 +313,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 		newDepth := depth - 1
-		singularCandidate := depth >= 8 &&
-			evaled[i].Move == hashMove &&
-			int(hashDepth) >= depth-2 &&
-			hashFlag != TransAlpha
 		// Check extension
 		// Moves with positive SEE and gives check are searched with increased depth
 		if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
 			// Singular extension
 			// https://www.chessprogramming.org/Singular_Extensions
-		} else if singularCandidate && t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
-			newDepth++
-			movesSorted = true
 		}
+
 		// Store move if it is quiet
 		if !evaled[i].Move.IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
@@ -312,6 +363,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return contempt(pos)
 	}
 
+afterLoop:
 	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, height)
 	}
@@ -333,14 +385,10 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 	var child *Position = &t.stack[height+1].position
 	// Store child as we already made a move into it in alphaBeta
 	oldChild := *child
-	sortMoves(moves)
 	val := -Mate
 	rBeta := Max(hashValue-depth, -Mate)
 	quiets := 0
 	for i := range moves {
-		if moves[i].Move == hashMove {
-			continue
-		}
 		if !pos.MakeMove(moves[i].Move, child) {
 			continue
 		}
