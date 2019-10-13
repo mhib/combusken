@@ -59,13 +59,13 @@ var pieceScores = [King + 1][8][4]Score{
 		{Score{-369, -122}, Score{-133, -133}, Score{-224, -60}, Score{-1, -102}},
 	},
 	{ // Bishop
-		{Score{-18, -23}, Score{10, -8}, Score{10, -16}, Score{10, -9}},
+		{Score{-16, -21}, Score{10, -8}, Score{10, -16}, Score{10, -9}},
 		{Score{5, -45}, Score{66, -51}, Score{44, -32}, Score{9, -12}},
 		{Score{18, -34}, Score{44, -21}, Score{42, -3}, Score{19, 8}},
 		{Score{-1, -40}, Score{7, -33}, Score{10, -4}, Score{49, -2}},
 		{Score{-38, -24}, Score{0, -25}, Score{-3, -1}, Score{43, 3}},
 		{Score{-98, -3}, Score{-28, -27}, Score{-12, -5}, Score{-32, -16}},
-		{Score{-130, 0}, Score{37, -16}, Score{-25, 2}, Score{1, -25}},
+		{Score{-130, 0}, Score{37, -16}, Score{-25, 2}, Score{2, -25}},
 		{Score{-9, -48}, Score{-60, -33}, Score{-197, -9}, Score{-159, -7}},
 	},
 	{ // Rook
@@ -96,7 +96,7 @@ var pieceScores = [King + 1][8][4]Score{
 		{Score{41, 108}, Score{176, 133}, Score{106, 165}, Score{139, 155}},
 		{Score{161, 115}, Score{334, 135}, Score{372, 149}, Score{272, 119}},
 		{Score{70, 120}, Score{165, 145}, Score{178, 172}, Score{288, 129}},
-		{Score{47, 17}, Score{218, 63}, Score{73, 139}, Score{38, 101}},
+		{Score{47, 17}, Score{218, 63}, Score{73, 139}, Score{40, 101}},
 	},
 }
 
@@ -131,11 +131,11 @@ var mobilityBonus = [...][32]Score{
 	{Score{-47, -63}, Score{-59, -51}, Score{-35, 16}, Score{-17, 59}, Score{-6, 83}, Score{1, 100}, // Rooks
 		Score{7, 114}, Score{25, 116}, Score{26, 114}, Score{53, 115}, Score{59, 119}, Score{66, 124},
 		Score{82, 124}, Score{104, 115}, Score{156, 98}},
-	{Score{-39, -36}, Score{-24, -15}, Score{-8, -130}, Score{-16, -205}, Score{-3, -32}, Score{7, -42}, // Queens
+	{Score{-39, -36}, Score{-24, -15}, Score{-8, -131}, Score{-16, -205}, Score{-3, -32}, Score{7, -42}, // Queens
 		Score{6, -34}, Score{22, -2}, Score{29, 25}, Score{33, 37}, Score{38, 62}, Score{36, 79},
 		Score{49, 63}, Score{48, 105}, Score{53, 108}, Score{54, 122}, Score{53, 119}, Score{45, 122},
 		Score{65, 117}, Score{63, 137}, Score{111, 94}, Score{113, 94}, Score{118, 78}, Score{103, 56},
-		Score{116, 38}, Score{39, 59}, Score{-1, -1}, Score{5, 4}},
+		Score{116, 38}, Score{47, 58}, Score{-1, -1}, Score{5, 4}},
 }
 
 var passedFriendlyDistance = [8]Score{
@@ -203,7 +203,7 @@ var rookOnFile = [2]Score{Score{19, 37}, Score{97, -7}}
 var kingDefenders = [12]Score{
 	Score{-147, -1}, Score{-107, -8}, Score{-56, -3}, Score{-16, -2},
 	Score{4, 3}, Score{31, 3}, Score{52, 4}, Score{67, 3},
-	Score{85, 0}, Score{71, 7}, Score{12, 6}, Score{12, 6},
+	Score{85, 0}, Score{72, 7}, Score{12, 6}, Score{12, 6},
 }
 
 var kingShelter = [2][8][8]Score{
@@ -225,13 +225,13 @@ var kingShelter = [2][8][8]Score{
 			Score{-19, 15}, Score{-42, 32}, Score{-68, 13}, Score{-101, 58}}},
 	{{Score{1, -3}, Score{-77, -30}, Score{-31, -9}, Score{-108, -46},
 		Score{-18, -28}, Score{-62, -21}, Score{-136, 1}, Score{-113, 30}},
-		{Score{9, 32}, Score{-1, -27}, Score{-31, -13}, Score{-11, -8},
+		{Score{9, 32}, Score{-1, -28}, Score{-31, -13}, Score{-11, -8},
 			Score{-7, -9}, Score{2, -60}, Score{2, -28}, Score{-97, 31}},
 		{Score{11, 42}, Score{66, -10}, Score{18, -11}, Score{21, -17},
 			Score{18, 1}, Score{-40, -14}, Score{93, -25}, Score{-44, 8}},
 		{Score{4, 37}, Score{-58, 28}, Score{-34, 12}, Score{-43, 7},
 			Score{-43, 31}, Score{-112, 46}, Score{-46, -2}, Score{-73, 4}},
-		{Score{1, 86}, Score{3, 6}, Score{-4, 0}, Score{-9, -2},
+		{Score{0, 87}, Score{3, 6}, Score{-4, 0}, Score{-9, -2},
 			Score{-16, 10}, Score{-8, -12}, Score{-13, -21}, Score{-59, 13}},
 		{Score{7, -2}, Score{40, -19}, Score{-24, 1}, Score{-10, -19},
 			Score{-5, -12}, Score{-37, -23}, Score{17, -39}, Score{-52, 9}},
@@ -251,10 +251,10 @@ var kingStorm = [2][4][8]Score{
 		{Score{47, 17}, Score{2, 4}, Score{9, 2}, Score{-4, 6},
 			Score{-14, 19}, Score{5, 16}, Score{1, 9}, Score{-6, 0}}},
 	{{Score{0, 0}, Score{11, 22}, Score{-32, 11}, Score{35, -9},
-		Score{27, 21}, Score{-2, 20}, Score{8, 66}, Score{22, -38}},
+		Score{27, 21}, Score{-2, 20}, Score{40, 66}, Score{22, -38}},
 		{Score{0, 0}, Score{9, -50}, Score{-5, -13}, Score{99, -18},
 			Score{77, -21}, Score{-26, -1}, Score{1, 31}, Score{9, -34}},
-		{Score{0, 0}, Score{-127, 0}, Score{-60, -1}, Score{22, 2},
+		{Score{0, 0}, Score{-127, 2}, Score{-60, -1}, Score{22, 2},
 			Score{1, -3}, Score{-2, -14}, Score{83, -44}, Score{8, -9}},
 		{Score{0, 0}, Score{-1, -37}, Score{21, -29}, Score{-16, 0},
 			Score{-11, 0}, Score{7, -36}, Score{-6, 0}, Score{-11, 19}}},
