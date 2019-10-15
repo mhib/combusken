@@ -81,8 +81,8 @@ func newTournamentTimeManager(limits LimitsType, overhead, sideToMove int) *tour
 	var ideal, hard int
 
 	if movesToGo > 0 {
-		ideal = (((limit/movesToGo + 5) + inc) * 3) / 4
-		hard = ((limit/movesToGo + 7) + inc) * 4
+		ideal = (((limit / (movesToGo + 5)) + inc) * 3) / 4
+		hard = ((limit / (movesToGo + 7)) + inc) * 4
 	} else {
 		ideal = (limit + 25*inc) / 50
 		hard = 5 * (limit + 25*inc) / 50
