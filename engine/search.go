@@ -16,6 +16,10 @@ const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 
+const seePruningDepth = 6
+const seeQuietMargin = -199
+const seeNoisyMargin = -18
+
 const SMPCycles = 16
 
 const WindowSize = 50
@@ -212,6 +216,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	moveCount := 0
 	movesSorted := false
 	hashMoveChecked := false
+	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
 	var evaled []EvaledMove
 
 	// Check hashMove before move generation
@@ -283,13 +288,21 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				movesSorted = true
 			}
 		}
+		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
+		if !pvNode &&
+			val > ValueLoss &&
+			depth <= seePruningDepth &&
+			evaled[i].Value < MinGoodCapture &&
+			!SeeAbove(pos, evaled[i].Move, seeMargins[BoolToInt(isNoisy)]) {
+			continue
+		}
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
 			!childInCheck {
 			// Late Move Reduction
 			// https://www.chessprogramming.org/Late_Move_Reductions
@@ -317,12 +330,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		// Moves with positive SEE and gives check are searched with increased depth
 		if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
-			// Singular extension
-			// https://www.chessprogramming.org/Singular_Extensions
 		}
 
 		// Store move if it is quiet
-		if !evaled[i].Move.IsCaptureOrPromotion() {
+		if !isNoisy {
 			quietsSearched = append(quietsSearched, evaled[i].Move)
 		}
 
