@@ -241,7 +241,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				}
 			}
 			// Store move if it is quiet
-			if hashMove.IsCaptureOrPromotion() {
+			if !hashMove.IsCaptureOrPromotion() {
 				quietsSearched = append(quietsSearched, hashMove)
 			}
 
