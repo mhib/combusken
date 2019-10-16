@@ -66,6 +66,8 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 	}
 }
 
+const MinGoodCapture = 20001
+
 func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
 	var counter Move
 	if pos.LastMove != NullMove {
