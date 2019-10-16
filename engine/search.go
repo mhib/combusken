@@ -24,6 +24,8 @@ const WindowDepth = 6
 const QSDepthChecks = 0
 const QSDepthNoChecks = -1
 
+var FutilityMargin = PawnValue.Middle * 9 / 10
+
 var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
 var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
@@ -307,7 +309,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				}
 				// Futility move pruning
 				// https://www.chessprogramming.org/Futility_Pruning
-				if lazyEval.Value()+int(PawnValue.Middle)*depth <= alpha {
+				if lazyEval.Value()+int(FutilityMargin)*depth <= alpha {
 					continue
 				}
 			}
