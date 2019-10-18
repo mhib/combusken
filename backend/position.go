@@ -263,6 +263,10 @@ func (pos *Position) GenerateAllLegalMoves() []EvaledMove {
 	return result
 }
 
+func (pos *Position) IsAdvancedPawnPush(move Move) bool {
+	return move.MovedPiece() == Pawn && RelativeRank[pos.SideToMove][Rank(move.To())] > RANK_5
+}
+
 func (pos *Position) MakeLegalMove(move Move, res *Position) {
 	res.Colours[Black] = pos.Colours[Black]
 	res.Colours[White] = pos.Colours[White]

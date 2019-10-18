@@ -289,8 +289,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
-			!childInCheck {
+		if !inCheck && !childInCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !evaled[i].Move.IsCaptureOrPromotion() &&
+			!pos.IsAdvancedPawnPush(evaled[i].Move) {
 			// Late Move Reduction
 			// https://www.chessprogramming.org/Late_Move_Reductions
 			if depth >= 3 {
@@ -498,8 +498,8 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		}
 		reduction := 0
 		childInCheck := child.IsInCheck()
-		if !inCheck && moveCount > 1 && moves[i].Value <= MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
-			!childInCheck {
+		if !inCheck && !childInCheck && moveCount > 1 && moves[i].Value <= MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
+			!pos.IsAdvancedPawnPush(moves[i].Move) {
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount) - 1
 				reduction = Max(0, Min(depth-2, reduction))
