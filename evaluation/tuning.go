@@ -511,16 +511,15 @@ func (t *tuner) calculateGradient(batchSize int) []EvaluationGradientVariable {
 
 func (t *tuner) gradientDescent() bool {
 	anyImprovements := false
-	var bestError, bestErrorRegularization float64
 	const momentumRatio = 0.1
 	prevGradient := make([]EvaluationGradientVariable, len(t.weights))
 	for idx, weight := range t.weights {
 		prevGradient[idx].phases = make([]float64, weight.phaseCount())
 	}
-	bestError = t.computeError(len(t.entries))
-	bestErrorRegularization = t.regularization()
+	t.bestError = t.computeError(len(t.entries))
+	t.bestErrorRegularization = t.regularization()
 	t.saveEvaluationValues()
-	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", bestError, bestErrorRegularization)
+	fmt.Printf("Initial values; error: %.17g; regularization: %.17g\n", t.bestError, t.bestErrorRegularization)
 	fmt.Println(t.weights)
 	batchSize := len(t.entries) / 10
 	iterationsSinceImprovement := 0
@@ -565,9 +564,9 @@ func (t *tuner) gradientDescent() bool {
 		fmt.Printf("Iteration %d; error: %.17g; regularization: %.17g\n", iter+1, currentError, currentRegularization)
 		fmt.Println(t.weights)
 
-		if currentError+currentRegularization < bestError+bestErrorRegularization {
-			bestError = currentError
-			bestErrorRegularization = currentRegularization
+		if currentError+currentRegularization < t.bestError+t.bestErrorRegularization {
+			t.bestError = currentError
+			t.bestErrorRegularization = currentRegularization
 			t.saveEvaluationValues()
 			iterationsSinceImprovement = 0
 			anyImprovements = true
@@ -577,7 +576,7 @@ func (t *tuner) gradientDescent() bool {
 			break
 		}
 	}
-	fmt.Printf("error: %.17g; regularization: %.17g\n", bestError, bestErrorRegularization)
+	fmt.Printf("error: %.17g; regularization: %.17g\n", t.bestError, t.bestErrorRegularization)
 	fmt.Println(t.bestWeights)
 	return anyImprovements
 }
