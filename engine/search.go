@@ -139,6 +139,17 @@ func maxMoveToFirst(moves []EvaledMove) {
 	moves[0], moves[maxIdx] = moves[maxIdx], moves[0]
 }
 
+func moveToFirst(moves []EvaledMove, move Move) {
+	currentIdx := 0
+	for i := 0; i < len(moves); i++ {
+		if moves[i].Move == move {
+			currentIdx = i
+			break
+		}
+	}
+	moves[0], moves[currentIdx] = moves[currentIdx], moves[0]
+}
+
 func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
@@ -264,11 +275,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Generate moves if not generated in hashMove Check
 	if !movesSorted {
 		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
-		t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 		if hashMoveChecked {
-			maxMoveToFirst(evaled)
+			moveToFirst(evaled, hashMove)
 			evaled = evaled[1:] // Ignore hash move
 		}
+		t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 	}
 
 	for i := range evaled {
@@ -338,7 +349,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if (reduction > 0 && tmpVal > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
 			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
-		// If Node and first move or search with null window exceeded alpha, search with full window
+		// If pvNode and first move or search with null window exceeded alpha, search with full window
 		if pvNode && (moveCount == 1 || tmpVal > alpha) {
 			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 		}
