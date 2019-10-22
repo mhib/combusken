@@ -187,7 +187,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	// Node is not pv if it is searched with null window
-	pvNode := alpha != beta+1
+	pvNode := alpha != beta-1
 	// https://en.wikipedia.org/wiki/Lazy_evaluation
 	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
 
