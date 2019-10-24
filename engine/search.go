@@ -162,12 +162,15 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	var tmpVal int
 
+	// Node is not pv if it is searched with null window
+	pvNode := alpha != beta-1
+
 	alphaOrig := alpha
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.engine.TransTable.Get(pos.Key, height)
 	if hashOk {
 		tmpVal = int(hashValue)
 		// Hash pruning
-		if hashDepth >= int16(depth) {
+		if hashDepth >= int16(depth) && (depth == 0 || !pvNode) {
 			if hashFlag == TransExact {
 				return tmpVal
 			}
@@ -179,15 +182,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 	}
-
 	var child *Position = &t.stack[height+1].position
 
 	if depth <= 0 {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
 
-	// Node is not pv if it is searched with null window
-	pvNode := alpha != beta-1
 	// https://en.wikipedia.org/wiki/Lazy_evaluation
 	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
 
