@@ -32,7 +32,7 @@ type Engine struct {
 	done         <-chan struct{}
 	TransTable
 	evaluation.PawnKingTable
-	MoveHistory map[uint64]int
+	MoveHistory []uint64
 	MovesCount  int
 	Update      func(SearchInfo)
 	timeManager
@@ -131,9 +131,9 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 
 func (e *Engine) fillMoveHistory(positions []backend.Position) {
 	e.MovesCount = len(positions) - 1
-	e.MoveHistory = make(map[uint64]int)
-	for i := len(positions) - 1; i >= 0; i-- {
-		e.MoveHistory[positions[i].Key]++
+	e.MoveHistory = make([]uint64, 0, e.MovesCount)
+	for i := e.MovesCount; i >= 0; i-- {
+		e.MoveHistory = append(e.MoveHistory, positions[i].Key)
 		if positions[i].FiftyMove == 0 {
 			break
 		}

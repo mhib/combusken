@@ -440,13 +440,13 @@ func (t *thread) isDraw(height int) bool {
 		return true
 	}
 
-	// Cannot mate with only one minor piece and no pawns
 	if (pos.Pieces[Pawn]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 &&
-		!MoreThanOne(pos.Pieces[Knight]|pos.Pieces[Bishop]) {
+		(!MoreThanOne(pos.Pieces[Knight]|pos.Pieces[Bishop]) ||
+			pos.Pieces[Bishop] == 0 && PopCount(pos.Pieces[Knight]) <= 2) {
 		return true
 	}
 
-	// Look for repetitoin in current search stack
+	// Look for repetition in current search stack
 	for i := height - 1; i >= 0; i-- {
 		descendant := &t.stack[i].position
 		if descendant.Key == pos.Key {
@@ -457,9 +457,19 @@ func (t *thread) isDraw(height int) bool {
 		}
 	}
 
-	// Check for repetition in already played positions
-	if t.engine.MoveHistory[pos.Key] >= 2 {
-		return true
+	// Cannot be three fold repetition
+	// if only 7 move since last noisy move
+	if len(t.engine.MoveHistory) <= 7 {
+		return false
+	}
+	rep := 0
+	for i := range t.engine.MoveHistory {
+		if t.engine.MoveHistory[i] == pos.Key {
+			rep++
+			if rep > 1 {
+				return true
+			}
+		}
 	}
 
 	return false
