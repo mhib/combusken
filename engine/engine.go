@@ -32,9 +32,10 @@ type Engine struct {
 	done         <-chan struct{}
 	TransTable
 	evaluation.PawnKingTable
-	MoveHistory []uint64
-	MovesCount  int
-	Update      func(SearchInfo)
+	RepeatedPositions           []uint64
+	MovesCount                  int
+	Update                      func(SearchInfo)
+	RepeatedPositionBloomFilter uint64
 	timeManager
 	threads []thread
 }
@@ -131,11 +132,19 @@ func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.
 
 func (e *Engine) fillMoveHistory(positions []backend.Position) {
 	e.MovesCount = len(positions) - 1
-	e.MoveHistory = make([]uint64, 0, e.MovesCount)
+	e.RepeatedPositions = make([]uint64, 0, 16)
+	history := make(map[uint64]int)
+	e.RepeatedPositionBloomFilter = 0
 	for i := e.MovesCount; i >= 0; i-- {
-		e.MoveHistory = append(e.MoveHistory, positions[i].Key)
+		history[positions[i].Key]++
 		if positions[i].FiftyMove == 0 {
 			break
+		}
+	}
+	for key, value := range history {
+		if value > 1 {
+			e.RepeatedPositionBloomFilter |= key
+			e.RepeatedPositions = append(e.RepeatedPositions, key)
 		}
 	}
 }

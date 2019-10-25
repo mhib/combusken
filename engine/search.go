@@ -457,18 +457,12 @@ func (t *thread) isDraw(height int) bool {
 		}
 	}
 
-	// Cannot be three fold repetition
-	// if only 7 move since last noisy move
-	if len(t.engine.MoveHistory) <= 7 {
+	if t.engine.RepeatedPositionBloomFilter&pos.Key == 0 {
 		return false
 	}
-	rep := 0
-	for i := range t.engine.MoveHistory {
-		if t.engine.MoveHistory[i] == pos.Key {
-			rep++
-			if rep > 1 {
-				return true
-			}
+	for i := range t.engine.RepeatedPositions {
+		if t.engine.RepeatedPositions[i] == pos.Key {
+			return true
 		}
 	}
 
