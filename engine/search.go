@@ -79,7 +79,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	if inCheck {
 		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
 	} else {
-		// Early return if not check and evaluation exceeded beta
+		// Early return if not in check and evaluation exceeded beta
 		if val >= beta {
 			return beta
 		}
@@ -93,7 +93,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	for i := range evaled {
 		maxMoveToFirst(evaled[i:])
-		// Ignore move with negative SEE unless checked
+		// Ignore move with negative SEE unless in check
 		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
