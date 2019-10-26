@@ -196,7 +196,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
 
 	// Null move pruning
-	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(lazyEval.Value()) >= beta {
+	if !pvNode && !inCheck && pos.LastMove != NullMove && depth >= 2 && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(lazyEval.Value()) >= beta {
 		pos.MakeNullMove(child)
 		reduction := Max(1+depth/3, 3)
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
