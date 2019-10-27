@@ -22,7 +22,7 @@ const seeNoisyMargin = -18
 
 const SMPCycles = 16
 
-const WindowSize = 40
+const WindowSize = 55
 const WindowDepth = 6
 
 const QSDepthChecks = 0
