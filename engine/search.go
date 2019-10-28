@@ -441,8 +441,7 @@ func (t *thread) isDraw(height int) bool {
 	}
 
 	if (pos.Pieces[Pawn]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 &&
-		(!MoreThanOne(pos.Pieces[Knight]|pos.Pieces[Bishop]) ||
-			pos.Pieces[Bishop] == 0 && PopCount(pos.Pieces[Knight]) <= 2) {
+		!MoreThanOne(pos.Pieces[Knight]|pos.Pieces[Bishop]) {
 		return true
 	}
 
