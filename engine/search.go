@@ -458,7 +458,7 @@ func (t *thread) isDraw(height int) bool {
 	}
 
 	// Check for repetition in already played positions
-	if t.engine.MoveHistory[pos.Key] >= 2 {
+	if _, found := t.engine.RepeatedPositions[pos.Key]; found {
 		return true
 	}
 
