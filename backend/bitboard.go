@@ -59,24 +59,6 @@ const (
 var RANKS = [...]uint64{RANK_1_BB, RANK_2_BB, RANK_3_BB, RANK_4_BB, RANK_5_BB, RANK_6_BB, RANK_7_BB, RANK_8_BB}
 var FILES = [...]uint64{FILE_A_BB, FILE_B_BB, FILE_C_BB, FILE_D_BB, FILE_E_BB, FILE_F_BB, FILE_G_BB, FILE_H_BB}
 
-func getRank(mask uint64) uint64 {
-	for i := range RANKS {
-		if mask&RANKS[i] != 0 {
-			return RANKS[i]
-		}
-	}
-	return 0
-}
-
-func getFile(mask uint64) uint64 {
-	for i := range FILES {
-		if mask&FILES[i] != 0 {
-			return FILES[i]
-		}
-	}
-	return 0
-}
-
 func File(id int) int {
 	return id & 7
 }
