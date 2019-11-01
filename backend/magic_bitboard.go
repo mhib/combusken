@@ -92,8 +92,8 @@ func initBishopBlockerBoard() (bishopBlockerBoard [][]uint64) {
 }
 
 func initRookMoveBoard(rookBlockerBoard [][]uint64) {
-	for y, position := range rookBlockerBoard {
-		for x, board := range position {
+	for y, boards := range rookBlockerBoard {
+		for x, board := range boards {
 			rookMoveBoard[y][x] = generateRookMoveBoard(y, board)
 		}
 	}
@@ -180,8 +180,8 @@ func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
 }
 
 func initBishopMoveBoard(bishopBlockerBoard [][]uint64) {
-	for y, position := range bishopBlockerBoard {
-		for x, board := range position {
+	for y, boards := range bishopBlockerBoard {
+		for x, board := range boards {
 			bishopMoveBoard[y][x] = generateBishopMoveBoard(y, board)
 		}
 	}
