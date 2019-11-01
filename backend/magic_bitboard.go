@@ -265,7 +265,7 @@ func initRookAttacks(rookBlockerBoard [][]uint64) {
 			rookAttacks[idx][mult] = rookMoveBoard[idx][innerIdx]
 		}
 	}
-	rookMoveBoard = rookAttacks
+	copy(rookMoveBoard[:], rookAttacks[:])
 }
 
 func initBishopAttacks(bishopBlockerBoard [][]uint64) {
@@ -276,5 +276,5 @@ func initBishopAttacks(bishopBlockerBoard [][]uint64) {
 			bishopAttacks[idx][mult] = bishopMoveBoard[idx][innerIdx]
 		}
 	}
-	bishopMoveBoard = bishopAttacks
+	copy(bishopMoveBoard[:], bishopAttacks[:])
 }
