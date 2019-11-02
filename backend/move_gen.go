@@ -43,12 +43,17 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 					size++
 				}
 			} else {
-				toMask = fromMask << 8
+				toId = fromId + 8
+				toMask = SquareMask[toId]
 				if allOccupation&toMask == 0 {
-					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, 0)
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, 0)
 					size++
-					if fromMask&RANK_2_BB != 0 && allOccupation&(fromMask<<16) == 0 {
-						buffer[size].Move = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
+
+					// Double pawn push
+					toId = fromId + 16
+					toMask = SquareMask[toId]
+					if fromMask&RANK_2_BB != 0 && allOccupation&toMask == 0 {
+						buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 0, 0, 1))
 						size++
 					}
 				}
@@ -84,21 +89,20 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			fromMask = SquareMask[uint(fromId)]
 			if fromMask&RANK_2_BB != 0 {
-				toMask = fromMask >> 8
-				if allOccupation&toMask == 0 {
-					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
+				toId = fromId - 8
+				if allOccupation&SquareMask[toId] == 0 {
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 1, 1, 1))
 					size++
-					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 0))
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 1, 1, 0))
 					size++
-					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 1))
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 1, 0, 1))
 					size++
-					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 0, 0))
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 1, 0, 0))
 					size++
 				}
 				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
-					toMask = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(toMask)
+					captureType := pos.TypeOnSquare(SquareMask[uint(toId)])
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
 					size++
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
@@ -109,12 +113,17 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 					size++
 				}
 			} else {
-				toMask = SquareMask[fromId-8]
+				toId = fromId - 8
+				toMask = SquareMask[uint(toId)]
 				if allOccupation&toMask == 0 {
-					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, 0)
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, 0)
 					size++
-					if fromMask&RANK_7_BB != 0 && allOccupation&(fromMask>>16) == 0 {
-						buffer[size].Move = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
+
+					// Double pawn push
+					toId = fromId - 16
+					toMask = SquareMask[toId]
+					if fromMask&RANK_7_BB != 0 && allOccupation&(toMask) == 0 {
+						buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 0, 0, 1))
 						size++
 					}
 				}
