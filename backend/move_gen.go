@@ -7,7 +7,7 @@ type EvaledMove struct {
 
 func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	var size = 0
-	var fromBB, from, toBB, to uint64
+	var fromBB, from, toBB, toMask uint64
 	var fromId, toId int
 	ourOccupation := pos.Colours[pos.SideToMove]
 	theirOccupation := pos.Colours[pos.SideToMove^1]
@@ -18,8 +18,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			from = SquareMask[uint(fromId)]
 			if from&RANK_7_BB != 0 {
-				to = from << 8
-				if allOccupation&to == 0 {
+				toMask = from << 8
+				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
 					size++
 					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 0, 1))
@@ -31,8 +31,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				}
 				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
-					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
+					toMask = SquareMask[uint(toId)]
+					captureType := pos.TypeOnSquare(toMask)
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
 					size++
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 0, 1))
@@ -43,8 +43,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 					size++
 				}
 			} else {
-				to = from << 8
-				if allOccupation&to == 0 {
+				toMask = from << 8
+				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, 0)
 					size++
 					if from&RANK_2_BB != 0 && allOccupation&(from<<16) == 0 {
@@ -54,7 +54,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				}
 				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
-					to = SquareMask[toId]
+					toMask = SquareMask[toId]
 					captureType := pos.TypeOnSquare(SquareMask[toId])
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
 					size++
@@ -84,8 +84,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			from = SquareMask[uint(fromId)]
 			if from&RANK_2_BB != 0 {
-				to = from >> 8
-				if allOccupation&to == 0 {
+				toMask = from >> 8
+				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
 					size++
 					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 0))
@@ -97,8 +97,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				}
 				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
-					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
+					toMask = SquareMask[uint(toId)]
+					captureType := pos.TypeOnSquare(toMask)
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 1))
 					size++
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 1, 1, 0))
@@ -109,8 +109,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 					size++
 				}
 			} else {
-				to = SquareMask[fromId-8]
-				if allOccupation&to == 0 {
+				toMask = SquareMask[fromId-8]
+				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, 0)
 					size++
 					if from&RANK_7_BB != 0 && allOccupation&(from>>16) == 0 {
@@ -120,8 +120,8 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				}
 				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
-					to = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(to)
+					toMask = SquareMask[uint(toId)]
+					captureType := pos.TypeOnSquare(toMask)
 					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
 					size++
 				}
@@ -152,9 +152,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = KnightAttacks[fromId] & ^ourOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			if to&theirOccupation != 0 {
-				buffer[size].Move = NewMove(fromId, toId, Knight, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+			toMask = SquareMask[uint(toId)]
+			if toMask&theirOccupation != 0 {
+				buffer[size].Move = NewMove(fromId, toId, Knight, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
 				size++
 			} else {
 				buffer[size].Move = NewMove(fromId, toId, Knight, None, NewType(0, 0, 0, 0))
@@ -169,9 +169,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	fromId = BitScan(from)
 	for toBB = KingAttacks[fromId] & ^ourOccupation; toBB != 0; toBB &= (toBB - 1) {
 		toId = BitScan(toBB)
-		to = SquareMask[uint(toId)]
-		if to&theirOccupation != 0 {
-			buffer[size].Move = NewMove(fromId, toId, King, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+		toMask = SquareMask[uint(toId)]
+		if toMask&theirOccupation != 0 {
+			buffer[size].Move = NewMove(fromId, toId, King, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
 			size++
 		} else {
 			buffer[size].Move = NewMove(fromId, toId, King, None, NewType(0, 0, 0, 0))
@@ -185,9 +185,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = RookAttacks(fromId, allOccupation) & ^ourOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			if to&theirOccupation != 0 {
-				buffer[size].Move = NewMove(fromId, toId, Rook, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+			toMask = SquareMask[uint(toId)]
+			if toMask&theirOccupation != 0 {
+				buffer[size].Move = NewMove(fromId, toId, Rook, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
 				size++
 			} else {
 				buffer[size].Move = NewMove(fromId, toId, Rook, None, NewType(0, 0, 0, 0))
@@ -202,9 +202,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = BishopAttacks(fromId, allOccupation) & ^ourOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			if to&theirOccupation != 0 {
-				buffer[size].Move = NewMove(fromId, toId, Bishop, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+			toMask = SquareMask[uint(toId)]
+			if toMask&theirOccupation != 0 {
+				buffer[size].Move = NewMove(fromId, toId, Bishop, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
 				size++
 			} else {
 				buffer[size].Move = NewMove(fromId, toId, Bishop, None, NewType(0, 0, 0, 0))
@@ -219,9 +219,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = QueenAttacks(fromId, allOccupation) & ^ourOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			if to&theirOccupation != 0 {
-				buffer[size].Move = NewMove(fromId, toId, Queen, pos.TypeOnSquare(to), NewType(1, 0, 0, 0))
+			toMask = SquareMask[uint(toId)]
+			if toMask&theirOccupation != 0 {
+				buffer[size].Move = NewMove(fromId, toId, Queen, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
 				size++
 			} else {
 				buffer[size].Move = NewMove(fromId, toId, Queen, None, NewType(0, 0, 0, 0))
@@ -235,7 +235,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 }
 
 func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
-	var fromBB, toBB, to uint64
+	var fromBB, toBB, toMask uint64
 	var fromId, toId, what int
 
 	ourOccupation := pos.Colours[pos.SideToMove]
@@ -331,8 +331,8 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = KnightAttacks[fromId] & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
+			toMask = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(toMask)
 			buffer[size] = EvaledMove{NewMove(fromId, toId, Knight, what, NewType(1, 0, 0, 0)), 0}
 			size++
 		}
@@ -344,8 +344,8 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = BishopAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
+			toMask = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(toMask)
 			buffer[size] = EvaledMove{NewMove(fromId, toId, Bishop, what, NewType(1, 0, 0, 0)), 0}
 			size++
 		}
@@ -357,8 +357,8 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = RookAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
+			toMask = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(toMask)
 			buffer[size] = EvaledMove{NewMove(fromId, toId, Rook, what, NewType(1, 0, 0, 0)), 0}
 			size++
 		}
@@ -370,8 +370,8 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		fromId = BitScan(fromBB)
 		for toBB = QueenAttacks(fromId, allOccupation) & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 			toId = BitScan(toBB)
-			to = SquareMask[uint(toId)]
-			what = pos.TypeOnSquare(to)
+			toMask = SquareMask[uint(toId)]
+			what = pos.TypeOnSquare(toMask)
 			buffer[size] = EvaledMove{NewMove(fromId, toId, Queen, what, NewType(1, 0, 0, 0)), 0}
 			size++
 		}
@@ -383,8 +383,8 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 	fromId = BitScan(fromBB)
 	for toBB = KingAttacks[fromId] & theirOccupation; toBB != 0; toBB &= (toBB - 1) {
 		toId = BitScan(toBB)
-		to = SquareMask[uint(toId)]
-		what = pos.TypeOnSquare(to)
+		toMask = SquareMask[uint(toId)]
+		what = pos.TypeOnSquare(toMask)
 		buffer[size] = EvaledMove{NewMove(fromId, toId, King, what, NewType(1, 0, 0, 0)), 0}
 		size++
 	}
