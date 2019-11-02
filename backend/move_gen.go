@@ -60,8 +60,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					toMask = SquareMask[toId]
-					captureType := pos.TypeOnSquare(SquareMask[toId])
-					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
+					buffer[size].Move = NewMove(fromId, toId, Pawn, pos.TypeOnSquare(SquareMask[toId]), NewType(1, 0, 0, 0))
 					size++
 				}
 			}
@@ -130,8 +129,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
 					toId = BitScan(toBB)
 					toMask = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(toMask)
-					buffer[size].Move = NewMove(fromId, toId, Pawn, captureType, NewType(1, 0, 0, 0))
+					buffer[size].Move = NewMove(fromId, toId, Pawn, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
 					size++
 				}
 			}
@@ -269,26 +267,16 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 					buffer[size] = EvaledMove{NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1)), 0}
 					size++
 				}
-				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+7])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 1, 1, 1)), 0}
-					size++
-				}
-				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+9])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 1, 1, 1)), 0}
-					size++
+				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
+					toId = BitScan(toBB)
+					what = pos.TypeOnSquare(SquareMask[uint(toId)])
+					buffer[size] = EvaledMove{NewMove(fromId, toId, Pawn, None, NewType(1, 1, 1, 1)), 0}
 				}
 			} else {
-				if File(fromId) > FILE_A && (SquareMask[fromId+7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+7])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId+7, Pawn, what, NewType(1, 0, 0, 0)), 0}
-					size++
-				}
-				if File(fromId) < FILE_H && (SquareMask[fromId+9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId+9])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId+9, Pawn, what, NewType(1, 0, 0, 0)), 0}
-					size++
+				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
+					toId = BitScan(toBB)
+					what = pos.TypeOnSquare(SquareMask[uint(toId)])
+					buffer[size] = EvaledMove{NewMove(fromId, toId, Pawn, None, NewType(1, 0, 0, 0)), 0}
 				}
 			}
 		}
@@ -308,26 +296,16 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 					buffer[size] = EvaledMove{NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1)), 0}
 					size++
 				}
-				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-9])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 1, 1, 1)), 0}
-					size++
-				}
-				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-7])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 1, 1, 1)), 0}
-					size++
+				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
+					toId = BitScan(toBB)
+					what = pos.TypeOnSquare(SquareMask[uint(toId)])
+					buffer[size] = EvaledMove{NewMove(fromId, toId, Pawn, None, NewType(1, 1, 1, 1)), 0}
 				}
 			} else {
-				if File(fromId) > FILE_A && (SquareMask[fromId-9]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-9])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId-9, Pawn, what, NewType(1, 0, 0, 0)), 0}
-					size++
-				}
-				if File(fromId) < FILE_H && (SquareMask[fromId-7]&theirOccupation) != 0 {
-					what = pos.TypeOnSquare(SquareMask[fromId-7])
-					buffer[size] = EvaledMove{NewMove(fromId, fromId-7, Pawn, what, NewType(1, 0, 0, 0)), 0}
-					size++
+				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
+					toId = BitScan(toBB)
+					what = pos.TypeOnSquare(SquareMask[uint(toId)])
+					buffer[size] = EvaledMove{NewMove(fromId, toId, Pawn, None, NewType(1, 0, 0, 0)), 0}
 				}
 			}
 		}
