@@ -7,7 +7,7 @@ type EvaledMove struct {
 
 func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	var size = 0
-	var fromBB, from, toBB, toMask uint64
+	var fromBB, fromMask, toBB, toMask uint64
 	var fromId, toId int
 	ourOccupation := pos.Colours[pos.SideToMove]
 	theirOccupation := pos.Colours[pos.SideToMove^1]
@@ -16,9 +16,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	if pos.SideToMove == White {
 		for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB > 0; fromBB &= (fromBB - 1) {
 			fromId = BitScan(fromBB)
-			from = SquareMask[uint(fromId)]
-			if from&RANK_7_BB != 0 {
-				toMask = from << 8
+			fromMask = SquareMask[uint(fromId)]
+			if fromMask&RANK_7_BB != 0 {
+				toMask = fromMask << 8
 				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
 					size++
@@ -43,11 +43,11 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 					size++
 				}
 			} else {
-				toMask = from << 8
+				toMask = fromMask << 8
 				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, 0)
 					size++
-					if from&RANK_2_BB != 0 && allOccupation&(from<<16) == 0 {
+					if fromMask&RANK_2_BB != 0 && allOccupation&(fromMask<<16) == 0 {
 						buffer[size].Move = NewMove(fromId, fromId+16, Pawn, None, NewType(0, 0, 0, 1))
 						size++
 					}
@@ -82,9 +82,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	} else {
 		for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB > 0; fromBB &= (fromBB - 1) {
 			fromId = BitScan(fromBB)
-			from = SquareMask[uint(fromId)]
-			if from&RANK_2_BB != 0 {
-				toMask = from >> 8
+			fromMask = SquareMask[uint(fromId)]
+			if fromMask&RANK_2_BB != 0 {
+				toMask = fromMask >> 8
 				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
 					size++
@@ -113,7 +113,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 				if allOccupation&toMask == 0 {
 					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, 0)
 					size++
-					if from&RANK_7_BB != 0 && allOccupation&(from>>16) == 0 {
+					if fromMask&RANK_7_BB != 0 && allOccupation&(fromMask>>16) == 0 {
 						buffer[size].Move = NewMove(fromId, fromId-16, Pawn, None, NewType(0, 0, 0, 1))
 						size++
 					}
@@ -165,8 +165,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	// end of knights
 
 	// Kings
-	from = pos.Pieces[King] & ourOccupation
-	fromId = BitScan(from)
+	fromId = BitScan(pos.Pieces[King] & ourOccupation)
 	for toBB = KingAttacks[fromId] & ^ourOccupation; toBB != 0; toBB &= (toBB - 1) {
 		toId = BitScan(toBB)
 		toMask = SquareMask[uint(toId)]
