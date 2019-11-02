@@ -202,26 +202,11 @@ func (pos *Position) IsSquareAttacked(square, side int) bool {
 }
 
 func (pos *Position) Print() {
+	pieceChar := "pnbrqk."
 	for y := 7; y >= 0; y-- {
 		for x := 0; x <= 7; x++ {
-			bb := uint64(1) << uint64(8*y+x)
-			var char byte
-			switch pos.TypeOnSquare(bb) {
-			case Pawn:
-				char = 'p'
-			case Knight:
-				char = 'n'
-			case Bishop:
-				char = 'b'
-			case Rook:
-				char = 'r'
-			case Queen:
-				char = 'q'
-			case King:
-				char = 'k'
-			default:
-				char = '.'
-			}
+			bb := SquareMask[8*y+x]
+			char := pieceChar[pos.TypeOnSquare(bb)]
 			if pos.Colours[White]&bb != 0 {
 				fmt.Print(strings.ToUpper(string(char)))
 			} else {
