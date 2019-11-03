@@ -288,16 +288,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	for i := range evaled {
-		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
-			// Sort first 4 moves with selection sort
-			if i < 4 {
-				maxMoveToFirst(evaled[i:])
-			} else if i == 4 {
-				// Sort rest of moves with shell sort
-				sortMoves(evaled[i:])
-				movesSorted = true
-			}
+			maxMoveToFirst(evaled[i:])
 		}
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
 		if val > ValueLoss &&
