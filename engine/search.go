@@ -300,6 +300,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				movesSorted = true
 			}
 		}
+		lastMoveValue = evaled[i].Value
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
 		if val > ValueLoss &&
 			depth <= seePruningDepth &&
@@ -312,7 +313,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			continue
 		}
 		moveCount++
-		lastMoveValue = evaled[i].Value
 		childInCheck := child.IsInCheck()
 		reduction := 0
 		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
