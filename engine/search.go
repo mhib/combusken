@@ -292,7 +292,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
 			// Sort first few moves with selection sort
-			if lastMoveValue >= MinSpecialMoveValue && (i <= 4 || len(evaled)-i <= 4) {
+			if (lastMoveValue >= MinSpecialMoveValue && i <= 4) || len(evaled)-i <= 4 {
 				maxMoveToFirst(evaled[i:])
 			} else {
 				// Sort rest of moves with shell sort
