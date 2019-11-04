@@ -228,8 +228,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	movesSorted := false
 	hashMoveChecked := false
 	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
-	lastMoveValue := MinSpecialMoveValue + 1
 	var evaled []EvaledMove
+	evaledLen := 0
 
 	// Check hashMove before move generation
 	if pos.IsMovePseudoLegal(hashMove) {
@@ -253,6 +253,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				sortMoves(evaled)
 				movesSorted = true
 				evaled = evaled[1:]
+				evaledLen = len(evaled)
 				if t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
 					newDepth++
 				}
@@ -286,13 +287,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			evaled = evaled[1:] // Ignore hash move
 		}
 		t.EvaluateMoves(pos, evaled, hashMove, height, depth)
+		evaledLen = len(evaled)
 	}
 
 	for i := range evaled {
 		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
 			// Sort first few moves with selection sort
-			if (lastMoveValue >= MinSpecialMoveValue && i <= 4) || len(evaled)-i <= 4 {
+			if i < 4 || evaledLen-i < 4 {
 				maxMoveToFirst(evaled[i:])
 			} else {
 				// Sort rest of moves with shell sort
@@ -300,7 +302,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				movesSorted = true
 			}
 		}
-		lastMoveValue = evaled[i].Value
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
 		if val > ValueLoss &&
 			depth <= seePruningDepth &&
