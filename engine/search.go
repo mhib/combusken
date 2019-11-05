@@ -295,7 +295,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if !movesSorted {
 			// Sort first few moves with selection sort
 			if i < 3 || evaledLen-i < 3 {
-				maxMoveToFirst(evaled[i:])
+				maxIdx := i
+				for idx := i + 1; idx < evaledLen; idx++ {
+					if evaled[idx].Value > evaled[maxIdx].Value {
+						maxIdx = idx
+					}
+				}
+				evaled[i], evaled[maxIdx] = evaled[maxIdx], evaled[i]
 			} else {
 				// Sort rest of moves with shell sort
 				sortMoves(evaled[i:])
