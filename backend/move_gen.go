@@ -66,7 +66,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			}
 		}
 		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
+			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
 			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[White]; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[size].Move = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
@@ -135,7 +135,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			}
 		}
 		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
+			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
 			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[Black]; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[size].Move = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
@@ -253,7 +253,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 	// PAWNS
 	if pos.SideToMove == White {
 		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
+			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
 			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[White]; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[size].Move = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
@@ -282,7 +282,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 		}
 	} else {
 		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
+			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
 			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[Black]; fromBB > 0; fromBB &= (fromBB - 1) {
 				fromId = BitScan(fromBB)
 				buffer[size].Move = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
