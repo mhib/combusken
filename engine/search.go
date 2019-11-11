@@ -229,7 +229,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	hashMoveChecked := false
 	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
 	var evaled []EvaledMove
-	evaledLen := 0
 
 	// Check hashMove before move generation
 	if pos.IsMovePseudoLegal(hashMove) {
@@ -253,7 +252,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				sortMoves(evaled)
 				movesSorted = true
 				evaled = evaled[1:]
-				evaledLen = len(evaled)
 				if t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
 					newDepth++
 				}
@@ -287,16 +285,15 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			evaled = evaled[1:] // Ignore hash move
 		}
 		t.EvaluateMoves(pos, evaled, hashMove, height, depth)
-		evaledLen = len(evaled)
 	}
 
 	for i := range evaled {
 		// Move might have been already sorted if singularity have been checked
 		if !movesSorted {
 			// Sort first few moves with selection sort
-			if i < 3 || evaledLen-i < 3 {
+			if i < 3 || len(evaled)-i < 3 {
 				maxIdx := i
-				for idx := i + 1; idx < evaledLen; idx++ {
+				for idx := i + 1; idx < len(evaled); idx++ {
 					if evaled[idx].Value > evaled[maxIdx].Value {
 						maxIdx = idx
 					}
