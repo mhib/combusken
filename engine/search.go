@@ -17,8 +17,8 @@ const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 
 const seePruningDepth = 8
-const seeQuietMargin = -80
-const seeNoisyMargin = -18
+const seeQuietMargin = -100
+const seeNoisyMargin = -25
 
 const SMPCycles = 16
 
