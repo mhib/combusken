@@ -157,7 +157,6 @@ func moveToFirst(moves []EvaledMove, move Move) {
 func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
-	t.stack[height].InvalidateEvaluation()
 
 	var pos *Position = &t.stack[height].position
 
@@ -192,6 +191,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	if depth <= 0 {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
+
+	t.stack[height].InvalidateEvaluation()
 
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation(t.engine.PawnKingTable)) >= beta {
