@@ -192,11 +192,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
 
-	// https://en.wikipedia.org/wiki/Lazy_evaluation
-	lazyEval := lazyEval{PawnKingTable: t.engine.PawnKingTable, position: pos}
+	t.stack[height].InvalidateEvaluation()
 
 	// Null move pruning
-	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(lazyEval.Value()) >= beta {
+	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation(t.engine.PawnKingTable)) >= beta {
 		pos.MakeNullMove(child)
 		reduction := Max(1+depth/3, 3)
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
@@ -337,7 +336,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				}
 				// Futility move pruning
 				// https://www.chessprogramming.org/Futility_Pruning
-				if lazyEval.Value()+int(PawnValue.Middle)*depth <= alpha {
+				if int(t.stack[height].Evaluation(t.engine.PawnKingTable))+int(PawnValue.Middle)*depth <= alpha {
 					continue
 				}
 			}
@@ -714,21 +713,6 @@ func recoverFromTimeout() {
 	if err != nil && err != errTimeout {
 		panic(err)
 	}
-}
-
-type lazyEval struct {
-	PawnKingTable
-	position *Position
-	hasValue bool
-	value    int
-}
-
-func (le *lazyEval) Value() int {
-	if !le.hasValue {
-		le.value = Evaluate(le.position, le.PawnKingTable)
-		le.hasValue = true
-	}
-	return le.value
 }
 
 // Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.

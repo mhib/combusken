@@ -71,8 +71,26 @@ type SearchInfo struct {
 type StackEntry struct {
 	position backend.Position
 	PV
-	moves          [256]backend.EvaledMove
-	quietsSearched [256]backend.Move
+	moves                [256]backend.EvaledMove
+	quietsSearched       [256]backend.Move
+	evaluation           int16
+	evaluationCalculated bool
+}
+
+func (se *StackEntry) InvalidateEvaluation() {
+	se.evaluationCalculated = false
+}
+
+func (se *StackEntry) Evaluation(pk evaluation.PawnKingTable) int16 {
+	if !se.evaluationCalculated {
+		se.evaluation = int16(evaluation.Evaluate(&se.position, pk))
+		se.evaluationCalculated = true
+	}
+	return se.evaluation
+}
+
+func (se *StackEntry) NonCachedEvaluation(pk evaluation.PawnKingTable) int {
+	return evaluation.Evaluate(&se.position, pk)
 }
 
 type PV struct {
