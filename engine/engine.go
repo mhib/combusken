@@ -202,6 +202,10 @@ func (t *thread) incNodes() {
 	}
 }
 
+func (t *thread) PawnKingTable() evaluation.PawnKingTable {
+	return t.engine.PawnKingTable
+}
+
 func (pv *PV) clear() {
 	pv.size = 0
 }

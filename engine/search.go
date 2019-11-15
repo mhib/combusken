@@ -154,6 +154,10 @@ func moveToFirst(moves []EvaledMove, move Move) {
 	moves[0], moves[currentIdx] = moves[currentIdx], moves[0]
 }
 
+func moveCountPruning(improving, depth int) int {
+	return (5+depth*depth)*(1+improving)/2 - 1
+}
+
 func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
@@ -320,25 +324,25 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		reduction := 0
 		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
 			!childInCheck {
+			if depth <= 8 && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
+				continue
+			}
+			if depth <= 8 && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+				continue
+			}
+
 			// Late Move Reduction
 			// https://www.chessprogramming.org/Late_Move_Reductions
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount)
+				reduction += BoolToInt(!pvNode)
+
+				// Increase reduction if not improving
+				reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) < t.stack[height-2].Evaluation(t.PawnKingTable()))
 				if !pvNode {
 					reduction++
 				}
 				reduction = Max(0, Min(depth-2, reduction))
-			} else {
-				// Move count based pruning
-				// We do not expect moves with low move ordering to change search results on shallow depths
-				if moveCount >= 9+3*depth {
-					continue
-				}
-				// Futility move pruning
-				// https://www.chessprogramming.org/Futility_Pruning
-				if int(t.stack[height].Evaluation(t.engine.PawnKingTable))+int(PawnValue.Middle)*depth <= alpha {
-					continue
-				}
 			}
 		}
 		newDepth := depth - 1
@@ -515,6 +519,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	inCheck := pos.IsInCheck()
 	moveCount := 0
 	t.stack[0].PV.clear()
+	t.stack[0].InvalidateEvaluation()
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {
