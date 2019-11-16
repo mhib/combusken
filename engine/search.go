@@ -20,6 +20,9 @@ const seePruningDepth = 8
 const seeQuietMargin = -80
 const seeNoisyMargin = -18
 
+const moveCountPruningDepth = 8
+const futilityPruningDepth = 8
+
 const SMPCycles = 16
 
 const WindowSize = 50
@@ -309,6 +312,16 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
+
+		if val > ValueLoss && !inCheck && moveCount > 0 && evaled[i].Value < MinSpecialMoveValue && !isNoisy {
+			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
+				continue
+			}
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+				continue
+			}
+		}
+
 		if val > ValueLoss &&
 			depth <= seePruningDepth &&
 			moveCount > 0 &&
@@ -322,28 +335,19 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
-			!childInCheck {
-			if depth <= 8 && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
-				continue
-			}
-			if depth <= 8 && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
-				continue
-			}
 
-			// Late Move Reduction
-			// https://www.chessprogramming.org/Late_Move_Reductions
-			if depth >= 3 {
-				reduction = lmr(depth, moveCount)
-				reduction += BoolToInt(!pvNode)
+		// Late Move Reduction
+		// https://www.chessprogramming.org/Late_Move_Reductions
+		if depth >= 3 && !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy && !childInCheck {
+			reduction = lmr(depth, moveCount)
+			reduction += BoolToInt(!pvNode)
 
-				// Increase reduction if not improving
-				reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) < t.stack[height-2].Evaluation(t.PawnKingTable()))
-				if !pvNode {
-					reduction++
-				}
-				reduction = Max(0, Min(depth-2, reduction))
+			// Increase reduction if not improving
+			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) < t.stack[height-2].Evaluation(t.PawnKingTable()))
+			if !pvNode {
+				reduction++
 			}
+			reduction = Max(0, Min(depth-2, reduction))
 		}
 		newDepth := depth - 1
 		// Check extension
