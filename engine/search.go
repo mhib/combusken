@@ -20,6 +20,10 @@ const seePruningDepth = 8
 const seeQuietMargin = -80
 const seeNoisyMargin = -18
 
+const moveCountPruningDepth = 8
+
+const futilityPruningDepth = 8
+
 const SMPCycles = 16
 
 const WindowSize = 50
@@ -230,6 +234,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	moveCount := 0
 	movesSorted := false
 	hashMoveChecked := false
+	ignoreQuiets := false
 	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
 	var evaled []EvaledMove
 
@@ -308,7 +313,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				movesSorted = true
 			}
 		}
+
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
+
+		// See pruning
 		if val > ValueLoss &&
 			depth <= seePruningDepth &&
 			moveCount > 0 &&
@@ -316,18 +324,23 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			!SeeAbove(pos, evaled[i].Move, seeMargins[BoolToInt(isNoisy)]) {
 			continue
 		}
+
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
-		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
-		if !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
+		if !inCheck && moveCount > 0 && evaled[i].Value < MinSpecialMoveValue && !isNoisy &&
 			!childInCheck {
-			if depth <= 8 && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
+			if ignoreQuiets == true {
 				continue
 			}
-			if depth <= 8 && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
+				ignoreQuiets = true
+				continue
+			}
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+				ignoreQuiets = true
 				continue
 			}
 
@@ -345,6 +358,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				reduction = Max(0, Min(depth-2, reduction))
 			}
 		}
+		moveCount++
 		newDepth := depth - 1
 		// Check extension
 		// Moves with positive SEE and gives check are searched with increased depth
