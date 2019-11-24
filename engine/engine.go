@@ -207,7 +207,11 @@ func (t *thread) PawnKingTable() evaluation.PawnKingTable {
 }
 
 func (t *thread) Evaluation(height int) int16 {
-	return t.stack[height].Evaluation(t.engine.PawnKingTable)
+	if !t.stack[height].evaluationCalculated {
+		t.stack[height].evaluation = int16(evaluation.Evaluate(&t.stack[height].position, t.engine.PawnKingTable))
+		t.stack[height].evaluationCalculated = true
+	}
+	return t.stack[height].evaluation
 }
 
 func (pv *PV) clear() {
