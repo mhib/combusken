@@ -206,6 +206,10 @@ func (t *thread) PawnKingTable() evaluation.PawnKingTable {
 	return t.engine.PawnKingTable
 }
 
+func (t *thread) Evaluation(height int) int16 {
+	return t.stack[height].Evaluation(t.engine.PawnKingTable)
+}
+
 func (pv *PV) clear() {
 	pv.size = 0
 }

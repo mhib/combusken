@@ -202,7 +202,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.stack[height].InvalidateEvaluation()
 
 	// Null move pruning
-	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation(t.engine.PawnKingTable)) >= beta {
+	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.Evaluation(height)) >= beta {
 		pos.MakeNullMove(child)
 		reduction := Max(1+depth/3, 3)
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
@@ -314,10 +314,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
 
 		if val > ValueLoss && !inCheck && moveCount > 0 && evaled[i].Value < MinSpecialMoveValue && !isNoisy {
-			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
+			if depth <= futilityPruningDepth && int(t.Evaluation(height))+int(PawnValue.Middle)*depth <= alpha {
 				continue
 			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.Evaluation(height) >= t.Evaluation(height-2)), depth) {
 				continue
 			}
 		}
@@ -343,7 +343,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction += BoolToInt(!pvNode)
 
 			// Increase reduction if not improving
-			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) < t.stack[height-2].Evaluation(t.PawnKingTable()))
+			reduction += BoolToInt(height > 2 && t.Evaluation(height) < t.Evaluation(height-2))
 			if !pvNode {
 				reduction++
 			}
