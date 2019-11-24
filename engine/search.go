@@ -317,7 +317,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
 				continue
 			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].isImproving()), depth) {
 				continue
 			}
 		}
@@ -343,7 +343,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction += BoolToInt(!pvNode)
 
 			// Increase reduction if not improving
-			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) < t.stack[height-2].Evaluation(t.PawnKingTable()))
+			reduction += BoolToInt(!t.stack[height].isImproving())
 			if !pvNode {
 				reduction++
 			}

@@ -75,6 +75,7 @@ type StackEntry struct {
 	quietsSearched       [256]backend.Move
 	evaluation           int16
 	evaluationCalculated bool
+	isImproving          func() bool
 }
 
 func (se *StackEntry) InvalidateEvaluation() {
@@ -174,8 +175,24 @@ func (e *Engine) NewGame() {
 	for i := range e.threads {
 		e.threads[i].MoveEvaluator = MoveEvaluator{}
 		e.threads[i].engine = e
+		e.threads[i].assignIsImproving()
 	}
 	e.PawnKingTable = evaluation.NewPKTable(e.PawnHash.Val)
+}
+
+func constTrue() bool {
+	return true
+}
+
+func (t *thread) assignIsImproving() {
+	for i := 0; i < 3; i++ {
+		t.stack[i].isImproving = constTrue
+	}
+	for height := 3; height < STACK_SIZE; height++ {
+		t.stack[height].isImproving = func() bool {
+			return t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())
+		}
+	}
 }
 
 func (e *Engine) callUpdate(s SearchInfo) {
