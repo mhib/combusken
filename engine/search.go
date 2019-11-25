@@ -199,7 +199,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
 
-	t.stack[height].InvalidateEvaluation()
+	t.stack[height].invalidateEvaluation()
 
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation(t.engine.PawnKingTable)) >= beta {
@@ -317,7 +317,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation(t.PawnKingTable()))+int(PawnValue.Middle)*depth <= alpha {
 				continue
 			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) >= t.stack[height-2].Evaluation(t.PawnKingTable())), depth) {
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.isImproving(height)), depth) {
 				continue
 			}
 		}
@@ -343,7 +343,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction += BoolToInt(!pvNode)
 
 			// Increase reduction if not improving
-			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation(t.PawnKingTable()) < t.stack[height-2].Evaluation(t.PawnKingTable()))
+			reduction += BoolToInt(height <= 2 || !t.isImproving(height))
 			if !pvNode {
 				reduction++
 			}
@@ -523,7 +523,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	inCheck := pos.IsInCheck()
 	moveCount := 0
 	t.stack[0].PV.clear()
-	t.stack[0].InvalidateEvaluation()
+	t.stack[0].invalidateEvaluation()
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {

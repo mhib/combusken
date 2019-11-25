@@ -77,7 +77,7 @@ type StackEntry struct {
 	evaluationCalculated bool
 }
 
-func (se *StackEntry) InvalidateEvaluation() {
+func (se *StackEntry) invalidateEvaluation() {
 	se.evaluationCalculated = false
 }
 
@@ -214,6 +214,18 @@ func (pv *PV) assign(m backend.Move, child *PV) {
 	pv.size = 1 + child.size
 	pv.items[0] = m
 	copy(pv.items[1:], child.Moves())
+}
+
+func (t *thread) isImproving(height int) bool {
+	if !t.stack[height].evaluationCalculated {
+		t.stack[height].evaluation = int16(evaluation.Evaluate(&t.stack[height].position, t.engine.PawnKingTable))
+		t.stack[height].evaluationCalculated = true
+	}
+	if !t.stack[height-2].evaluationCalculated {
+		t.stack[height-2].evaluation = int16(evaluation.Evaluate(&t.stack[height-2].position, t.engine.PawnKingTable))
+		t.stack[height-2].evaluationCalculated = true
+	}
+	return t.stack[height].evaluation >= t.stack[height-2].evaluation
 }
 
 func (pv *PV) Moves() []backend.Move {
