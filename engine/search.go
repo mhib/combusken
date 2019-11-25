@@ -343,7 +343,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction += BoolToInt(!pvNode)
 
 			// Increase reduction if not improving
-			reduction += BoolToInt(height > 2 && t.Evaluation(height) < t.Evaluation(height-2))
+			reduction += BoolToInt(height <= 2 || t.Evaluation(height) < t.Evaluation(height-2))
 			if !pvNode {
 				reduction++
 			}
