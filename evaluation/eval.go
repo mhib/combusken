@@ -1022,12 +1022,25 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		}
 	}
 
+	scale := scaleFactor(pos, endResult)
+
 	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
-	result := (midResult*(256-phase) + (endResult * phase)) / 256
+	result := (midResult*(256-phase) + (endResult * phase * scale / SCALE_NORMAL)) / 256
 
 	if pos.SideToMove == White {
 		return result
 	}
 	return -result
+}
+
+const SCALE_NORMAL = 1
+const SCALE_DRAW = 0
+
+func scaleFactor(pos *Position, endResult int) int {
+	if (endResult > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
+		(endResult < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
+		return SCALE_DRAW
+	}
+	return SCALE_NORMAL
 }
