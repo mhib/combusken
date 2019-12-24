@@ -62,7 +62,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	alphaOrig := alpha
 
 	if height >= MAX_HEIGHT || t.isDraw(height) {
-		return contempt(pos)
+		return t.contempt(pos, depth)
 	}
 
 	var ttDepth int
@@ -145,9 +145,12 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	return alpha
 }
 
-// Currently draws are scored as 0
-func contempt(pos *Position) int {
-	return 0
+// Currently draws are scored as 0 +/- 1 randomly
+func (t *thread) contempt(pos *Position, depth int) int {
+	if depth < 4 {
+		return 0
+	}
+	return 2*(t.nodes&1) - 1
 }
 
 func maxMoveToFirst(moves []EvaledMove) {
@@ -180,7 +183,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	var pos *Position = &t.stack[height].position
 
 	if height >= MAX_HEIGHT || t.isDraw(height) {
-		return contempt(pos)
+		return t.contempt(pos, depth)
 	}
 
 	var tmpVal int
@@ -425,7 +428,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if inCheck {
 			return lossIn(height)
 		}
-		return contempt(pos)
+		return t.contempt(pos, depth)
 	}
 
 afterLoop:
@@ -603,7 +606,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		if inCheck {
 			alpha = lossIn(0)
 		} else {
-			alpha = contempt(pos)
+			alpha = t.contempt(pos, depth)
 		}
 	}
 	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
