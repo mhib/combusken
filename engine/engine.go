@@ -165,11 +165,7 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 }
 
 func (e *Engine) NewGame() {
-	if e.Threads.Val == 1 {
-		e.TransTable = NewSingleThreadTransTable(e.Hash.Val)
-	} else {
-		e.TransTable = NewAtomicTransTable(e.Hash.Val)
-	}
+	e.TransTable = NewTwoTierTransTable(e.Hash.Val)
 	e.threads = make([]thread, e.Threads.Val)
 	for i := range e.threads {
 		e.threads[i].MoveEvaluator = MoveEvaluator{}

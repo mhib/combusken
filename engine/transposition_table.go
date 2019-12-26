@@ -110,7 +110,7 @@ func (t *AtomicTransTable) Clear() {
 }
 
 func NewAtomicTransTable(megabytes int) *AtomicTransTable {
-	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(singleThreadTransEntry{})))
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(atomicTransEntry{})))
 	return &AtomicTransTable{make([]atomicTransEntry, size), size - 1}
 }
 
@@ -137,4 +137,34 @@ func (t *AtomicTransTable) Set(key uint64, value, depth int, bestMove backend.Mo
 	data |= uint64(bestMove)
 	atomic.StoreUint64(&t.Entries[idx].key, key^data)
 	atomic.StoreUint64(&t.Entries[idx].data, data)
+}
+
+type TwoTierTransTable struct {
+	first  AtomicTransTable
+	second AtomicTransTable
+}
+
+func (t *TwoTierTransTable) Clear() {
+	t.first.Clear()
+	t.second.Clear()
+}
+
+func NewTwoTierTransTable(megabytes int) *TwoTierTransTable {
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / (2 * int(unsafe.Sizeof(atomicTransEntry{}))))
+	return &TwoTierTransTable{AtomicTransTable{make([]atomicTransEntry, size), size - 1}, AtomicTransTable{make([]atomicTransEntry, size), size - 1}}
+}
+
+func (t *TwoTierTransTable) Get(key uint64, height int) (ok bool, value int16, depth int16, move backend.Move, flag uint8) {
+	hashOk, hashValue, hashDepth, hashMove, hashFlag := t.first.Get(key, height)
+	if hashOk {
+		return true, hashValue, hashDepth, hashMove, hashFlag
+	}
+	return t.second.Get(key, height)
+}
+
+func (t *TwoTierTransTable) Set(key uint64, value, depth int, bestMove backend.Move, flag int, height int) {
+	idx := key & t.second.Mask
+	atomic.StoreUint64(&t.second.Entries[idx].key, atomic.LoadUint64(&t.first.Entries[idx].key))
+	atomic.StoreUint64(&t.second.Entries[idx].data, atomic.LoadUint64(&t.first.Entries[idx].data))
+	t.first.Set(key, value, depth, bestMove, flag, height)
 }
