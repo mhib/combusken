@@ -138,3 +138,63 @@ func (t *AtomicTransTable) Set(key uint64, value, depth int, bestMove backend.Mo
 	atomic.StoreUint64(&t.Entries[idx].key, key^data)
 	atomic.StoreUint64(&t.Entries[idx].data, data)
 }
+
+type bucket = [2]atomicTransEntry
+
+type BucketTransTable struct {
+	Buckets []bucket
+	Mask    uint64
+}
+
+func (t *BucketTransTable) Clear() {
+	for i := range t.Buckets {
+		t.Buckets[i] = bucket{}
+	}
+}
+
+func NewBucketTransTable(megabytes int) *BucketTransTable {
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(bucket{})))
+	return &BucketTransTable{make([]bucket, size), size - 1}
+}
+
+func (t *BucketTransTable) Set(key uint64, value, depth int, bestMove backend.Move, flag int, height int) {
+	idx := key & t.Mask
+	var data uint64
+	data |= uint64(valueToTrans(value, height)+maxValue) << 42
+	data |= uint64((depth - NoneDepth) << 34)
+	data |= uint64(flag << 32)
+	data |= uint64(bestMove)
+	if atomic.LoadUint64(&t.Buckets[idx][0].key)^atomic.LoadUint64(&t.Buckets[idx][0].data) == key {
+		atomic.StoreUint64(&t.Buckets[idx][0].key, key^data)
+		atomic.StoreUint64(&t.Buckets[idx][0].data, data)
+	} else {
+		atomic.StoreUint64(&t.Buckets[idx][1].key, atomic.LoadUint64(&t.Buckets[idx][0].key))
+		atomic.StoreUint64(&t.Buckets[idx][1].data, atomic.LoadUint64(&t.Buckets[idx][0].data))
+
+		atomic.StoreUint64(&t.Buckets[idx][0].key, key^data)
+		atomic.StoreUint64(&t.Buckets[idx][0].data, data)
+	}
+}
+
+func (t *BucketTransTable) Get(key uint64, height int) (ok bool, value int16, depth int16, move backend.Move, flag uint8) {
+	idx := key & t.Mask
+	data := atomic.LoadUint64(&t.Buckets[idx][0].data)
+	if data^atomic.LoadUint64(&t.Buckets[idx][0].key) == key {
+		ok = true
+		value = valueFromTrans(int16(int(data>>42)-maxValue), height)
+		depth = int16((data>>34)&0xFF) + NoneDepth
+		flag = uint8((data >> 32) & 3)
+		move = backend.Move(data & 0xFFFFFFFF)
+		return
+	}
+	data = atomic.LoadUint64(&t.Buckets[idx][1].data)
+	if data^atomic.LoadUint64(&t.Buckets[idx][1].key) == key {
+		ok = true
+		value = valueFromTrans(int16(int(data>>42)-maxValue), height)
+		depth = int16((data>>34)&0xFF) + NoneDepth
+		flag = uint8((data >> 32) & 3)
+		move = backend.Move(data & 0xFFFFFFFF)
+		return
+	}
+	return
+}
