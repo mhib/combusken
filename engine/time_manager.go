@@ -41,7 +41,7 @@ func (manager *tournamentTimeManager) hardTimeout() time.Duration {
 }
 
 func (manager *tournamentTimeManager) isSoftTimeout(int, int) bool {
-	return time.Now().Sub(manager.startedAt) >= manager.ideal
+	return time.Since(manager.startedAt) >= manager.ideal
 }
 
 func (manager *tournamentTimeManager) updateTime(depth, score int) {

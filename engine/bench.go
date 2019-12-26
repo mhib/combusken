@@ -59,7 +59,7 @@ func Benchmark() {
 		engine.Search(context.Background(), SearchParams{Positions: []Position{entry.Position}, Limits: LimitsType{Depth: 5}})
 		nodes += tmpNodes
 	}
-	duration := time.Now().Sub(start)
+	duration := time.Since(start)
 	fmt.Printf("Time\t:\t%d\n", duration.Nanoseconds()/1e6)
 	fmt.Printf("Nodes\t:\t%d\n", nodes)
 	fmt.Printf("NPS\t:\t%d\n", int64(nodes)/(duration.Nanoseconds()/1e9))

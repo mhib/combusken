@@ -271,7 +271,6 @@ func loadEntries(inputChan chan string) {
 	for scanner.Scan() {
 		inputChan <- scanner.Text()
 	}
-	return
 }
 
 func sigmoid(K, S float64) float64 {
