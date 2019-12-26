@@ -200,6 +200,10 @@ var tempo = Score{27, 28}
 // Rook on semiopen, open file
 var rookOnFile = [2]Score{Score{12, 23}, Score{58, -3}}
 
+// king can castle / king cannot castle
+var trappedRook = [2]Score{Score{-52, -10}, {-104, -20}}
+var rookOnQueenFile = Score{7, 6}
+
 var kingDefenders = [12]Score{
 	Score{-80, 0}, Score{-61, -4}, Score{-35, -4}, Score{-12, -4},
 	Score{-1, -1}, Score{14, -1}, Score{26, 0}, Score{34, 1},
@@ -827,6 +831,18 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		} else if (pos.Pieces[Pawn]&pos.Colours[White])&FILES[File(fromId)] == 0 {
 			midResult += int(rookOnFile[0].Middle)
 			endResult += int(rookOnFile[0].End)
+		} else if mobility < 3 {
+			kingFile := File(whiteKingLocation)
+			if (kingFile < FILE_E) == (File(fromId) < kingFile) {
+				cannotCastle := BoolToInt(pos.Flags|(WhiteKingSideCastleFlag|WhiteQueenSideCastleFlag) == pos.Flags)
+				midResult += int(trappedRook[cannotCastle].Middle)
+				endResult += int(trappedRook[cannotCastle].End)
+			}
+		}
+
+		if FILES[File(fromId)]&pos.Pieces[Queen] != 0 {
+			midResult += int(rookOnQueenFile.Middle)
+			endResult += int(rookOnQueenFile.End)
 		}
 
 		if attacks&blackKingArea != 0 {
@@ -858,6 +874,18 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		} else if (pos.Pieces[Pawn]&pos.Colours[Black])&FILES[File(fromId)] == 0 {
 			midResult -= int(rookOnFile[0].Middle)
 			endResult -= int(rookOnFile[0].End)
+		} else if mobility < 3 {
+			kingFile := File(blackKingLocation)
+			if (kingFile < FILE_E) == (File(fromId) < kingFile) {
+				cannotCastle := BoolToInt(pos.Flags|(BlackKingSideCastleFlag|BlackQueenSideCastleFlag) == pos.Flags)
+				midResult -= int(trappedRook[cannotCastle].Middle)
+				endResult -= int(trappedRook[cannotCastle].End)
+			}
+		}
+
+		if FILES[File(fromId)]&pos.Pieces[Queen] != 0 {
+			midResult -= int(rookOnQueenFile.Middle)
+			endResult -= int(rookOnQueenFile.End)
 		}
 
 		if attacks&whiteKingArea != 0 {
