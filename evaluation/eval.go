@@ -276,20 +276,6 @@ var blackKingAreaMask [64]uint64
 var whiteForwardRanksMask [8]uint64
 var blackForwardRanksMasks [8]uint64
 
-// King shield bitboards
-const whiteKingKingSide = F1 | G1 | H1
-const whiteKingKingSideShield1 = (whiteKingKingSide << 8)  // one rank up
-const whiteKingKingSideShield2 = (whiteKingKingSide << 16) // two ranks up
-const whiteKingQueenSide = A1 | B1 | C1
-const whiteKingQueenSideShield1 = (whiteKingQueenSide << 8)  // one rank up
-const whiteKingQueenSideShield2 = (whiteKingQueenSide << 16) // two ranks up
-const blackKingKingSide = F8 | G8 | H8
-const blackKingKingSideShield1 = (blackKingKingSide >> 8)  // one rank down
-const blackKingKingSideShield2 = (blackKingKingSide >> 16) // two ranks down
-const blackKingQueenSide = A8 | B8 | C8
-const blackKingQueenSideShield1 = (blackKingQueenSide >> 8)  // one rank down
-const blackKingQueenSideShield2 = (blackKingQueenSide >> 16) // two ranks down
-
 // Outpost bitboards
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
