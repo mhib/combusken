@@ -848,7 +848,7 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		} else if mobility < 3 {
 			kingFile := File(whiteKingLocation)
 			if (kingFile < FILE_E) == (File(fromId) < kingFile) {
-				cannotCastle := BoolToInt(pos.Flags|(WhiteKingSideCastleFlag|WhiteQueenSideCastleFlag) == pos.Flags)
+				cannotCastle := BoolToInt(^pos.Flags&(WhiteKingSideCastleFlag|WhiteQueenSideCastleFlag) == 0)
 				midResult += int(trappedRook[cannotCastle].Middle)
 				endResult += int(trappedRook[cannotCastle].End)
 			}
@@ -891,7 +891,7 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 		} else if mobility < 3 {
 			kingFile := File(blackKingLocation)
 			if (kingFile < FILE_E) == (File(fromId) < kingFile) {
-				cannotCastle := BoolToInt(pos.Flags|(BlackKingSideCastleFlag|BlackQueenSideCastleFlag) == pos.Flags)
+				cannotCastle := BoolToInt(^pos.Flags&(BlackKingSideCastleFlag|BlackQueenSideCastleFlag) == 0)
 				midResult -= int(trappedRook[cannotCastle].Middle)
 				endResult -= int(trappedRook[cannotCastle].End)
 			}
