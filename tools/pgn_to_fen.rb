@@ -7,6 +7,7 @@ require 'pgn'
 reader = Thread.new do
   acc = +''
   IO.foreach('./games.pgn') do |line|
+    next if line.start_with?('{')
     if !acc.empty? && line.include?('Event')
       @q << acc
       acc = +line
@@ -24,7 +25,8 @@ end
 Parallel.each(@q, in_processes: 7) do |pgn|
   game = PGN.parse(pgn).first
   game.moves.each_with_index do |move, idx|
-    next if idx.zero? # do not include position from book
+    break if move.comment.nil?
+    next if idx.zero? || move.comment.include?('book')# do not include position from book
     break if move.comment.include? 'M' # stop if mate was found in position
 
     @result.write(game.positions[idx].to_fen.to_s + ";#{game.result}\n")
