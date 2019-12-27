@@ -147,14 +147,12 @@ func maxMoveToFirst(moves []EvaledMove) {
 }
 
 func moveToFirst(moves []EvaledMove, move Move) {
-	currentIdx := 0
 	for i := 0; i < len(moves); i++ {
 		if moves[i].Move == move {
-			currentIdx = i
-			break
+			moves[0], moves[i] = moves[i], moves[0]
+			return
 		}
 	}
-	moves[0], moves[currentIdx] = moves[currentIdx], moves[0]
 }
 
 func moveCountPruning(improving, depth int) int {
