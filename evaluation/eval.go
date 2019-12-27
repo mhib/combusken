@@ -201,7 +201,7 @@ var tempo = Score{27, 28}
 var rookOnFile = [2]Score{Score{12, 23}, Score{58, -3}}
 
 // king can castle / king cannot castle
-var trappedRook = [2]Score{Score{-52, -10}, {-104, -20}}
+var trappedRook = [2]Score{Score{-52, -10}, Score{-104, -20}}
 
 var kingDefenders = [12]Score{
 	Score{-80, 0}, Score{-61, -4}, Score{-35, -4}, Score{-12, -4},
