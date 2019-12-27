@@ -95,7 +95,16 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	t.EvaluateQsMoves(pos, evaled, hashMove, inCheck)
 
 	for i := range evaled {
-		maxMoveToFirst(evaled[i:])
+		// Max move to first inlined
+		{
+			maxIdx := i
+			for y := i + 1; y < len(evaled); y++ {
+				if evaled[y].Value > evaled[maxIdx].Value {
+					maxIdx = y
+				}
+			}
+			evaled[i], evaled[maxIdx] = evaled[maxIdx], evaled[i]
+		}
 		// Ignore move with negative SEE unless in check
 		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
 			continue
