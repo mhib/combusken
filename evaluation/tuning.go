@@ -191,6 +191,7 @@ func (t *tuner) computeError(entriesCount int) float64 {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
+			var c, sum float64
 			for y := idx; y < entriesCount; y += numCPU {
 				entry := t.entries[y]
 				evaluation := float64(Evaluate(&entry.Position, &emptyPKTable))
@@ -198,14 +199,23 @@ func (t *tuner) computeError(entriesCount int) float64 {
 					evaluation *= -1
 				}
 				diff := entry.result - sigmoid(t.k, evaluation)
-				results[idx] += diff * diff
+
+				// Kahan summation
+				y := (diff * diff) - c
+				t := sum + y
+				c = (t - sum) - y
+				sum = t
 			}
+			results[idx] = sum
 		}(i)
 	}
 	wg.Wait()
-	sum := 0.0
+	var sum, c float64
 	for _, tResult := range results {
-		sum += tResult
+		y := tResult - c
+		t := sum + y
+		c = (t - sum) - y
+		sum = t
 	}
 	return sum / float64(len(t.entries))
 }
