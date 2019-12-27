@@ -271,7 +271,6 @@ func loadEntries(inputChan chan string) {
 	for scanner.Scan() {
 		inputChan <- scanner.Text()
 	}
-	return
 }
 
 func sigmoid(K, S float64) float64 {
@@ -745,7 +744,6 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&rookOnFile[1]})
 	res = append(res, ScoreValue{&trappedRook[0]})
 	res = append(res, ScoreValue{&trappedRook[1]})
-	res = append(res, ScoreValue{&rookOnQueenFile})
 	for y := 0; y < 12; y++ {
 		res = append(res, ScoreValue{&kingDefenders[y]})
 	}

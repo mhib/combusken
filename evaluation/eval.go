@@ -202,7 +202,6 @@ var rookOnFile = [2]Score{Score{12, 23}, Score{58, -3}}
 
 // king can castle / king cannot castle
 var trappedRook = [2]Score{Score{-52, -10}, {-104, -20}}
-var rookOnQueenFile = Score{7, 6}
 
 var kingDefenders = [12]Score{
 	Score{-80, 0}, Score{-61, -4}, Score{-35, -4}, Score{-12, -4},
@@ -854,11 +853,6 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 			}
 		}
 
-		if FILES[File(fromId)]&pos.Pieces[Queen] != 0 {
-			midResult += int(rookOnQueenFile.Middle)
-			endResult += int(rookOnQueenFile.End)
-		}
-
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
@@ -895,11 +889,6 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 				midResult -= int(trappedRook[cannotCastle].Middle)
 				endResult -= int(trappedRook[cannotCastle].End)
 			}
-		}
-
-		if FILES[File(fromId)]&pos.Pieces[Queen] != 0 {
-			midResult -= int(rookOnQueenFile.Middle)
-			endResult -= int(rookOnQueenFile.End)
 		}
 
 		if attacks&whiteKingArea != 0 {
