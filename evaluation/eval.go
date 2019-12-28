@@ -39,60 +39,60 @@ func addScore(first, second Score) Score {
 	}
 }
 
-var PawnValue = Score{103, 117}
-var KnightValue = Score{510, 420}
-var BishopValue = Score{472, 416}
-var RookValue = Score{655, 681}
+var PawnValue = Score{103, 122}
+var KnightValue = Score{475, 433}
+var BishopValue = Score{442, 427}
+var RookValue = Score{653, 693}
 var QueenValue = Score{1435, 1322}
 
 // Piece Square Values
 var pieceScores = [King + 1][8][4]Score{
 	{},
 	{ // knight
-		{Score{-59, -40}, Score{-12, -54}, Score{-39, -33}, Score{-10, -24}},
-		{Score{-21, -56}, Score{-27, -36}, Score{-13, -31}, Score{-3, -22}},
-		{Score{-21, -40}, Score{-1, -32}, Score{-1, -17}, Score{5, -2}},
-		{Score{-16, -29}, Score{13, -26}, Score{11, 0}, Score{11, 2}},
-		{Score{-2, -34}, Score{7, -21}, Score{14, 2}, Score{32, 3}},
+		{Score{-59, -40}, Score{-15, -54}, Score{-39, -33}, Score{-10, -24}},
+		{Score{-21, -56}, Score{-27, -36}, Score{-12, -31}, Score{0, -22}},
+		{Score{-21, -40}, Score{-1, -32}, Score{-2, -16}, Score{6, -2}},
+		{Score{-17, -29}, Score{13, -26}, Score{12, 0}, Score{10, 2}},
+		{Score{-2, -34}, Score{7, -21}, Score{14, 4}, Score{29, 3}},
 		{Score{-37, -52}, Score{27, -43}, Score{-11, -1}, Score{28, -5}},
 		{Score{-78, -51}, Score{-44, -28}, Score{56, -57}, Score{-3, -23}},
 		{Score{-211, -70}, Score{-76, -78}, Score{-130, -34}, Score{1, -57}},
 	},
 	{ // Bishop
-		{Score{-9, -11}, Score{6, -4}, Score{7, -9}, Score{7, -4}},
-		{Score{3, -25}, Score{42, -31}, Score{26, -18}, Score{6, -6}},
-		{Score{12, -19}, Score{29, -12}, Score{26, -1}, Score{12, 5}},
-		{Score{0, -23}, Score{4, -19}, Score{9, -2}, Score{29, -1}},
-		{Score{-21, -13}, Score{2, -14}, Score{-2, 0}, Score{25, 2}},
-		{Score{-56, -1}, Score{-16, -13}, Score{-8, -1}, Score{-18, -8}},
+		{Score{-9, -11}, Score{6, -4}, Score{18, -7}, Score{7, -3}},
+		{Score{3, -25}, Score{51, -30}, Score{26, -15}, Score{18, -4}},
+		{Score{17, -19}, Score{32, -12}, Score{34, 0}, Score{23, 8}},
+		{Score{0, -23}, Score{4, -19}, Score{16, -2}, Score{29, -2}},
+		{Score{-21, -13}, Score{8, -15}, Score{-2, 0}, Score{25, 2}},
+		{Score{-74, -2}, Score{-16, -13}, Score{-33, -1}, Score{-18, -8}},
 		{Score{-75, 2}, Score{20, -9}, Score{-14, 2}, Score{2, -14}},
 		{Score{-1, -28}, Score{-36, -19}, Score{-113, -5}, Score{-92, -4}},
 	},
 	{ // Rook
-		{Score{-5, -17}, Score{-12, -4}, Score{12, -13}, Score{14, -15}},
-		{Score{-42, 0}, Score{-6, -17}, Score{-9, -10}, Score{2, -11}},
-		{Score{-37, -7}, Score{-14, -8}, Score{-3, -17}, Score{-11, -13}},
+		{Score{0, -20}, Score{-10, -6}, Score{4, -11}, Score{10, -13}},
+		{Score{-43, 0}, Score{-6, -17}, Score{-9, -9}, Score{1, -12}},
+		{Score{-37, -8}, Score{-14, -8}, Score{-3, -17}, Score{-11, -13}},
 		{Score{-39, 3}, Score{-9, -3}, Score{-16, 1}, Score{-12, -2}},
-		{Score{-38, 8}, Score{-23, 2}, Score{11, 6}, Score{-6, 0}},
-		{Score{-25, 4}, Score{16, 1}, Score{20, -4}, Score{-8, 3}},
-		{Score{7, 10}, Score{6, 15}, Score{48, 1}, Score{60, -7}},
-		{Score{6, 12}, Score{8, 10}, Score{-21, 18}, Score{14, 11}},
+		{Score{-38, 8}, Score{-23, 1}, Score{11, 5}, Score{-6, 1}},
+		{Score{-25, 3}, Score{16, 1}, Score{20, -4}, Score{-8, 3}},
+		{Score{7, 10}, Score{6, 16}, Score{48, 2}, Score{60, -7}},
+		{Score{6, 12}, Score{8, 10}, Score{-21, 18}, Score{14, 12}},
 	},
 	{ // Queen
-		{Score{0, -58}, Score{16, -72}, Score{15, -60}, Score{33, -68}},
-		{Score{-3, -41}, Score{7, -50}, Score{31, -56}, Score{27, -43}},
-		{Score{-6, -14}, Score{20, -30}, Score{-1, 5}, Score{2, -6}},
-		{Score{-2, -18}, Score{-23, 34}, Score{-7, 18}, Score{-20, 44}},
+		{Score{0, -58}, Score{16, -72}, Score{14, -60}, Score{36, -68}},
+		{Score{-3, -41}, Score{7, -50}, Score{34, -56}, Score{28, -43}},
+		{Score{-6, -14}, Score{21, -30}, Score{-1, 5}, Score{4, -6}},
+		{Score{-3, -18}, Score{-23, 34}, Score{-7, 18}, Score{-19, 44}},
 		{Score{-20, 12}, Score{-28, 27}, Score{-29, 31}, Score{-33, 51}},
 		{Score{20, -26}, Score{3, -8}, Score{-4, 13}, Score{-8, 45}},
-		{Score{-9, -24}, Score{-54, 17}, Score{-19, 21}, Score{-35, 52}},
+		{Score{-9, -24}, Score{-55, 17}, Score{-19, 21}, Score{-35, 52}},
 		{Score{8, -20}, Score{2, 0}, Score{17, 6}, Score{19, 14}},
 	},
 	{ // King
-		{Score{192, -13}, Score{175, 21}, Score{99, 65}, Score{102, 53}},
-		{Score{180, 23}, Score{140, 46}, Score{69, 80}, Score{39, 91}},
-		{Score{82, 49}, Score{108, 56}, Score{42, 84}, Score{39, 91}},
-		{Score{14, 49}, Score{72, 58}, Score{30, 90}, Score{-3, 100}},
+		{Score{187, -13}, Score{170, 21}, Score{99, 63}, Score{82, 55}},
+		{Score{179, 21}, Score{136, 46}, Score{70, 78}, Score{40, 88}},
+		{Score{82, 48}, Score{108, 54}, Score{42, 82}, Score{39, 90}},
+		{Score{14, 49}, Score{72, 57}, Score{30, 88}, Score{-3, 100}},
 		{Score{25, 61}, Score{102, 77}, Score{63, 97}, Score{85, 88}},
 		{Score{94, 66}, Score{237, 71}, Score{221, 87}, Score{160, 68}},
 		{Score{43, 69}, Score{114, 80}, Score{107, 100}, Score{167, 75}},
@@ -103,49 +103,49 @@ var pieceScores = [King + 1][8][4]Score{
 // Pawns Square scores
 var pawnScores = [7][8]Score{
 	{},
-	{Score{-16, 3}, Score{17, -2}, Score{-6, 9}, Score{6, 5}, Score{3, 10}, Score{-6, 11}, Score{17, 0}, Score{-14, 3}},
-	{Score{-12, -7}, Score{-6, -3}, Score{-1, 0}, Score{5, -3}, Score{3, -1}, Score{2, -2}, Score{-5, -6}, Score{-4, -5}},
-	{Score{-18, 1}, Score{-4, 0}, Score{16, -6}, Score{25, -9}, Score{19, -7}, Score{14, -3}, Score{-6, 1}, Score{-13, 3}},
-	{Score{2, 12}, Score{25, 1}, Score{16, -8}, Score{36, -14}, Score{33, -16}, Score{11, 0}, Score{29, 2}, Score{-5, 15}},
-	{Score{10, 39}, Score{27, 28}, Score{51, 6}, Score{47, 1}, Score{55, -5}, Score{74, 10}, Score{9, 35}, Score{9, 43}},
+	{Score{-19, 4}, Score{18, -4}, Score{-9, 10}, Score{3, 5}, Score{0, 10}, Score{-9, 13}, Score{19, -2}, Score{-20, 4}},
+	{Score{-16, -4}, Score{-8, -3}, Score{1, -2}, Score{1, -6}, Score{2, -2}, Score{4, -2}, Score{-9, -6}, Score{-10, -4}},
+	{Score{-20, 4}, Score{-9, 1}, Score{12, -7}, Score{21, -12}, Score{21, -8}, Score{14, -5}, Score{-10, 3}, Score{-16, 3}},
+	{Score{0, 14}, Score{24, 0}, Score{15, -5}, Score{35, -11}, Score{35, -14}, Score{11, -2}, Score{29, 2}, Score{-8, 16}},
+	{Score{10, 38}, Score{27, 27}, Score{51, 6}, Score{47, 1}, Score{55, -5}, Score{74, 10}, Score{9, 35}, Score{9, 43}},
 	{Score{-5, 65}, Score{7, 65}, Score{3, 37}, Score{2, 38}, Score{84, 28}, Score{-11, 46}, Score{1, 46}, Score{-69, 81}},
 }
 
 var pawnsConnected = [8][4]Score{
 	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
-	{Score{12, -23}, Score{5, 10}, Score{8, -9}, Score{1, 16}},
-	{Score{6, 1}, Score{30, 4}, Score{14, 10}, Score{13, 18}},
-	{Score{9, 8}, Score{22, 8}, Score{14, 9}, Score{23, 11}},
-	{Score{13, 16}, Score{10, 25}, Score{28, 24}, Score{31, 21}},
+	{Score{10, -21}, Score{5, 6}, Score{6, -8}, Score{4, 16}},
+	{Score{7, 0}, Score{31, 2}, Score{10, 8}, Score{16, 21}},
+	{Score{9, 5}, Score{23, 6}, Score{16, 11}, Score{21, 14}},
+	{Score{13, 16}, Score{9, 25}, Score{29, 23}, Score{31, 18}},
 	{Score{12, 58}, Score{43, 56}, Score{75, 55}, Score{73, 47}},
 	{Score{7, 59}, Score{146, -1}, Score{160, 21}, Score{215, 41}},
 	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
 }
 
 var mobilityBonus = [...][32]Score{
-	{Score{-42, -117}, Score{-32, -67}, Score{-19, -38}, Score{-20, -15}, Score{-5, -17}, Score{5, -7}, // Knights
-		Score{15, -12}, Score{25, -14}, Score{39, -29}},
-	{Score{-28, -73}, Score{-13, -59}, Score{8, -27}, Score{12, -7}, Score{24, 2}, Score{35, 8}, // Bishops
-		Score{42, 11}, Score{45, 12}, Score{48, 16}, Score{55, 14}, Score{66, 0}, Score{91, 2},
+	{Score{-42, -117}, Score{-34, -67}, Score{-23, -36}, Score{-22, -12}, Score{-7, -13}, Score{3, -2}, // Knights
+		Score{14, -9}, Score{24, -12}, Score{37, -28}},
+	{Score{-29, -73}, Score{-13, -59}, Score{9, -26}, Score{14, -8}, Score{28, 1}, Score{36, 8}, // Bishops
+		Score{40, 11}, Score{46, 12}, Score{51, 14}, Score{51, 15}, Score{66, 0}, Score{91, 2},
 		Score{50, 23}, Score{66, 8}},
-	{Score{-28, -35}, Score{-31, -29}, Score{-17, 10}, Score{-7, 36}, Score{0, 50}, Score{4, 58}, // Rooks
-		Score{10, 64}, Score{17, 66}, Score{18, 67}, Score{36, 67}, Score{37, 69}, Score{40, 73},
-		Score{50, 73}, Score{61, 68}, Score{92, 58}},
-	{Score{-22, -20}, Score{-48, -8}, Score{-4, -141}, Score{-10, -118}, Score{-2, -19}, Score{4, -23}, // Queens
-		Score{3, -21}, Score{13, -5}, Score{17, 19}, Score{20, 22}, Score{21, 36}, Score{22, 46},
-		Score{27, 37}, Score{26, 61}, Score{30, 63}, Score{30, 75}, Score{31, 69}, Score{26, 71},
+	{Score{-28, -35}, Score{-28, -29}, Score{-13, 10}, Score{-10, 35}, Score{-3, 48}, Score{1, 57}, // Rooks
+		Score{3, 66}, Score{17, 66}, Score{16, 66}, Score{33, 67}, Score{37, 71}, Score{37, 74},
+		Score{50, 72}, Score{61, 68}, Score{92, 57}},
+	{Score{-22, -20}, Score{-48, -8}, Score{-4, -141}, Score{-9, -118}, Score{-6, -19}, Score{2, -23}, // Queens
+		Score{0, -21}, Score{12, -5}, Score{17, 19}, Score{19, 22}, Score{22, 36}, Score{20, 46},
+		Score{28, 37}, Score{27, 61}, Score{29, 63}, Score{29, 75}, Score{31, 69}, Score{26, 71},
 		Score{37, 67}, Score{37, 80}, Score{65, 55}, Score{65, 55}, Score{69, 46}, Score{61, 33},
 		Score{68, 20}, Score{28, 36}, Score{-7, -6}, Score{5, 3}},
 }
 
 var passedFriendlyDistance = [8]Score{
-	Score{0, 0}, Score{5, 23}, Score{-5, 9}, Score{-8, -12},
-	Score{-14, -20}, Score{-17, -23}, Score{4, -27}, Score{-31, -15},
+	Score{0, 0}, Score{4, 28}, Score{-3, 12}, Score{-3, -8},
+	Score{-14, -17}, Score{-15, -19}, Score{6, -27}, Score{-31, -15},
 }
 
 var passedEnemyDistance = [8]Score{
-	Score{0, 0}, Score{-56, -72}, Score{23, -28}, Score{14, 6},
-	Score{15, 27}, Score{8, 36}, Score{4, 40}, Score{-13, 48},
+	Score{0, 0}, Score{-56, -73}, Score{25, -31}, Score{17, 4},
+	Score{10, 26}, Score{6, 37}, Score{0, 42}, Score{-13, 47},
 }
 
 var blackPawnsPos [64]Score
@@ -172,95 +172,95 @@ var blackKingPos [64]Score
 var whiteKingPos [64]Score
 
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
-var passedRank = [7]Score{Score{0, 0}, Score{-2, -30}, Score{-7, -11}, Score{-7, 31}, Score{27, 74}, Score{39, 160}, Score{110, 249}}
+var passedRank = [7]Score{Score{0, 0}, Score{1, -34}, Score{-7, -14}, Score{-10, 28}, Score{24, 72}, Score{39, 160}, Score{110, 253}}
 
 // PassedFile[File] contains a bonus according to the file of a passed pawn
-var passedFile = [8]Score{Score{-6, 21}, Score{-24, 21}, Score{-29, 9}, Score{-26, -6},
-	Score{-17, -5}, Score{7, -2}, Score{-10, 17}, Score{-7, 11},
+var passedFile = [8]Score{Score{-4, 22}, Score{-21, 21}, Score{-24, 9}, Score{-25, -6},
+	Score{-18, -3}, Score{7, -2}, Score{-10, 17}, Score{-6, 10},
 }
 
 var isolated = Score{-10, -11}
-var doubled = Score{-11, -34}
-var backward = Score{5, -2}
-var backwardOpen = Score{-15, -7}
+var doubled = Score{-12, -37}
+var backward = Score{3, -1}
+var backwardOpen = Score{-17, -4}
 
-var bishopPair = Score{47, 60}
-var bishopRammedPawns = Score{-7, -13}
+var bishopPair = Score{38, 63}
+var bishopRammedPawns = Score{-6, -13}
 
-var bishopOutpostUndefendedBonus = Score{40, -3}
-var bishopOutpostDefendedBonus = Score{80, 2}
+var bishopOutpostUndefendedBonus = Score{50, 1}
+var bishopOutpostDefendedBonus = Score{80, 4}
 
-var knightOutpostUndefendedBonus = Score{32, -15}
-var knightOutpostDefendedBonus = Score{54, 13}
+var knightOutpostUndefendedBonus = Score{35, -14}
+var knightOutpostDefendedBonus = Score{56, 16}
 
-var minorBehindPawn = Score{6, 27}
+var minorBehindPawn = Score{4, 28}
 
-var tempo = Score{27, 28}
+var tempo = Score{33, 29}
 
 // Rook on semiopen, open file
-var rookOnFile = [2]Score{Score{12, 23}, Score{58, -3}}
+var rookOnFile = [2]Score{Score{10, 24}, Score{55, -2}}
 
 // king can castle / king cannot castle
-var trappedRook = [2]Score{Score{-52, -10}, Score{-104, -20}}
+var trappedRook = [2]Score{Score{1, -10}, Score{-64, -20}}
 
 var kingDefenders = [12]Score{
-	Score{-80, 0}, Score{-61, -4}, Score{-35, -4}, Score{-12, -4},
-	Score{-1, -1}, Score{14, -1}, Score{26, 0}, Score{34, 1},
-	Score{44, -1}, Score{35, 6}, Score{7, 4}, Score{7, 4},
+	Score{-79, 0}, Score{-61, -4}, Score{-34, -3}, Score{-10, -2},
+	Score{1, 1}, Score{17, 3}, Score{29, 4}, Score{37, 4},
+	Score{47, 2}, Score{35, 6}, Score{7, 4}, Score{7, 4},
 }
 
 var kingShelter = [2][8][8]Score{
 	{{Score{-29, 3}, Score{-8, -9}, Score{0, 7}, Score{33, -8},
 		Score{3, -17}, Score{2, 1}, Score{5, -10}, Score{-29, 13}},
 		{Score{21, -1}, Score{34, -13}, Score{-4, -2}, Score{-2, 6},
-			Score{-24, -2}, Score{8, -8}, Score{19, -39}, Score{-29, 7}},
+			Score{-24, -2}, Score{8, -8}, Score{20, -39}, Score{-29, 7}},
 		{Score{10, 7}, Score{1, 2}, Score{-15, 4}, Score{-19, 7},
-			Score{-35, 0}, Score{-15, 1}, Score{-8, -6}, Score{-16, 1}},
-		{Score{-16, 21}, Score{3, 6}, Score{-9, -6}, Score{0, -2},
-			Score{6, -22}, Score{-6, -13}, Score{9, -41}, Score{-27, 3}},
-		{Score{0, 6}, Score{-1, 2}, Score{-21, 0}, Score{-23, 9},
-			Score{-14, -8}, Score{-23, 2}, Score{-24, -1}, Score{-28, 7}},
-		{Score{46, -9}, Score{35, -17}, Score{-6, -10}, Score{-2, -7},
-			Score{3, -21}, Score{1, -3}, Score{42, -30}, Score{-11, 2}},
-		{Score{25, -3}, Score{-2, -5}, Score{-20, -8}, Score{-8, -3},
-			Score{-11, -9}, Score{12, -4}, Score{6, -17}, Score{-35, 15}},
-		{Score{-22, 0}, Score{-22, -5}, Score{-13, 3}, Score{-19, 11},
-			Score{-7, 9}, Score{-17, 19}, Score{-36, 8}, Score{-58, 35}}},
+			Score{-35, 0}, Score{-15, 1}, Score{-8, -6}, Score{-18, 3}},
+		{Score{-16, 21}, Score{2, 6}, Score{-8, -6}, Score{-4, -3},
+			Score{2, -22}, Score{-4, -13}, Score{6, -41}, Score{-30, 4}},
+		{Score{0, 6}, Score{-1, 2}, Score{-21, 0}, Score{-23, 10},
+			Score{-14, -8}, Score{-23, 2}, Score{-24, -1}, Score{-27, 8}},
+		{Score{46, -9}, Score{29, -17}, Score{-6, -9}, Score{-6, -8},
+			Score{0, -22}, Score{0, -3}, Score{41, -28}, Score{-13, 4}},
+		{Score{25, -3}, Score{-1, -5}, Score{-20, -8}, Score{-8, -3},
+			Score{-11, -9}, Score{12, -4}, Score{6, -17}, Score{-36, 16}},
+		{Score{-22, 0}, Score{-19, -5}, Score{-10, 4}, Score{-19, 11},
+			Score{-5, 9}, Score{-14, 17}, Score{-32, 7}, Score{-57, 35}}},
 	{{Score{0, -2}, Score{-42, -17}, Score{-18, -5}, Score{-78, -22},
 		Score{-5, -17}, Score{-33, -14}, Score{-77, 1}, Score{-67, 19}},
 		{Score{6, 23}, Score{2, -15}, Score{-20, -5}, Score{-6, -4},
-			Score{-3, -1}, Score{12, -39}, Score{2, -16}, Score{-57, 19}},
+			Score{-3, -1}, Score{12, -39}, Score{2, -16}, Score{-57, 20}},
 		{Score{14, 31}, Score{42, -5}, Score{12, -5}, Score{14, -9},
-			Score{14, 3}, Score{-21, -9}, Score{55, -14}, Score{-28, 8}},
+			Score{14, 3}, Score{-21, -9}, Score{55, -14}, Score{-28, 10}},
 		{Score{6, 24}, Score{-31, 19}, Score{-19, 9}, Score{-20, 4},
-			Score{-23, 19}, Score{-71, 31}, Score{-23, -1}, Score{-44, 4}},
-		{Score{2, 54}, Score{1, 4}, Score{-1, 0}, Score{-3, -1},
-			Score{-9, 7}, Score{-2, -10}, Score{-1, -12}, Score{-35, 9}},
-		{Score{69, -10}, Score{22, -10}, Score{-14, 1}, Score{-5, -14},
-			Score{-4, -6}, Score{-27, -12}, Score{17, -28}, Score{-32, 5}},
-		{Score{1, 11}, Score{7, -13}, Score{3, -16}, Score{-20, -8},
-			Score{-17, -12}, Score{-3, -15}, Score{-1, -17}, Score{-73, 24}},
+			Score{-23, 19}, Score{-71, 31}, Score{-23, -1}, Score{-44, 2}},
+		{Score{2, 54}, Score{0, 4}, Score{3, 0}, Score{-7, -1},
+			Score{-10, 7}, Score{0, -10}, Score{0, -12}, Score{-36, 9}},
+		{Score{69, -10}, Score{23, -12}, Score{-14, 1}, Score{-5, -14},
+			Score{-4, -6}, Score{-27, -12}, Score{17, -28}, Score{-33, 5}},
+		{Score{1, 11}, Score{8, -15}, Score{3, -14}, Score{-20, -8},
+			Score{-17, -11}, Score{-1, -15}, Score{3, -18}, Score{-71, 24}},
 		{Score{1, 0}, Score{-3, -25}, Score{-4, -13}, Score{-23, -8},
-			Score{-22, -3}, Score{3, -4}, Score{-30, -25}, Score{-62, 29}}},
+			Score{-22, -3}, Score{3, -4}, Score{-30, -25}, Score{-62, 31}}},
 }
 
 var kingStorm = [2][4][8]Score{
-	{{Score{19, 1}, Score{10, 1}, Score{17, 1}, Score{7, 7},
-		Score{-1, 12}, Score{6, 9}, Score{-8, 19}, Score{0, -8}},
-		{Score{14, 2}, Score{5, 6}, Score{20, -1}, Score{1, 9},
-			Score{12, 4}, Score{10, 1}, Score{0, -1}, Score{1, -9}},
-		{Score{15, 14}, Score{3, 8}, Score{2, 11}, Score{-8, 14},
-			Score{-5, 12}, Score{1, 3}, Score{9, -11}, Score{7, -5}},
-		{Score{24, 10}, Score{1, 5}, Score{6, 2}, Score{0, 3},
-			Score{-5, 11}, Score{3, 8}, Score{3, 6}, Score{-4, 2}}},
+	{{Score{19, 2}, Score{8, 1}, Score{14, 2}, Score{6, 6},
+		Score{1, 13}, Score{4, 9}, Score{-12, 18}, Score{2, -12}},
+		{Score{14, 3}, Score{4, 5}, Score{19, -2}, Score{2, 8},
+			Score{10, 4}, Score{7, 1}, Score{3, -2}, Score{3, -11}},
+		{Score{15, 12}, Score{-1, 9}, Score{2, 7}, Score{-9, 14},
+			Score{-5, 9}, Score{5, 2}, Score{10, -11}, Score{5, -5}},
+		{Score{24, 11}, Score{2, 4}, Score{9, 1}, Score{-1, 5},
+			Score{-6, 9}, Score{8, 8}, Score{4, 6}, Score{-1, 0}}},
 	{{Score{0, 0}, Score{8, 15}, Score{-17, 7}, Score{21, -4},
 		Score{16, 12}, Score{-9, 13}, Score{7, 44}, Score{11, -21}},
 		{Score{0, 0}, Score{7, -28}, Score{-6, -6}, Score{58, -11},
 			Score{48, -15}, Score{-19, 1}, Score{2, 19}, Score{6, -20}},
 		{Score{0, 0}, Score{-73, 0}, Score{-33, -1}, Score{13, 2},
-			Score{2, 1}, Score{-3, -11}, Score{70, -50}, Score{7, -3}},
+			Score{2, 1}, Score{-3, -11}, Score{70, -50}, Score{3, -3}},
 		{Score{0, 0}, Score{0, -21}, Score{12, -17}, Score{-8, 0},
-			Score{-5, 2}, Score{8, -20}, Score{-3, 1}, Score{-7, 16}}},
+			Score{-4, 2}, Score{7, -20}, Score{-3, 1}, Score{-7, 16}}},
 }
 
 var blackPassedMask [64]uint64
@@ -283,16 +283,16 @@ var blackForwardRanksMasks [8]uint64
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
-var kingSafetyAttacksWeights = [King + 1]int16{0, -3, 0, -1, 15, 0}
-var kingSafetyAttackValue int16 = 105
-var kingSafetyWeakSquares int16 = 17
+var kingSafetyAttacksWeights = [King + 1]int16{0, -3, -2, -1, 8, 0}
+var kingSafetyAttackValue int16 = 109
+var kingSafetyWeakSquares int16 = 19
 var kingSafetyFriendlyPawns int16 = -7
-var kingSafetyNoEnemyQueens int16 = 40
-var kingSafetySafeQueenCheck int16 = 77
+var kingSafetyNoEnemyQueens int16 = 60
+var kingSafetySafeQueenCheck int16 = 76
 var kingSafetySafeRookCheck int16 = 113
 var kingSafetySafeBishopCheck int16 = 97
 var kingSafetySafeKnightCheck int16 = 147
-var kingSafetyAdjustment int16 = -72
+var kingSafetyAdjustment int16 = -73
 
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
