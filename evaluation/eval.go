@@ -42,7 +42,7 @@ func addScore(first, second Score) Score {
 var PawnValue = Score{103, 117}
 var KnightValue = Score{510, 420}
 var BishopValue = Score{472, 416}
-var RookValue = Score{655, 681}
+var RookValue = Score{672, 678}
 var QueenValue = Score{1435, 1322}
 
 // Piece Square Values
@@ -69,14 +69,14 @@ var pieceScores = [King + 1][8][4]Score{
 		{Score{-1, -28}, Score{-36, -19}, Score{-113, -5}, Score{-92, -4}},
 	},
 	{ // Rook
-		{Score{-5, -17}, Score{-12, -4}, Score{12, -13}, Score{14, -15}},
-		{Score{-42, 0}, Score{-6, -17}, Score{-9, -10}, Score{2, -11}},
-		{Score{-37, -7}, Score{-14, -8}, Score{-3, -17}, Score{-11, -13}},
-		{Score{-39, 3}, Score{-9, -3}, Score{-16, 1}, Score{-12, -2}},
-		{Score{-38, 8}, Score{-23, 2}, Score{11, 6}, Score{-6, 0}},
-		{Score{-25, 4}, Score{16, 1}, Score{20, -4}, Score{-8, 3}},
-		{Score{7, 10}, Score{6, 15}, Score{48, 1}, Score{60, -7}},
-		{Score{6, 12}, Score{8, 10}, Score{-21, 18}, Score{14, 11}},
+		{Score{-1, -21}, Score{-9, -7}, Score{13, -12}, Score{14, -15}},
+		{Score{-41, -3}, Score{-7, -17}, Score{-6, -13}, Score{4, -15}},
+		{Score{-36, -9}, Score{-13, -8}, Score{-1, -18}, Score{-12, -13}},
+		{Score{-38, 4}, Score{-10, -3}, Score{-15, 1}, Score{-13, -3}},
+		{Score{-37, 8}, Score{-22, 2}, Score{10, 7}, Score{-6, 0}},
+		{Score{-25, 4}, Score{16, 1}, Score{20, -4}, Score{-8, 4}},
+		{Score{7, 12}, Score{6, 15}, Score{50, 4}, Score{59, -7}},
+		{Score{6, 12}, Score{9, 10}, Score{-24, 19}, Score{21, 11}},
 	},
 	{ // Queen
 		{Score{0, -58}, Score{16, -72}, Score{15, -60}, Score{33, -68}},
@@ -128,8 +128,8 @@ var mobilityBonus = [...][32]Score{
 	{Score{-28, -73}, Score{-13, -59}, Score{8, -27}, Score{12, -7}, Score{24, 2}, Score{35, 8}, // Bishops
 		Score{42, 11}, Score{45, 12}, Score{48, 16}, Score{55, 14}, Score{66, 0}, Score{91, 2},
 		Score{50, 23}, Score{66, 8}},
-	{Score{-28, -35}, Score{-31, -29}, Score{-17, 10}, Score{-7, 36}, Score{0, 50}, Score{4, 58}, // Rooks
-		Score{10, 64}, Score{17, 66}, Score{18, 67}, Score{36, 67}, Score{37, 69}, Score{40, 73},
+	{Score{-27, -35}, Score{-34, -22}, Score{-17, 20}, Score{-13, 35}, Score{-6, 49}, Score{-3, 62}, // Rooks
+		Score{2, 68}, Score{16, 66}, Score{17, 66}, Score{32, 67}, Score{37, 71}, Score{40, 73},
 		Score{50, 73}, Score{61, 68}, Score{92, 58}},
 	{Score{-22, -20}, Score{-48, -8}, Score{-4, -141}, Score{-10, -118}, Score{-2, -19}, Score{4, -23}, // Queens
 		Score{3, -21}, Score{13, -5}, Score{17, 19}, Score{20, 22}, Score{21, 36}, Score{22, 46},
@@ -198,10 +198,10 @@ var minorBehindPawn = Score{6, 27}
 var tempo = Score{27, 28}
 
 // Rook on semiopen, open file
-var rookOnFile = [2]Score{Score{12, 23}, Score{58, -3}}
+var rookOnFile = [2]Score{Score{8, 23}, Score{54, -3}}
 
 // king can castle / king cannot castle
-var trappedRook = [2]Score{Score{-52, -10}, Score{-104, -20}}
+var trappedRook = [2]Score{Score{-4, -13}, Score{-53, -5}}
 
 var kingDefenders = [12]Score{
 	Score{-80, 0}, Score{-61, -4}, Score{-35, -4}, Score{-12, -4},
