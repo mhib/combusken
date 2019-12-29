@@ -2,9 +2,8 @@ package evaluation
 
 import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
+import "github.com/mhib/combusken/transposition"
 import "fmt"
-
-const Mate = 32000
 
 const pawnPhase = 0
 const knightPhase = 1
@@ -420,8 +419,8 @@ func IsLateEndGame(pos *Position) bool {
 		!MoreThanOne((pos.Pieces[Knight]|pos.Pieces[Bishop])&pos.Colours[pos.SideToMove])
 }
 
-func evaluateKingPawns(pos *Position, pkTable PawnKingTable) (int, int) {
-	if ok, midScore, endScore := pkTable.Get(pos.PawnKey); ok {
+func evaluateKingPawns(pos *Position) (int, int) {
+	if ok, midScore, endScore := transposition.GlobalPawnKingTable.Get(pos.PawnKey); ok {
 		return midScore, endScore
 	}
 	var fromBB uint64
@@ -574,11 +573,11 @@ func evaluateKingPawns(pos *Position, pkTable PawnKingTable) (int, int) {
 		midResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
 		endResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].End)
 	}
-	pkTable.Set(pos.PawnKey, midResult, endResult)
+	transposition.GlobalPawnKingTable.Set(pos.PawnKey, midResult, endResult)
 	return midResult, endResult
 }
 
-func Evaluate(pos *Position, pkTable PawnKingTable) int {
+func Evaluate(pos *Position) int {
 	var fromId int
 	var fromBB uint64
 	var attacks uint64
@@ -627,7 +626,7 @@ func Evaluate(pos *Position, pkTable PawnKingTable) int {
 	//blackAttackedBy[Pawn] |= attacks
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 
-	midResult, endResult := evaluateKingPawns(pos, pkTable)
+	midResult, endResult := evaluateKingPawns(pos)
 
 	// white knights
 	for fromBB = pos.Pieces[Knight] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {

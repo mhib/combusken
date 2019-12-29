@@ -1,4 +1,4 @@
-package engine
+package transposition
 
 import "github.com/mhib/combusken/backend"
 import "unsafe"
@@ -14,6 +14,14 @@ const (
 )
 
 const NoneDepth = -6
+
+type TranspositionTable interface {
+	Get(key uint64, height int) (ok bool, value int16, depth int16, move backend.Move, flag uint8)
+	Set(key uint64, value, depth int, move backend.Move, flag, height int)
+	Clear()
+}
+
+var GlobalTransTable TranspositionTable
 
 func valueFromTrans(value int16, height int) int16 {
 	if value >= Mate-500 {

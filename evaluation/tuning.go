@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	. "github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/transposition"
+	. "github.com/mhib/combusken/utils"
 	"math"
 	"math/rand"
 	"os"
@@ -62,8 +64,6 @@ func (t *emptyPKTableType) Set(uint64, int, int) {
 func (t *emptyPKTableType) Clear() {
 }
 
-var emptyPKTable = emptyPKTableType{}
-
 // Copy if quiescence search to extract quiet position
 func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.stack[height].pv.clear()
@@ -77,7 +77,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := Evaluate(pos, &emptyPKTable)
+	val := Evaluate(pos)
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -125,6 +125,8 @@ type tuner struct {
 }
 
 func Tune() {
+	transposition.GlobalPawnKingTable = &emptyPKTableType{}
+
 	inputChan := make(chan string)
 	go loadEntries(inputChan)
 	wg := &sync.WaitGroup{}
@@ -194,7 +196,7 @@ func (t *tuner) computeError(entriesCount int) float64 {
 			var c, sum float64
 			for y := idx; y < entriesCount; y += numCPU {
 				entry := t.entries[y]
-				evaluation := float64(Evaluate(&entry.Position, &emptyPKTable))
+				evaluation := float64(Evaluate(&entry.Position))
 				if entry.Position.SideToMove == Black {
 					evaluation *= -1
 				}

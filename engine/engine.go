@@ -5,6 +5,8 @@ import "errors"
 import "runtime"
 import "github.com/mhib/combusken/backend"
 import "github.com/mhib/combusken/evaluation"
+import "github.com/mhib/combusken/transposition"
+import . "github.com/mhib/combusken/utils"
 
 const MAX_HEIGHT = 127
 const STACK_SIZE = MAX_HEIGHT + 1
@@ -18,20 +20,12 @@ type IntUciOption struct {
 	Val  int
 }
 
-type TransTable interface {
-	Get(key uint64, height int) (ok bool, value int16, depth int16, move backend.Move, flag uint8)
-	Set(key uint64, value, depth int, move backend.Move, flag, height int)
-	Clear()
-}
-
 type Engine struct {
-	Hash         IntUciOption
-	Threads      IntUciOption
-	MoveOverhead IntUciOption
-	PawnHash     IntUciOption
-	done         <-chan struct{}
-	TransTable
-	evaluation.PawnKingTable
+	Hash              IntUciOption
+	Threads           IntUciOption
+	MoveOverhead      IntUciOption
+	PawnHash          IntUciOption
+	done              <-chan struct{}
 	RepeatedPositions map[uint64]interface{}
 	MovesCount        int
 	Update            func(SearchInfo)
@@ -53,9 +47,9 @@ type UciScore struct {
 
 func newUciScore(score int) UciScore {
 	if score >= ValueWin {
-		return UciScore{Mate: (evaluation.Mate - score + 1) / 2}
+		return UciScore{Mate: (Mate - score + 1) / 2}
 	} else if score <= ValueLoss {
-		return UciScore{Mate: (-evaluation.Mate - score) / 2}
+		return UciScore{Mate: (-Mate - score) / 2}
 	} else {
 		return UciScore{Centipawn: score}
 	}
@@ -81,16 +75,16 @@ func (se *StackEntry) InvalidateEvaluation() {
 	se.evaluationCalculated = false
 }
 
-func (se *StackEntry) Evaluation(pk evaluation.PawnKingTable) int16 {
+func (se *StackEntry) Evaluation() int16 {
 	if !se.evaluationCalculated {
-		se.evaluation = int16(evaluation.Evaluate(&se.position, pk))
+		se.evaluation = int16(evaluation.Evaluate(&se.position))
 		se.evaluationCalculated = true
 	}
 	return se.evaluation
 }
 
-func (se *StackEntry) NonCachedEvaluation(pk evaluation.PawnKingTable) int {
-	return evaluation.Evaluate(&se.position, pk)
+func (se *StackEntry) NonCachedEvaluation() int {
+	return evaluation.Evaluate(&se.position)
 }
 
 type PV struct {
@@ -166,16 +160,16 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 
 func (e *Engine) NewGame() {
 	if e.Threads.Val == 1 {
-		e.TransTable = NewSingleThreadTransTable(e.Hash.Val)
+		transposition.GlobalTransTable = transposition.NewSingleThreadTransTable(e.Hash.Val)
 	} else {
-		e.TransTable = NewAtomicTransTable(e.Hash.Val)
+		transposition.GlobalTransTable = transposition.NewAtomicTransTable(e.Hash.Val)
 	}
 	e.threads = make([]thread, e.Threads.Val)
 	for i := range e.threads {
 		e.threads[i].MoveEvaluator = MoveEvaluator{}
 		e.threads[i].engine = e
 	}
-	e.PawnKingTable = evaluation.NewPKTable(e.PawnHash.Val)
+	transposition.GlobalPawnKingTable = transposition.NewPKTable(e.PawnHash.Val)
 }
 
 func (e *Engine) callUpdate(s SearchInfo) {
@@ -200,10 +194,6 @@ func (t *thread) incNodes() {
 		default:
 		}
 	}
-}
-
-func (t *thread) PawnKingTable() evaluation.PawnKingTable {
-	return t.engine.PawnKingTable
 }
 
 func (pv *PV) clear() {

@@ -1,4 +1,4 @@
-package evaluation
+package transposition
 
 import "unsafe"
 import . "github.com/mhib/combusken/utils"
@@ -9,9 +9,12 @@ type PawnKingTable interface {
 	Clear()
 }
 
+var GlobalPawnKingTable PawnKingTable
+
 type PKTableEntry struct {
-	key   uint64
-	value Score
+	key    uint64
+	middle int16
+	end    int16
 }
 
 type PKTable struct {
@@ -30,16 +33,16 @@ func (t *PKTable) Get(key uint64) (ok bool, middleScore int, endScore int) {
 		return
 	}
 	ok = true
-	middleScore = int(element.value.Middle)
-	endScore = int(element.value.End)
+	middleScore = int(element.middle)
+	endScore = int(element.end)
 	return
 }
 
 func (t *PKTable) Set(key uint64, middleScore int, endScore int) {
 	var element = &t.Entries[key&t.Mask]
 	element.key = key
-	element.value.Middle = int16(middleScore)
-	element.value.End = int16(endScore)
+	element.middle = int16(middleScore)
+	element.end = int16(endScore)
 }
 
 func (t *PKTable) Clear() {
