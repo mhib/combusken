@@ -4,17 +4,16 @@ import "unsafe"
 import . "github.com/mhib/combusken/utils"
 
 type PawnKingTable interface {
-	Get(key uint64) (ok bool, middleScore int, endScore int)
-	Set(key uint64, middleScore int, endScore int)
+	Get(key uint64) (ok bool, score Score)
+	Set(key uint64, score Score)
 	Clear()
 }
 
 var GlobalPawnKingTable PawnKingTable
 
 type PKTableEntry struct {
-	key    uint64
-	middle int16
-	end    int16
+	key   uint64
+	score Score
 }
 
 type PKTable struct {
@@ -27,22 +26,20 @@ func NewPKTable(megabytes int) *PKTable {
 	return &PKTable{make([]PKTableEntry, size), size - 1}
 }
 
-func (t *PKTable) Get(key uint64) (ok bool, middleScore int, endScore int) {
+func (t *PKTable) Get(key uint64) (ok bool, score Score) {
 	var element = &t.Entries[key&t.Mask]
 	if element.key != key {
 		return
 	}
 	ok = true
-	middleScore = int(element.middle)
-	endScore = int(element.end)
+	score = element.score
 	return
 }
 
-func (t *PKTable) Set(key uint64, middleScore int, endScore int) {
+func (t *PKTable) Set(key uint64, score Score) {
 	var element = &t.Entries[key&t.Mask]
 	element.key = key
-	element.middle = int16(middleScore)
-	element.end = int16(endScore)
+	element.score = score
 }
 
 func (t *PKTable) Clear() {

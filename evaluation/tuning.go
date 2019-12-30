@@ -54,11 +54,11 @@ func (pv *pv) Moves() []Move {
 type emptyPKTableType struct {
 }
 
-func (t *emptyPKTableType) Get(uint64) (bool, int, int) {
-	return false, 0, 0
+func (t *emptyPKTableType) Get(uint64) (bool, Score) {
+	return false, SCORE_ZERO
 }
 
-func (t *emptyPKTableType) Set(uint64, int, int) {
+func (t *emptyPKTableType) Set(uint64, Score) {
 }
 
 func (t *emptyPKTableType) Clear() {
@@ -557,7 +557,8 @@ func (t *tuner) loadEvaluationValues() {
 func copyEvaluationValue(ev EvaluationValue) (EvaluationValue, error) {
 	switch v := ev.(type) {
 	case ScoreValue:
-		return ScoreValue{&Score{ev.get(0), ev.get(1)}}, nil
+		tmp := S(ev.get(0), ev.get(1))
+		return ScoreValue{&tmp}, nil
 	case SingleValue:
 		val := ev.get(0)
 		return SingleValue{&val}, nil
@@ -590,17 +591,17 @@ func (ScoreValue) regularized() bool {
 
 func (sv ScoreValue) set(phase int, value int16) {
 	if phase == 0 {
-		sv.Score.Middle = value
+		*sv.Score = S(value, sv.Score.End())
 	} else {
-		sv.Score.End = value
+		*sv.Score = S(sv.Score.Middle(), value)
 	}
 }
 
 func (sv ScoreValue) get(phase int) int16 {
 	if phase == 0 {
-		return sv.Score.Middle
+		return sv.Score.Middle()
 	}
-	return sv.Score.End
+	return sv.Score.End()
 }
 
 type SingleValue struct {

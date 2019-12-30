@@ -3,7 +3,6 @@ package evaluation
 import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 import "github.com/mhib/combusken/transposition"
-import "fmt"
 
 const pawnPhase = 0
 const knightPhase = 1
@@ -12,139 +11,113 @@ const rookPhase = 2
 const queenPhase = 4
 const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + queenPhase*2
 
-type Score struct {
-	Middle int16
-	End    int16
-}
-
-func (s Score) String() string {
-	return fmt.Sprintf("Score{%d, %d}", s.Middle, s.End)
-}
-
-func (first *Score) Add(second Score) {
-	first.Middle += second.Middle
-	first.End += second.End
-}
-
-func (first *Score) Subtract(second Score) {
-	first.Middle -= second.Middle
-	first.End -= second.End
-}
-
-func addScore(first, second Score) Score {
-	return Score{
-		Middle: first.Middle + second.Middle,
-		End:    first.End + second.End,
-	}
-}
-
-var PawnValue = Score{103, 117}
-var KnightValue = Score{510, 420}
-var BishopValue = Score{472, 416}
-var RookValue = Score{655, 681}
-var QueenValue = Score{1435, 1322}
+var PawnValue = S(103, 117)
+var KnightValue = S(510, 420)
+var BishopValue = S(472, 416)
+var RookValue = S(655, 681)
+var QueenValue = S(1435, 1322)
 
 // Piece Square Values
 var pieceScores = [King + 1][8][4]Score{
 	{},
 	{ // knight
-		{Score{-59, -40}, Score{-12, -54}, Score{-39, -33}, Score{-10, -24}},
-		{Score{-21, -56}, Score{-27, -36}, Score{-13, -31}, Score{-3, -22}},
-		{Score{-21, -40}, Score{-1, -32}, Score{-1, -17}, Score{5, -2}},
-		{Score{-16, -29}, Score{13, -26}, Score{11, 0}, Score{11, 2}},
-		{Score{-2, -34}, Score{7, -21}, Score{14, 2}, Score{32, 3}},
-		{Score{-37, -52}, Score{27, -43}, Score{-11, -1}, Score{28, -5}},
-		{Score{-78, -51}, Score{-44, -28}, Score{56, -57}, Score{-3, -23}},
-		{Score{-211, -70}, Score{-76, -78}, Score{-130, -34}, Score{1, -57}},
+		{S(-59, -40), S(-12, -54), S(-39, -33), S(-10, -24)},
+		{S(-21, -56), S(-27, -36), S(-13, -31), S(-3, -22)},
+		{S(-21, -40), S(-1, -32), S(-1, -17), S(5, -2)},
+		{S(-16, -29), S(13, -26), S(11, 0), S(11, 2)},
+		{S(-2, -34), S(7, -21), S(14, 2), S(32, 3)},
+		{S(-37, -52), S(27, -43), S(-11, -1), S(28, -5)},
+		{S(-78, -51), S(-44, -28), S(56, -57), S(-3, -23)},
+		{S(-211, -70), S(-76, -78), S(-130, -34), S(1, -57)},
 	},
 	{ // Bishop
-		{Score{-9, -11}, Score{6, -4}, Score{7, -9}, Score{7, -4}},
-		{Score{3, -25}, Score{42, -31}, Score{26, -18}, Score{6, -6}},
-		{Score{12, -19}, Score{29, -12}, Score{26, -1}, Score{12, 5}},
-		{Score{0, -23}, Score{4, -19}, Score{9, -2}, Score{29, -1}},
-		{Score{-21, -13}, Score{2, -14}, Score{-2, 0}, Score{25, 2}},
-		{Score{-56, -1}, Score{-16, -13}, Score{-8, -1}, Score{-18, -8}},
-		{Score{-75, 2}, Score{20, -9}, Score{-14, 2}, Score{2, -14}},
-		{Score{-1, -28}, Score{-36, -19}, Score{-113, -5}, Score{-92, -4}},
+		{S(-9, -11), S(6, -4), S(7, -9), S(7, -4)},
+		{S(3, -25), S(42, -31), S(26, -18), S(6, -6)},
+		{S(12, -19), S(29, -12), S(26, -1), S(12, 5)},
+		{S(0, -23), S(4, -19), S(9, -2), S(29, -1)},
+		{S(-21, -13), S(2, -14), S(-2, 0), S(25, 2)},
+		{S(-56, -1), S(-16, -13), S(-8, -1), S(-18, -8)},
+		{S(-75, 2), S(20, -9), S(-14, 2), S(2, -14)},
+		{S(-1, -28), S(-36, -19), S(-113, -5), S(-92, -4)},
 	},
 	{ // Rook
-		{Score{-5, -17}, Score{-12, -4}, Score{12, -13}, Score{14, -15}},
-		{Score{-42, 0}, Score{-6, -17}, Score{-9, -10}, Score{2, -11}},
-		{Score{-37, -7}, Score{-14, -8}, Score{-3, -17}, Score{-11, -13}},
-		{Score{-39, 3}, Score{-9, -3}, Score{-16, 1}, Score{-12, -2}},
-		{Score{-38, 8}, Score{-23, 2}, Score{11, 6}, Score{-6, 0}},
-		{Score{-25, 4}, Score{16, 1}, Score{20, -4}, Score{-8, 3}},
-		{Score{7, 10}, Score{6, 15}, Score{48, 1}, Score{60, -7}},
-		{Score{6, 12}, Score{8, 10}, Score{-21, 18}, Score{14, 11}},
+		{S(-5, -17), S(-12, -4), S(12, -13), S(14, -15)},
+		{S(-42, 0), S(-6, -17), S(-9, -10), S(2, -11)},
+		{S(-37, -7), S(-14, -8), S(-3, -17), S(-11, -13)},
+		{S(-39, 3), S(-9, -3), S(-16, 1), S(-12, -2)},
+		{S(-38, 8), S(-23, 2), S(11, 6), S(-6, 0)},
+		{S(-25, 4), S(16, 1), S(20, -4), S(-8, 3)},
+		{S(7, 10), S(6, 15), S(48, 1), S(60, -7)},
+		{S(6, 12), S(8, 10), S(-21, 18), S(14, 11)},
 	},
 	{ // Queen
-		{Score{0, -58}, Score{16, -72}, Score{15, -60}, Score{33, -68}},
-		{Score{-3, -41}, Score{7, -50}, Score{31, -56}, Score{27, -43}},
-		{Score{-6, -14}, Score{20, -30}, Score{-1, 5}, Score{2, -6}},
-		{Score{-2, -18}, Score{-23, 34}, Score{-7, 18}, Score{-20, 44}},
-		{Score{-20, 12}, Score{-28, 27}, Score{-29, 31}, Score{-33, 51}},
-		{Score{20, -26}, Score{3, -8}, Score{-4, 13}, Score{-8, 45}},
-		{Score{-9, -24}, Score{-54, 17}, Score{-19, 21}, Score{-35, 52}},
-		{Score{8, -20}, Score{2, 0}, Score{17, 6}, Score{19, 14}},
+		{S(0, -58), S(16, -72), S(15, -60), S(33, -68)},
+		{S(-3, -41), S(7, -50), S(31, -56), S(27, -43)},
+		{S(-6, -14), S(20, -30), S(-1, 5), S(2, -6)},
+		{S(-2, -18), S(-23, 34), S(-7, 18), S(-20, 44)},
+		{S(-20, 12), S(-28, 27), S(-29, 31), S(-33, 51)},
+		{S(20, -26), S(3, -8), S(-4, 13), S(-8, 45)},
+		{S(-9, -24), S(-54, 17), S(-19, 21), S(-35, 52)},
+		{S(8, -20), S(2, 0), S(17, 6), S(19, 14)},
 	},
 	{ // King
-		{Score{192, -13}, Score{175, 21}, Score{99, 65}, Score{102, 53}},
-		{Score{180, 23}, Score{140, 46}, Score{69, 80}, Score{39, 91}},
-		{Score{82, 49}, Score{108, 56}, Score{42, 84}, Score{39, 91}},
-		{Score{14, 49}, Score{72, 58}, Score{30, 90}, Score{-3, 100}},
-		{Score{25, 61}, Score{102, 77}, Score{63, 97}, Score{85, 88}},
-		{Score{94, 66}, Score{237, 71}, Score{221, 87}, Score{160, 68}},
-		{Score{43, 69}, Score{114, 80}, Score{107, 100}, Score{167, 75}},
-		{Score{26, 10}, Score{129, 37}, Score{112, 73}, Score{25, 59}},
+		{S(192, -13), S(175, 21), S(99, 65), S(102, 53)},
+		{S(180, 23), S(140, 46), S(69, 80), S(39, 91)},
+		{S(82, 49), S(108, 56), S(42, 84), S(39, 91)},
+		{S(14, 49), S(72, 58), S(30, 90), S(-3, 100)},
+		{S(25, 61), S(102, 77), S(63, 97), S(85, 88)},
+		{S(94, 66), S(237, 71), S(221, 87), S(160, 68)},
+		{S(43, 69), S(114, 80), S(107, 100), S(167, 75)},
+		{S(26, 10), S(129, 37), S(112, 73), S(25, 59)},
 	},
 }
 
 // Pawns Square scores
 var pawnScores = [7][8]Score{
 	{},
-	{Score{-16, 3}, Score{17, -2}, Score{-6, 9}, Score{6, 5}, Score{3, 10}, Score{-6, 11}, Score{17, 0}, Score{-14, 3}},
-	{Score{-12, -7}, Score{-6, -3}, Score{-1, 0}, Score{5, -3}, Score{3, -1}, Score{2, -2}, Score{-5, -6}, Score{-4, -5}},
-	{Score{-18, 1}, Score{-4, 0}, Score{16, -6}, Score{25, -9}, Score{19, -7}, Score{14, -3}, Score{-6, 1}, Score{-13, 3}},
-	{Score{2, 12}, Score{25, 1}, Score{16, -8}, Score{36, -14}, Score{33, -16}, Score{11, 0}, Score{29, 2}, Score{-5, 15}},
-	{Score{10, 39}, Score{27, 28}, Score{51, 6}, Score{47, 1}, Score{55, -5}, Score{74, 10}, Score{9, 35}, Score{9, 43}},
-	{Score{-5, 65}, Score{7, 65}, Score{3, 37}, Score{2, 38}, Score{84, 28}, Score{-11, 46}, Score{1, 46}, Score{-69, 81}},
+	{S(-16, 3), S(17, -2), S(-6, 9), S(6, 5), S(3, 10), S(-6, 11), S(17, 0), S(-14, 3)},
+	{S(-12, -7), S(-6, -3), S(-1, 0), S(5, -3), S(3, -1), S(2, -2), S(-5, -6), S(-4, -5)},
+	{S(-18, 1), S(-4, 0), S(16, -6), S(25, -9), S(19, -7), S(14, -3), S(-6, 1), S(-13, 3)},
+	{S(2, 12), S(25, 1), S(16, -8), S(36, -14), S(33, -16), S(11, 0), S(29, 2), S(-5, 15)},
+	{S(10, 39), S(27, 28), S(51, 6), S(47, 1), S(55, -5), S(74, 10), S(9, 35), S(9, 43)},
+	{S(-5, 65), S(7, 65), S(3, 37), S(2, 38), S(84, 28), S(-11, 46), S(1, 46), S(-69, 81)},
 }
 
 var pawnsConnected = [8][4]Score{
-	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
-	{Score{12, -23}, Score{5, 10}, Score{8, -9}, Score{1, 16}},
-	{Score{6, 1}, Score{30, 4}, Score{14, 10}, Score{13, 18}},
-	{Score{9, 8}, Score{22, 8}, Score{14, 9}, Score{23, 11}},
-	{Score{13, 16}, Score{10, 25}, Score{28, 24}, Score{31, 21}},
-	{Score{12, 58}, Score{43, 56}, Score{75, 55}, Score{73, 47}},
-	{Score{7, 59}, Score{146, -1}, Score{160, 21}, Score{215, 41}},
-	{Score{0, 0}, Score{0, 0}, Score{0, 0}, Score{0, 0}},
+	{S(0, 0), S(0, 0), S(0, 0), S(0, 0)},
+	{S(12, -23), S(5, 10), S(8, -9), S(1, 16)},
+	{S(6, 1), S(30, 4), S(14, 10), S(13, 18)},
+	{S(9, 8), S(22, 8), S(14, 9), S(23, 11)},
+	{S(13, 16), S(10, 25), S(28, 24), S(31, 21)},
+	{S(12, 58), S(43, 56), S(75, 55), S(73, 47)},
+	{S(7, 59), S(146, -1), S(160, 21), S(215, 41)},
+	{S(0, 0), S(0, 0), S(0, 0), S(0, 0)},
 }
 
 var mobilityBonus = [...][32]Score{
-	{Score{-42, -117}, Score{-32, -67}, Score{-19, -38}, Score{-20, -15}, Score{-5, -17}, Score{5, -7}, // Knights
-		Score{15, -12}, Score{25, -14}, Score{39, -29}},
-	{Score{-28, -73}, Score{-13, -59}, Score{8, -27}, Score{12, -7}, Score{24, 2}, Score{35, 8}, // Bishops
-		Score{42, 11}, Score{45, 12}, Score{48, 16}, Score{55, 14}, Score{66, 0}, Score{91, 2},
-		Score{50, 23}, Score{66, 8}},
-	{Score{-28, -35}, Score{-31, -29}, Score{-17, 10}, Score{-7, 36}, Score{0, 50}, Score{4, 58}, // Rooks
-		Score{10, 64}, Score{17, 66}, Score{18, 67}, Score{36, 67}, Score{37, 69}, Score{40, 73},
-		Score{50, 73}, Score{61, 68}, Score{92, 58}},
-	{Score{-22, -20}, Score{-48, -8}, Score{-4, -141}, Score{-10, -118}, Score{-2, -19}, Score{4, -23}, // Queens
-		Score{3, -21}, Score{13, -5}, Score{17, 19}, Score{20, 22}, Score{21, 36}, Score{22, 46},
-		Score{27, 37}, Score{26, 61}, Score{30, 63}, Score{30, 75}, Score{31, 69}, Score{26, 71},
-		Score{37, 67}, Score{37, 80}, Score{65, 55}, Score{65, 55}, Score{69, 46}, Score{61, 33},
-		Score{68, 20}, Score{28, 36}, Score{-7, -6}, Score{5, 3}},
+	{S(-42, -117), S(-32, -67), S(-19, -38), S(-20, -15), S(-5, -17), S(5, -7), // Knights
+		S(15, -12), S(25, -14), S(39, -29)},
+	{S(-28, -73), S(-13, -59), S(8, -27), S(12, -7), S(24, 2), S(35, 8), // Bishops
+		S(42, 11), S(45, 12), S(48, 16), S(55, 14), S(66, 0), S(91, 2),
+		S(50, 23), S(66, 8)},
+	{S(-28, -35), S(-31, -29), S(-17, 10), S(-7, 36), S(0, 50), S(4, 58), // Rooks
+		S(10, 64), S(17, 66), S(18, 67), S(36, 67), S(37, 69), S(40, 73),
+		S(50, 73), S(61, 68), S(92, 58)},
+	{S(-22, -20), S(-48, -8), S(-4, -141), S(-10, -118), S(-2, -19), S(4, -23), // Queens
+		S(3, -21), S(13, -5), S(17, 19), S(20, 22), S(21, 36), S(22, 46),
+		S(27, 37), S(26, 61), S(30, 63), S(30, 75), S(31, 69), S(26, 71),
+		S(37, 67), S(37, 80), S(65, 55), S(65, 55), S(69, 46), S(61, 33),
+		S(68, 20), S(28, 36), S(-7, -6), S(5, 3)},
 }
 
 var passedFriendlyDistance = [8]Score{
-	Score{0, 0}, Score{5, 23}, Score{-5, 9}, Score{-8, -12},
-	Score{-14, -20}, Score{-17, -23}, Score{4, -27}, Score{-31, -15},
+	S(0, 0), S(5, 23), S(-5, 9), S(-8, -12),
+	S(-14, -20), S(-17, -23), S(4, -27), S(-31, -15),
 }
 
 var passedEnemyDistance = [8]Score{
-	Score{0, 0}, Score{-56, -72}, Score{23, -28}, Score{14, 6},
-	Score{15, 27}, Score{8, 36}, Score{4, 40}, Score{-13, 48},
+	S(0, 0), S(-56, -72), S(23, -28), S(14, 6),
+	S(15, 27), S(8, 36), S(4, 40), S(-13, 48),
 }
 
 var blackPawnsPos [64]Score
@@ -171,92 +144,92 @@ var blackKingPos [64]Score
 var whiteKingPos [64]Score
 
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
-var passedRank = [7]Score{Score{0, 0}, Score{-2, -30}, Score{-7, -11}, Score{-7, 31}, Score{27, 74}, Score{39, 160}, Score{110, 249}}
+var passedRank = [7]Score{S(0, 0), S(-2, -30), S(-7, -11), S(-7, 31), S(27, 74), S(39, 160), S(110, 249)}
 
 // PassedFile[File] contains a bonus according to the file of a passed pawn
-var passedFile = [8]Score{Score{-6, 21}, Score{-24, 21}, Score{-29, 9}, Score{-26, -6},
-	Score{-17, -5}, Score{7, -2}, Score{-10, 17}, Score{-7, 11},
+var passedFile = [8]Score{S(-6, 21), S(-24, 21), S(-29, 9), S(-26, -6),
+	S(-17, -5), S(7, -2), S(-10, 17), S(-7, 11),
 }
 
-var isolated = Score{-10, -11}
-var doubled = Score{-11, -34}
-var backward = Score{5, -2}
-var backwardOpen = Score{-15, -7}
+var isolated = S(-10, -11)
+var doubled = S(-11, -34)
+var backward = S(5, -2)
+var backwardOpen = S(-15, -7)
 
-var bishopPair = Score{47, 60}
-var bishopRammedPawns = Score{-7, -13}
+var bishopPair = S(47, 60)
+var bishopRammedPawns = S(-7, -13)
 
-var bishopOutpostUndefendedBonus = Score{40, -3}
-var bishopOutpostDefendedBonus = Score{80, 2}
+var bishopOutpostUndefendedBonus = S(40, -3)
+var bishopOutpostDefendedBonus = S(80, 2)
 
-var knightOutpostUndefendedBonus = Score{32, -15}
-var knightOutpostDefendedBonus = Score{54, 13}
+var knightOutpostUndefendedBonus = S(32, -15)
+var knightOutpostDefendedBonus = S(54, 13)
 
-var minorBehindPawn = Score{6, 27}
+var minorBehindPawn = S(6, 27)
 
-var tempo = Score{27, 28}
+var tempo = S(27, 28)
 
 // Rook on semiopen, open file
-var rookOnFile = [2]Score{Score{12, 23}, Score{58, -3}}
+var rookOnFile = [2]Score{S(12, 23), S(58, -3)}
 
 var kingDefenders = [12]Score{
-	Score{-80, 0}, Score{-61, -4}, Score{-35, -4}, Score{-12, -4},
-	Score{-1, -1}, Score{14, -1}, Score{26, 0}, Score{34, 1},
-	Score{44, -1}, Score{35, 6}, Score{7, 4}, Score{7, 4},
+	S(-80, 0), S(-65, 0), S(-39, 0), S(-16, 0),
+	S(-2, 0), S(13, 0), S(26, 0), S(35, 0),
+	S(43, 0), S(41, 0), S(11, 0), S(11, 0),
 }
 
 var kingShelter = [2][8][8]Score{
-	{{Score{-29, 3}, Score{-8, -9}, Score{0, 7}, Score{33, -8},
-		Score{3, -17}, Score{2, 1}, Score{5, -10}, Score{-29, 13}},
-		{Score{21, -1}, Score{34, -13}, Score{-4, -2}, Score{-2, 6},
-			Score{-24, -2}, Score{8, -8}, Score{19, -39}, Score{-29, 7}},
-		{Score{10, 7}, Score{1, 2}, Score{-15, 4}, Score{-19, 7},
-			Score{-35, 0}, Score{-15, 1}, Score{-8, -6}, Score{-16, 1}},
-		{Score{-16, 21}, Score{3, 6}, Score{-9, -6}, Score{0, -2},
-			Score{6, -22}, Score{-6, -13}, Score{9, -41}, Score{-27, 3}},
-		{Score{0, 6}, Score{-1, 2}, Score{-21, 0}, Score{-23, 9},
-			Score{-14, -8}, Score{-23, 2}, Score{-24, -1}, Score{-28, 7}},
-		{Score{46, -9}, Score{35, -17}, Score{-6, -10}, Score{-2, -7},
-			Score{3, -21}, Score{1, -3}, Score{42, -30}, Score{-11, 2}},
-		{Score{25, -3}, Score{-2, -5}, Score{-20, -8}, Score{-8, -3},
-			Score{-11, -9}, Score{12, -4}, Score{6, -17}, Score{-35, 15}},
-		{Score{-22, 0}, Score{-22, -5}, Score{-13, 3}, Score{-19, 11},
-			Score{-7, 9}, Score{-17, 19}, Score{-36, 8}, Score{-58, 35}}},
-	{{Score{0, -2}, Score{-42, -17}, Score{-18, -5}, Score{-78, -22},
-		Score{-5, -17}, Score{-33, -14}, Score{-77, 1}, Score{-67, 19}},
-		{Score{6, 23}, Score{2, -15}, Score{-20, -5}, Score{-6, -4},
-			Score{-3, -1}, Score{12, -39}, Score{2, -16}, Score{-57, 19}},
-		{Score{14, 31}, Score{42, -5}, Score{12, -5}, Score{14, -9},
-			Score{14, 3}, Score{-21, -9}, Score{55, -14}, Score{-28, 8}},
-		{Score{6, 24}, Score{-31, 19}, Score{-19, 9}, Score{-20, 4},
-			Score{-23, 19}, Score{-71, 31}, Score{-23, -1}, Score{-44, 4}},
-		{Score{2, 54}, Score{1, 4}, Score{-1, 0}, Score{-3, -1},
-			Score{-9, 7}, Score{-2, -10}, Score{-1, -12}, Score{-35, 9}},
-		{Score{69, -10}, Score{22, -10}, Score{-14, 1}, Score{-5, -14},
-			Score{-4, -6}, Score{-27, -12}, Score{17, -28}, Score{-32, 5}},
-		{Score{1, 11}, Score{7, -13}, Score{3, -16}, Score{-20, -8},
-			Score{-17, -12}, Score{-3, -15}, Score{-1, -17}, Score{-73, 24}},
-		{Score{1, 0}, Score{-3, -25}, Score{-4, -13}, Score{-23, -8},
-			Score{-22, -3}, Score{3, -4}, Score{-30, -25}, Score{-62, 29}}},
+	{{S(-29, 3), S(-8, -9), S(0, 7), S(33, -8),
+		S(3, -17), S(2, 1), S(5, -10), S(-29, 13)},
+		{S(21, -1), S(34, -13), S(-4, -2), S(-2, 6),
+			S(-24, -2), S(8, -8), S(19, -39), S(-29, 7)},
+		{S(10, 7), S(1, 2), S(-15, 4), S(-19, 7),
+			S(-35, 0), S(-15, 1), S(-8, -6), S(-16, 1)},
+		{S(-16, 21), S(3, 6), S(-9, -6), S(0, -2),
+			S(6, -22), S(-6, -13), S(9, -41), S(-27, 3)},
+		{S(0, 6), S(-1, 2), S(-21, 0), S(-23, 9),
+			S(-14, -8), S(-23, 2), S(-24, -1), S(-28, 7)},
+		{S(46, -9), S(35, -17), S(-6, -10), S(-2, -7),
+			S(3, -21), S(1, -3), S(42, -30), S(-11, 2)},
+		{S(25, -3), S(-2, -5), S(-20, -8), S(-8, -3),
+			S(-11, -9), S(12, -4), S(6, -17), S(-35, 15)},
+		{S(-22, 0), S(-22, -5), S(-13, 3), S(-19, 11),
+			S(-7, 9), S(-17, 19), S(-36, 8), S(-58, 35)}},
+	{{S(0, -2), S(-42, -17), S(-18, -5), S(-78, -22),
+		S(-5, -17), S(-33, -14), S(-77, 1), S(-67, 19)},
+		{S(6, 23), S(2, -15), S(-20, -5), S(-6, -4),
+			S(-3, -1), S(12, -39), S(2, -16), S(-57, 19)},
+		{S(14, 31), S(42, -5), S(12, -5), S(14, -9),
+			S(14, 3), S(-21, -9), S(55, -14), S(-28, 8)},
+		{S(6, 24), S(-31, 19), S(-19, 9), S(-20, 4),
+			S(-23, 19), S(-71, 31), S(-23, -1), S(-44, 4)},
+		{S(2, 54), S(1, 4), S(-1, 0), S(-3, -1),
+			S(-9, 7), S(-2, -10), S(-1, -12), S(-35, 9)},
+		{S(69, -10), S(22, -10), S(-14, 1), S(-5, -14),
+			S(-4, -6), S(-27, -12), S(17, -28), S(-32, 5)},
+		{S(1, 11), S(7, -13), S(3, -16), S(-20, -8),
+			S(-17, -12), S(-3, -15), S(-1, -17), S(-73, 24)},
+		{S(1, 0), S(-3, -25), S(-4, -13), S(-23, -8),
+			S(-22, -3), S(3, -4), S(-30, -25), S(-62, 29)}},
 }
 
 var kingStorm = [2][4][8]Score{
-	{{Score{19, 1}, Score{10, 1}, Score{17, 1}, Score{7, 7},
-		Score{-1, 12}, Score{6, 9}, Score{-8, 19}, Score{0, -8}},
-		{Score{14, 2}, Score{5, 6}, Score{20, -1}, Score{1, 9},
-			Score{12, 4}, Score{10, 1}, Score{0, -1}, Score{1, -9}},
-		{Score{15, 14}, Score{3, 8}, Score{2, 11}, Score{-8, 14},
-			Score{-5, 12}, Score{1, 3}, Score{9, -11}, Score{7, -5}},
-		{Score{24, 10}, Score{1, 5}, Score{6, 2}, Score{0, 3},
-			Score{-5, 11}, Score{3, 8}, Score{3, 6}, Score{-4, 2}}},
-	{{Score{0, 0}, Score{8, 15}, Score{-17, 7}, Score{21, -4},
-		Score{16, 12}, Score{-9, 13}, Score{7, 44}, Score{11, -21}},
-		{Score{0, 0}, Score{7, -28}, Score{-6, -6}, Score{58, -11},
-			Score{48, -15}, Score{-19, 1}, Score{2, 19}, Score{6, -20}},
-		{Score{0, 0}, Score{-73, 0}, Score{-33, -1}, Score{13, 2},
-			Score{2, 1}, Score{-3, -11}, Score{70, -50}, Score{7, -3}},
-		{Score{0, 0}, Score{0, -21}, Score{12, -17}, Score{-8, 0},
-			Score{-5, 2}, Score{8, -20}, Score{-3, 1}, Score{-7, 16}}},
+	{{S(19, 1), S(10, 1), S(17, 1), S(7, 7),
+		S(-1, 12), S(6, 9), S(-8, 19), S(0, -8)},
+		{S(14, 2), S(5, 6), S(20, -1), S(1, 9),
+			S(12, 4), S(10, 1), S(0, -1), S(1, -9)},
+		{S(15, 14), S(3, 8), S(2, 11), S(-8, 14),
+			S(-5, 12), S(1, 3), S(9, -11), S(7, -5)},
+		{S(24, 10), S(1, 5), S(6, 2), S(0, 3),
+			S(-5, 11), S(3, 8), S(3, 6), S(-4, 2)}},
+	{{S(0, 0), S(8, 15), S(-17, 7), S(21, -4),
+		S(16, 12), S(-9, 13), S(7, 44), S(11, -21)},
+		{S(0, 0), S(7, -28), S(-6, -6), S(58, -11),
+			S(48, -15), S(-19, 1), S(2, 19), S(6, -20)},
+		{S(0, 0), S(-73, 0), S(-33, -1), S(13, 2),
+			S(2, 1), S(-3, -11), S(70, -50), S(7, -3)},
+		{S(0, 0), S(0, -21), S(12, -17), S(-8, 0),
+			S(-5, 2), S(8, -20), S(-3, 1), S(-7, 16)}},
 }
 
 var blackPassedMask [64]uint64
@@ -293,45 +266,42 @@ var kingSafetyAdjustment int16 = -72
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
 		for y := 0; y < 8; y++ {
-			whiteKnightsPos[y*8+x] = addScore(pieceScores[Knight][y][x], KnightValue)
-			whiteKnightsPos[y*8+(7-x)] = addScore(pieceScores[Knight][y][x], KnightValue)
-			blackKnightsPos[(7-y)*8+x] = addScore(pieceScores[Knight][y][x], KnightValue)
-			blackKnightsPos[(7-y)*8+(7-x)] = addScore(pieceScores[Knight][y][x], KnightValue)
+			whiteKnightsPos[y*8+x] = pieceScores[Knight][y][x] + KnightValue
+			whiteKnightsPos[y*8+(7-x)] = pieceScores[Knight][y][x] + KnightValue
+			blackKnightsPos[(7-y)*8+x] = pieceScores[Knight][y][x] + KnightValue
+			blackKnightsPos[(7-y)*8+(7-x)] = pieceScores[Knight][y][x] + KnightValue
 
-			whiteBishopsPos[y*8+x] = addScore(pieceScores[Bishop][y][x], BishopValue)
-			whiteBishopsPos[y*8+(7-x)] = addScore(pieceScores[Bishop][y][x], BishopValue)
-			blackBishopsPos[(7-y)*8+x] = addScore(pieceScores[Bishop][y][x], BishopValue)
-			blackBishopsPos[(7-y)*8+(7-x)] = addScore(pieceScores[Bishop][y][x], BishopValue)
+			whiteBishopsPos[y*8+x] = pieceScores[Bishop][y][x] + BishopValue
+			whiteBishopsPos[y*8+(7-x)] = pieceScores[Bishop][y][x] + BishopValue
+			blackBishopsPos[(7-y)*8+x] = pieceScores[Bishop][y][x] + BishopValue
+			blackBishopsPos[(7-y)*8+(7-x)] = pieceScores[Bishop][y][x] + BishopValue
 
-			whiteRooksPos[y*8+x] = addScore(pieceScores[Rook][y][x], RookValue)
-			whiteRooksPos[y*8+(7-x)] = addScore(pieceScores[Rook][y][x], RookValue)
-			blackRooksPos[(7-y)*8+x] = addScore(pieceScores[Rook][y][x], RookValue)
-			blackRooksPos[(7-y)*8+(7-x)] = addScore(pieceScores[Rook][y][x], RookValue)
+			whiteRooksPos[y*8+x] = pieceScores[Rook][y][x] + RookValue
+			whiteRooksPos[y*8+(7-x)] = pieceScores[Rook][y][x] + RookValue
+			blackRooksPos[(7-y)*8+x] = pieceScores[Rook][y][x] + RookValue
+			blackRooksPos[(7-y)*8+(7-x)] = pieceScores[Rook][y][x] + RookValue
 
-			whiteQueensPos[y*8+x] = addScore(pieceScores[Queen][y][x], QueenValue)
-			whiteQueensPos[y*8+(7-x)] = addScore(pieceScores[Queen][y][x], QueenValue)
-			blackQueensPos[(7-y)*8+x] = addScore(pieceScores[Queen][y][x], QueenValue)
-			blackQueensPos[(7-y)*8+(7-x)] = addScore(pieceScores[Queen][y][x], QueenValue)
+			whiteQueensPos[y*8+x] = pieceScores[Queen][y][x] + QueenValue
+			whiteQueensPos[y*8+(7-x)] = pieceScores[Queen][y][x] + QueenValue
+			blackQueensPos[(7-y)*8+x] = pieceScores[Queen][y][x] + QueenValue
+			blackQueensPos[(7-y)*8+(7-x)] = pieceScores[Queen][y][x] + QueenValue
 
 			whiteKingPos[y*8+x] = pieceScores[King][y][x]
 			whiteKingPos[y*8+(7-x)] = pieceScores[King][y][x]
 			blackKingPos[(7-y)*8+x] = pieceScores[King][y][x]
 			blackKingPos[(7-y)*8+(7-x)] = pieceScores[King][y][x]
+
+			whitePawnsConnected[y*8+x] = pawnsConnected[y][x]
+			whitePawnsConnected[y*8+(7-x)] = pawnsConnected[y][x]
+			blackPawnsConnected[(7-y)*8+x] = pawnsConnected[y][x]
+			blackPawnsConnected[(7-y)*8+(7-x)] = pawnsConnected[y][x]
 		}
 	}
 
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
-			whitePawnsPos[y*8+x] = addScore(pawnScores[y][x], PawnValue)
-			blackPawnsPos[(7-y)*8+(7-x)] = addScore(pawnScores[y][x], PawnValue)
-		}
-	}
-	for x := 0; x < 4; x++ {
-		for y := 0; y < 8; y++ {
-			whitePawnsConnected[y*8+x] = pawnsConnected[y][x]
-			whitePawnsConnected[y*8+(7-x)] = pawnsConnected[y][x]
-			blackPawnsConnected[(7-y)*8+x] = pawnsConnected[y][x]
-			blackPawnsConnected[(7-y)*8+(7-x)] = pawnsConnected[y][x]
+			whitePawnsPos[y*8+x] = pawnScores[y][x] + PawnValue
+			blackPawnsPos[(7-y)*8+(7-x)] = pawnScores[y][x] + PawnValue
 		}
 	}
 }
@@ -419,110 +389,83 @@ func IsLateEndGame(pos *Position) bool {
 		!MoreThanOne((pos.Pieces[Knight]|pos.Pieces[Bishop])&pos.Colours[pos.SideToMove])
 }
 
-func evaluateKingPawns(pos *Position) (int, int) {
-	if ok, midScore, endScore := transposition.GlobalPawnKingTable.Get(pos.PawnKey); ok {
-		return midScore, endScore
+func evaluateKingPawns(pos *Position) Score {
+	if ok, score := transposition.GlobalPawnKingTable.Get(pos.PawnKey); ok {
+		return score
 	}
 	var fromBB uint64
 	var fromId int
 	whiteKingLocation := BitScan(pos.Pieces[King] & pos.Colours[White])
 	blackKingLocation := BitScan(pos.Pieces[King] & pos.Colours[Black])
-	midResult := 0
-	endResult := 0
+	score := SCORE_ZERO
 
 	// white pawns
 	for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		midResult += int(whitePawnsPos[fromId].Middle)
-		endResult += int(whitePawnsPos[fromId].End)
+		score += whitePawnsPos[fromId]
 
 		// Passed bonus
 		if whitePassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			// Bonus is calculated based on rank, file, distance from friendly and enemy king
-			midResult += int(
-				passedRank[Rank(fromId)].Middle +
-					passedFile[File(fromId)].Middle +
-					passedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]].Middle +
-					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].Middle,
-			)
-			endResult += int(
-				passedRank[Rank(fromId)].End +
-					passedFile[File(fromId)].End +
-					passedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]].End +
-					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]].End,
-			)
+			score +=
+				passedRank[Rank(fromId)] +
+					passedFile[File(fromId)] +
+					passedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
+					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
+
 		}
 		// Isolated pawn penalty
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
-			midResult += int(isolated.Middle)
-			endResult += int(isolated.End)
+			score += isolated
 		}
 
 		// Pawn is backward if there are no pawns behind it and cannot increase rank without being attacked by enemy pawn
 		if blackPassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 &&
 			PawnAttacks[White][fromId+8]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 			if FILES[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
-				midResult += int(backwardOpen.Middle)
-				endResult += int(backwardOpen.End)
+				score += backwardOpen
 			} else {
-				midResult += int(backward.Middle)
-				endResult += int(backward.End)
+				score += backward
 			}
 		} else if whitePawnsConnectedMask[fromId]&(pos.Colours[White]&pos.Pieces[Pawn]) != 0 {
-			midResult += int(whitePawnsConnected[fromId].Middle)
-			endResult += int(whitePawnsConnected[fromId].End)
+			score += whitePawnsConnected[fromId]
 		}
 	}
 
 	// white doubled pawns
-	doubledCount := PopCount(pos.Pieces[Pawn] & pos.Colours[White] & South(pos.Pieces[Pawn]&pos.Colours[White]))
-	midResult += doubledCount * int(doubled.Middle)
-	endResult += doubledCount * int(doubled.End)
+	score += Score(PopCount(pos.Pieces[Pawn]&pos.Colours[White]&South(pos.Pieces[Pawn]&pos.Colours[White]))) * doubled
 
 	// black pawns
 	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		midResult -= int(blackPawnsPos[fromId].Middle)
-		endResult -= int(blackPawnsPos[fromId].End)
+		score -= blackPawnsPos[fromId]
 		if blackPassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
-			midResult -= int(
-				passedRank[7-Rank(fromId)].Middle +
-					passedFile[File(fromId)].Middle +
-					passedFriendlyDistance[distanceBetween[blackKingLocation][fromId]].Middle +
-					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]].Middle,
-			)
-			endResult -= int(
-				passedRank[7-Rank(fromId)].End +
-					passedFile[File(fromId)].End +
-					passedFriendlyDistance[distanceBetween[blackKingLocation][fromId]].End +
-					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]].End,
-			)
+			score -=
+				passedRank[7-Rank(fromId)] +
+					passedFile[File(fromId)] +
+					passedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
+					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
+
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
-			midResult -= int(isolated.Middle)
-			endResult -= int(isolated.End)
+			score -= isolated
 		}
 		if whitePassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 &&
 			PawnAttacks[Black][fromId-8]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 			if FILES[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
-				midResult -= int(backwardOpen.Middle)
-				endResult -= int(backwardOpen.End)
+				score -= backwardOpen
 			} else {
-				midResult -= int(backward.Middle)
-				endResult -= int(backward.End)
+				score -= backward
 			}
 		} else if blackPawnsConnectedMask[fromId]&(pos.Colours[Black]&pos.Pieces[Pawn]) != 0 {
-			midResult -= int(blackPawnsConnected[fromId].Middle)
-			endResult -= int(blackPawnsConnected[fromId].End)
+			score -= blackPawnsConnected[fromId]
 		}
 	}
 
 	// black doubled pawns
-	doubledCount = PopCount(pos.Pieces[Pawn] & pos.Colours[Black] & North(pos.Pieces[Pawn]&pos.Colours[Black]))
-	midResult -= doubledCount * int(doubled.Middle)
-	endResult -= doubledCount * int(doubled.End)
+	score -= Score(PopCount(pos.Pieces[Pawn]&pos.Colours[Black]&North(pos.Pieces[Pawn]&pos.Colours[Black]))) * doubled
 
 	// White king storm shelter
 	for file := Max(File(whiteKingLocation)-1, FILE_A); file <= Min(File(whiteKingLocation)+1, FILE_H); file++ {
@@ -541,12 +484,10 @@ func evaluateKingPawns(pos *Position) (int, int) {
 			theirDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(theirs)))
 		}
 		sameFile := BoolToInt(file == File(whiteKingLocation))
-		midResult += int(kingShelter[sameFile][file][ourDist].Middle)
-		endResult += int(kingShelter[sameFile][file][ourDist].End)
+		score += kingShelter[sameFile][file][ourDist]
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
-		midResult += int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
-		endResult += int(kingStorm[blocked][FileMirror[file]][theirDist].End)
+		score += kingStorm[blocked][FileMirror[file]][theirDist]
 	}
 
 	// Black king storm / shelter
@@ -566,15 +507,13 @@ func evaluateKingPawns(pos *Position) (int, int) {
 			theirDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(theirs)))
 		}
 		sameFile := BoolToInt(file == File(blackKingLocation))
-		midResult -= int(kingShelter[sameFile][file][ourDist].Middle)
-		endResult -= int(kingShelter[sameFile][file][ourDist].End)
+		score -= kingShelter[sameFile][file][ourDist]
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
-		midResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].Middle)
-		endResult -= int(kingStorm[blocked][FileMirror[file]][theirDist].End)
+		score -= kingStorm[blocked][FileMirror[file]][theirDist]
 	}
-	transposition.GlobalPawnKingTable.Set(pos.PawnKey, midResult, endResult)
-	return midResult, endResult
+	transposition.GlobalPawnKingTable.Set(pos.PawnKey, score)
+	return score
 }
 
 func Evaluate(pos *Position) int {
@@ -626,7 +565,7 @@ func Evaluate(pos *Position) int {
 	//blackAttackedBy[Pawn] |= attacks
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 
-	midResult, endResult := evaluateKingPawns(pos)
+	score := evaluateKingPawns(pos)
 
 	// white knights
 	for fromBB = pos.Pieces[Knight] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
@@ -635,26 +574,21 @@ func Evaluate(pos *Position) int {
 
 		attacks = KnightAttacks[fromId]
 		mobility := PopCount(whiteMobilityArea & attacks)
-		midResult += int(whiteKnightsPos[fromId].Middle)
-		endResult += int(whiteKnightsPos[fromId].End)
-		midResult += int(mobilityBonus[0][mobility].Middle)
-		endResult += int(mobilityBonus[0][mobility].End)
+		score += whiteKnightsPos[fromId]
+		score += mobilityBonus[0][mobility]
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
 		whiteAttackedBy[Knight] |= attacks
 
 		if (pos.Pieces[Pawn]>>8)&SquareMask[fromId] != 0 {
-			midResult += int(minorBehindPawn.Middle)
-			endResult += int(minorBehindPawn.End)
+			score += minorBehindPawn
 		}
 		if SquareMask[fromId]&whiteOutpustRanks != 0 && whiteOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
-				midResult += int(knightOutpostDefendedBonus.Middle)
-				endResult += int(knightOutpostDefendedBonus.End)
+				score += knightOutpostDefendedBonus
 			} else {
-				midResult += int(knightOutpostUndefendedBonus.Middle)
-				endResult += int(knightOutpostUndefendedBonus.End)
+				score += knightOutpostUndefendedBonus
 			}
 		}
 		if attacks&blackKingArea != 0 {
@@ -671,26 +605,21 @@ func Evaluate(pos *Position) int {
 
 		attacks = KnightAttacks[fromId]
 		mobility := PopCount(blackMobilityArea & attacks)
-		midResult -= int(blackKnightsPos[fromId].Middle)
-		endResult -= int(blackKnightsPos[fromId].End)
-		midResult -= int(mobilityBonus[0][mobility].Middle)
-		endResult -= int(mobilityBonus[0][mobility].End)
+		score -= blackKnightsPos[fromId]
+		score -= mobilityBonus[0][mobility]
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
 		blackAttackedBy[Knight] |= attacks
 
 		if (pos.Pieces[Pawn]<<8)&SquareMask[fromId] != 0 {
-			midResult -= int(minorBehindPawn.Middle)
-			endResult -= int(minorBehindPawn.End)
+			score -= minorBehindPawn
 		}
 		if SquareMask[fromId]&blackOutpustRanks != 0 && blackOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
-				midResult -= int(knightOutpostDefendedBonus.Middle)
-				endResult -= int(knightOutpostDefendedBonus.End)
+				score -= knightOutpostDefendedBonus
 			} else {
-				midResult -= int(knightOutpostUndefendedBonus.Middle)
-				endResult -= int(knightOutpostUndefendedBonus.End)
+				score -= knightOutpostUndefendedBonus
 			}
 		}
 		if attacks&whiteKingArea != 0 {
@@ -708,38 +637,32 @@ func Evaluate(pos *Position) int {
 
 		attacks = BishopAttacks(fromId, allOccupation)
 		mobility := PopCount(whiteMobilityArea & attacks)
-		midResult += int(mobilityBonus[1][mobility].Middle)
-		endResult += int(mobilityBonus[1][mobility].End)
-		midResult += int(whiteBishopsPos[fromId].Middle)
-		endResult += int(whiteBishopsPos[fromId].End)
+		score += mobilityBonus[1][mobility]
+		score += whiteBishopsPos[fromId]
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
 		whiteAttackedBy[Bishop] |= attacks
 
 		if (pos.Pieces[Pawn]>>8)&SquareMask[fromId] != 0 {
-			midResult += int(minorBehindPawn.Middle)
-			endResult += int(minorBehindPawn.End)
+			score += minorBehindPawn
 		}
 		if SquareMask[fromId]&whiteOutpustRanks != 0 && whiteOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
-				midResult += int(bishopOutpostDefendedBonus.Middle)
-				endResult += int(bishopOutpostDefendedBonus.End)
+				score += bishopOutpostDefendedBonus
 			} else {
-				midResult += int(bishopOutpostUndefendedBonus.Middle)
-				endResult += int(bishopOutpostUndefendedBonus.End)
+				score += bishopOutpostUndefendedBonus
 			}
 		}
 
 		// Bishop is worth less if there are friendly rammed pawns of its color
-		var rammedCount int16
+		var rammedCount Score
 		if SquareMask[fromId]&WHITE_SQUARES != 0 {
-			rammedCount = int16(PopCount(whiteRammedPawns & WHITE_SQUARES))
+			rammedCount = Score(PopCount(whiteRammedPawns & WHITE_SQUARES))
 		} else {
-			rammedCount = int16(PopCount(whiteRammedPawns & BLACK_SQUARES))
+			rammedCount = Score(PopCount(whiteRammedPawns & BLACK_SQUARES))
 		}
-		midResult += int(bishopRammedPawns.Middle * rammedCount)
-		endResult += int(bishopRammedPawns.End * rammedCount)
+		score += bishopRammedPawns * rammedCount
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
@@ -750,8 +673,7 @@ func Evaluate(pos *Position) int {
 	// Bishop pair bonus
 	// It is not checked if bishops have opposite colors, but that is almost always the case
 	if MoreThanOne(pos.Pieces[Bishop] & pos.Colours[White]) {
-		midResult += int(bishopPair.Middle)
-		endResult += int(bishopPair.End)
+		score += bishopPair
 	}
 
 	// black bishops
@@ -762,36 +684,30 @@ func Evaluate(pos *Position) int {
 
 		attacks = BishopAttacks(fromId, allOccupation)
 		mobility := PopCount(blackMobilityArea & attacks)
-		midResult -= int(mobilityBonus[1][mobility].Middle)
-		endResult -= int(mobilityBonus[1][mobility].End)
-		midResult -= int(blackBishopsPos[fromId].Middle)
-		endResult -= int(blackBishopsPos[fromId].End)
+		score -= mobilityBonus[1][mobility]
+		score -= blackBishopsPos[fromId]
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
 		blackAttackedBy[Bishop] |= attacks
 
 		if (pos.Pieces[Pawn]<<8)&SquareMask[fromId] != 0 {
-			midResult -= int(minorBehindPawn.Middle)
-			endResult -= int(minorBehindPawn.End)
+			score -= minorBehindPawn
 		}
 		if SquareMask[fromId]&blackOutpustRanks != 0 && blackOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
-				midResult -= int(bishopOutpostDefendedBonus.Middle)
-				endResult -= int(bishopOutpostDefendedBonus.End)
+				score -= bishopOutpostDefendedBonus
 			} else {
-				midResult -= int(bishopOutpostUndefendedBonus.Middle)
-				endResult -= int(bishopOutpostUndefendedBonus.End)
+				score -= bishopOutpostUndefendedBonus
 			}
 		}
-		var rammedCount int16
+		var rammedCount Score
 		if SquareMask[fromId]&WHITE_SQUARES != 0 {
-			rammedCount = int16(PopCount(blackRammedPawns & WHITE_SQUARES))
+			rammedCount = Score(PopCount(blackRammedPawns & WHITE_SQUARES))
 		} else {
-			rammedCount = int16(PopCount(blackRammedPawns & BLACK_SQUARES))
+			rammedCount = Score(PopCount(blackRammedPawns & BLACK_SQUARES))
 		}
-		midResult -= int(bishopRammedPawns.Middle * rammedCount)
-		endResult -= int(bishopRammedPawns.End * rammedCount)
+		score -= bishopRammedPawns * rammedCount
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
@@ -800,8 +716,7 @@ func Evaluate(pos *Position) int {
 	}
 
 	if MoreThanOne(pos.Pieces[Bishop] & pos.Colours[Black]) {
-		midResult -= int(bishopPair.Middle)
-		endResult -= int(bishopPair.End)
+		score -= bishopPair
 	}
 
 	// white rooks
@@ -811,21 +726,17 @@ func Evaluate(pos *Position) int {
 
 		attacks = RookAttacks(fromId, allOccupation)
 		mobility := PopCount(whiteMobilityArea & attacks)
-		midResult += int(mobilityBonus[2][mobility].Middle)
-		endResult += int(mobilityBonus[2][mobility].End)
-		midResult += int(whiteRooksPos[fromId].Middle)
-		endResult += int(whiteRooksPos[fromId].End)
+		score += mobilityBonus[2][mobility]
+		score += whiteRooksPos[fromId]
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
 		whiteAttackedBy[Rook] |= attacks
 
 		if pos.Pieces[Pawn]&FILES[File(fromId)] == 0 {
-			midResult += int(rookOnFile[1].Middle)
-			endResult += int(rookOnFile[1].End)
+			score += rookOnFile[1]
 		} else if (pos.Pieces[Pawn]&pos.Colours[White])&FILES[File(fromId)] == 0 {
-			midResult += int(rookOnFile[0].Middle)
-			endResult += int(rookOnFile[0].End)
+			score += rookOnFile[0]
 		}
 
 		if attacks&blackKingArea != 0 {
@@ -842,21 +753,17 @@ func Evaluate(pos *Position) int {
 
 		attacks = RookAttacks(fromId, allOccupation)
 		mobility := PopCount(blackMobilityArea & attacks)
-		midResult -= int(mobilityBonus[2][mobility].Middle)
-		endResult -= int(mobilityBonus[2][mobility].End)
-		midResult -= int(blackRooksPos[fromId].Middle)
-		endResult -= int(blackRooksPos[fromId].End)
+		score -= mobilityBonus[2][mobility]
+		score -= blackRooksPos[fromId]
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
 		blackAttackedBy[Rook] |= attacks
 
 		if pos.Pieces[Pawn]&FILES[File(fromId)] == 0 {
-			midResult -= int(rookOnFile[1].Middle)
-			endResult -= int(rookOnFile[1].End)
+			score -= rookOnFile[1]
 		} else if (pos.Pieces[Pawn]&pos.Colours[Black])&FILES[File(fromId)] == 0 {
-			midResult -= int(rookOnFile[0].Middle)
-			endResult -= int(rookOnFile[0].End)
+			score -= rookOnFile[0]
 		}
 
 		if attacks&whiteKingArea != 0 {
@@ -873,10 +780,8 @@ func Evaluate(pos *Position) int {
 
 		attacks = QueenAttacks(fromId, allOccupation)
 		mobility := PopCount(whiteMobilityArea & attacks)
-		midResult += int(mobilityBonus[3][mobility].Middle)
-		endResult += int(mobilityBonus[3][mobility].End)
-		midResult += int(whiteQueensPos[fromId].Middle)
-		endResult += int(whiteQueensPos[fromId].End)
+		score += mobilityBonus[3][mobility]
+		score += whiteQueensPos[fromId]
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
@@ -896,10 +801,8 @@ func Evaluate(pos *Position) int {
 
 		attacks = QueenAttacks(fromId, allOccupation)
 		mobility := PopCount(blackMobilityArea & attacks)
-		midResult -= int(mobilityBonus[3][mobility].Middle)
-		endResult -= int(mobilityBonus[3][mobility].End)
-		midResult -= int(blackQueensPos[fromId].Middle)
-		endResult -= int(blackQueensPos[fromId].End)
+		score -= mobilityBonus[3][mobility]
+		score -= blackQueensPos[fromId]
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
@@ -913,11 +816,9 @@ func Evaluate(pos *Position) int {
 
 	// tempo bonus
 	if pos.SideToMove == White {
-		midResult += int(tempo.Middle)
-		endResult += int(tempo.End)
+		score += tempo
 	} else {
-		midResult -= int(tempo.Middle)
-		endResult -= int(tempo.End)
+		score -= tempo
 	}
 
 	if phase < 0 {
@@ -928,10 +829,8 @@ func Evaluate(pos *Position) int {
 	whiteKingDefenders := PopCount(
 		(pos.Pieces[Pawn] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[White] & whiteKingAreaMask[whiteKingLocation],
 	)
-	midResult += int(whiteKingPos[whiteKingLocation].Middle)
-	endResult += int(whiteKingPos[whiteKingLocation].End)
-	midResult += int(kingDefenders[whiteKingDefenders].Middle)
-	midResult += int(kingDefenders[whiteKingDefenders].End)
+	score += whiteKingPos[whiteKingLocation]
+	score += kingDefenders[whiteKingDefenders]
 	if int(blackKingAttackersCount) > 1-PopCount(pos.Colours[Black]&pos.Pieces[Queen]) {
 
 		// Weak squares are attacked by the enemy, defended no more
@@ -961,8 +860,7 @@ func Evaluate(pos *Position) int {
 		count += int(kingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(kingSafetyAdjustment)
 		if count > 0 {
-			midResult -= count * count / 720
-			endResult -= count / 20
+			score -= S(int16(count*count/720), int16(count/20))
 		}
 	}
 
@@ -970,10 +868,8 @@ func Evaluate(pos *Position) int {
 	blackKingDefenders := PopCount(
 		(pos.Pieces[Pawn] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[Black] & blackKingAreaMask[blackKingLocation],
 	)
-	midResult -= int(blackKingPos[blackKingLocation].Middle)
-	endResult -= int(blackKingPos[blackKingLocation].End)
-	midResult -= int(kingDefenders[blackKingDefenders].Middle)
-	midResult -= int(kingDefenders[blackKingDefenders].End)
+	score -= blackKingPos[blackKingLocation]
+	score -= kingDefenders[blackKingDefenders]
 	if int(whiteKingAttackersCount) > 1-PopCount(pos.Colours[White]&pos.Pieces[Queen]) {
 		// Weak squares are attacked by the enemy, defended no more
 		// than once and only defended by our Queens or our King
@@ -1002,16 +898,15 @@ func Evaluate(pos *Position) int {
 		count += int(kingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(kingSafetyAdjustment)
 		if count > 0 {
-			midResult += count * count / 720
-			endResult += count / 20
+			score += S(int16(count*count/720), int16(count/20))
 		}
 	}
 
-	scale := scaleFactor(pos, endResult)
+	scale := scaleFactor(pos, score.End())
 
 	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
-	result := (midResult*(256-phase) + (endResult * phase * scale / SCALE_NORMAL)) / 256
+	result := (int(score.Middle())*(256-phase) + (int(score.End()) * phase * scale / SCALE_NORMAL)) / 256
 
 	if pos.SideToMove == White {
 		return result
@@ -1022,7 +917,7 @@ func Evaluate(pos *Position) int {
 const SCALE_NORMAL = 1
 const SCALE_DRAW = 0
 
-func scaleFactor(pos *Position, endResult int) int {
+func scaleFactor(pos *Position, endResult int16) int {
 	if (endResult > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
 		(endResult < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
 		return SCALE_DRAW
