@@ -48,9 +48,10 @@ func Benchmark() {
 	engine := NewEngine()
 	engine.Threads.Val = 1
 	engine.Hash.Val = 256
+	epds := loadEPD("./engine/test_positions/WinAtChess.epd")
 	start := time.Now()
 	nodes := 0
-	for _, entry := range loadEPD("./engine/test_positions/WinAtChess.epd") {
+	for _, entry := range epds {
 		tmpNodes := 0
 		engine.NewGame()
 		engine.Update = func(si SearchInfo) {
