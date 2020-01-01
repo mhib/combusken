@@ -7,12 +7,6 @@ import . "github.com/mhib/combusken/utils"
 
 const maxValue = Mate
 
-const (
-	TransBeta  = iota + 1 // Lower bound
-	TransAlpha            // Upper bound
-	TransExact
-)
-
 const NoneDepth = -6
 
 type TranspositionTable interface {
