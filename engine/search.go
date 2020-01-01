@@ -64,9 +64,9 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		ttDepth = QSDepthNoChecks
 	}
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key, height)
+	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
 	if hashOk && int(hashDepth) >= ttDepth {
-		tmpHashValue := int(hashValue)
+		tmpHashValue := int(transposition.ValueFromTrans(hashValue, height))
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
 			return tmpHashValue
@@ -129,7 +129,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		flag = TransExact
 	}
 
-	transposition.GlobalTransTable.Set(pos.Key, alpha, ttDepth, bestMove, flag, height)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), ttDepth, bestMove, flag)
 
 	return alpha
 }
@@ -178,7 +178,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	pvNode := alpha != beta-1
 
 	alphaOrig := alpha
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key, height)
+	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
+	hashValue = transposition.ValueFromTrans(hashValue, height)
 	if hashOk {
 		tmpVal = int(hashValue)
 		// Hash pruning
@@ -225,7 +226,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			iiDepth = (depth - 5) / 2
 		}
 		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
-		_, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key, height)
+		_, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key)
 	}
 
 	// Quiet moves are stored in order to reduce their history value at the end of search
@@ -412,7 +413,7 @@ afterLoop:
 	} else {
 		flag = TransExact
 	}
-	transposition.GlobalTransTable.Set(pos.Key, alpha, depth, bestMove, flag, height)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), depth, bestMove, flag)
 	return alpha
 }
 
@@ -644,7 +645,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		return rootMoves[0].Move
 	}
 	ordMove := NullMove
-	if hashOk, _, _, hashMove, _ := transposition.GlobalTransTable.Get(pos.Key, 0); hashOk {
+	if hashOk, _, _, hashMove, _ := transposition.GlobalTransTable.Get(pos.Key); hashOk {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
