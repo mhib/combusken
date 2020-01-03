@@ -2,9 +2,10 @@ package utils
 
 func NearestPowerOfTwo(input int) uint64 {
 	res := uint64(1)
-	for int((res << 1)) <= input {
+	for res <= uint64(input) {
 		res <<= 1
 	}
+	res >>= 1
 	return res
 }
 
