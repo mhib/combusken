@@ -743,6 +743,8 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		}
 	}
 
+	transposition.GlobalTransTable.IncrementAge()
+
 	ordMove := NullMove
 	if hashOk, _, _, hashMove, _ := transposition.GlobalTransTable.Get(pos.Key); hashOk {
 		ordMove = hashMove

@@ -2,6 +2,5 @@
 
 package transposition
 
-func prefetch(e *transEntry) {
-
+func prefetch(e *transBucket) {
 }
