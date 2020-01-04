@@ -41,40 +41,50 @@ type transEntry struct {
 	depth    uint8
 }
 
+type transBucket [2]transEntry
+
 type TranspositionTable struct {
-	Entries []transEntry
+	Entries []transBucket
 	Mask    uint64
 }
 
 func (t *TranspositionTable) Clear() {
 	for i := range t.Entries {
-		t.Entries[i] = transEntry{}
+		t.Entries[i] = transBucket{}
 	}
 }
 
 func NewTransTable(megabytes int) TranspositionTable {
-	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(transEntry{})))
-	return TranspositionTable{make([]transEntry, size), size - 1}
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(transBucket{})))
+	return TranspositionTable{make([]transBucket, size), size - 1}
 }
 
 func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, depth int16, move backend.Move, flag uint8) {
-	var element = &t.Entries[key&t.Mask]
-	if element.key != key {
+	var bucket = &t.Entries[key&t.Mask]
+	var foundIdx int
+	if bucket[0].key == key {
+		// foundIdx = 0
+	} else if bucket[1].key == key {
+		foundIdx = 1
+	} else {
 		return
 	}
 	ok = true
-	value = element.value
-	depth = int16(element.depth) + NoneDepth
-	move = element.bestMove
-	flag = element.flag
+	value = bucket[foundIdx].value
+	depth = int16(bucket[foundIdx].depth) + NoneDepth
+	move = bucket[foundIdx].bestMove
+	flag = bucket[foundIdx].flag
 	return
 }
 
 func (t *TranspositionTable) Set(key uint64, value int16, depth int, bestMove backend.Move, flag int) {
-	var element = &t.Entries[key&t.Mask]
-	element.key = key
-	element.value = value
-	element.flag = uint8(flag)
-	element.depth = uint8(depth - NoneDepth)
-	element.bestMove = bestMove
+	var bucket = &t.Entries[key&t.Mask]
+	entry := transEntry{key, bestMove, value, uint8(flag), uint8(depth + NoneDepth)}
+	if bucket[0].key == key {
+		bucket[0] = entry
+	} else if bucket[1].key == key {
+		bucket[1] = entry
+	} else {
+		bucket[1] = entry
+	}
 }
