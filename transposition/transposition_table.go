@@ -10,16 +10,6 @@ const NoneDepth = -6
 
 var GlobalTransTable TranspositionTable
 
-type ageFlag uint8
-
-func (a ageFlag) age() uint8 {
-	return uint8(a >> 2)
-}
-
-func (a ageFlag) flag() uint8 {
-	return uint8(a & 3)
-}
-
 func ValueFromTrans(value int16, height int) int16 {
 	if value >= Mate-500 {
 		return value - int16(height)
@@ -47,8 +37,8 @@ type transEntry struct {
 	key      uint64
 	bestMove backend.Move
 	value    int16
-	ageFlag
-	depth uint8
+	flag     uint8
+	depth    uint8
 }
 
 type transBucket [2]transEntry
@@ -56,7 +46,6 @@ type transBucket [2]transEntry
 type TranspositionTable struct {
 	Entries []transBucket
 	Mask    uint64
-	age     uint8
 }
 
 func (t *TranspositionTable) Clear() {
@@ -65,13 +54,9 @@ func (t *TranspositionTable) Clear() {
 	}
 }
 
-func (t *TranspositionTable) IncrementAge() {
-	t.age++
-}
-
 func NewTransTable(megabytes int) TranspositionTable {
 	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(transBucket{})))
-	return TranspositionTable{make([]transBucket, size), size - 1, 0}
+	return TranspositionTable{make([]transBucket, size), size - 1}
 }
 
 func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, depth int16, move backend.Move, flag uint8) {
@@ -88,31 +73,22 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, depth int16,
 	value = bucket[foundIdx].value
 	depth = int16(bucket[foundIdx].depth) + NoneDepth
 	move = bucket[foundIdx].bestMove
-	flag = bucket[foundIdx].ageFlag.flag()
+	flag = bucket[foundIdx].flag
 	return
 }
 
-func (entry *transEntry) set(key uint64, value int16, depth int, bestMove backend.Move, flag int, age uint8) {
+func (entry *transEntry) set(key uint64, value int16, depth int, bestMove backend.Move, flag int) {
 	entry.key = key
 	entry.bestMove = bestMove
 	entry.value = value
-	entry.ageFlag = ageFlag((age << 2) | uint8(flag))
+	entry.flag = uint8(flag)
 	entry.depth = uint8(depth - NoneDepth)
 }
+
+const msBit = uint64(1) << 63
 
 // Replacement scheme from laser
 func (t *TranspositionTable) Set(key uint64, value int16, depth int, bestMove backend.Move, flag int) {
 	var bucket = &t.Entries[key&t.Mask]
-	if bucket[0].key == key {
-		bucket[0].set(key, value, depth, bestMove, flag, t.age)
-	} else if bucket[1].key == key {
-		bucket[1].set(key, value, depth, bestMove, flag, t.age)
-	} else {
-		score0 := 16*int(t.age-bucket[0].ageFlag.age()) + depth - int(bucket[0].depth)
-		score1 := 16*int(t.age-bucket[1].ageFlag.age()) + depth - int(bucket[1].depth)
-		toReplaceIdx := BoolToInt(score0 <= score1)
-		if score0 >= -2 || score1 >= -2 {
-			bucket[toReplaceIdx].set(key, value, depth, bestMove, flag, t.age)
-		}
-	}
+	bucket[BoolToInt((key&msBit) == 0)].set(key, value, depth, bestMove, flag)
 }
