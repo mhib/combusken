@@ -424,8 +424,8 @@ func (t *tuner) richardsExtrapolationDerivative(batchSize, idx, phase, h int) fl
 
 const normalizeGradient = false
 
-func (t *tuner) calculateGradient(batchSize int) []EvaluationGradientVariable {
-	res := make([]EvaluationGradientVariable, 0, len(t.weights))
+func (t *tuner) calculateGradient(batchSize int) []GradientVariable {
+	res := make([]GradientVariable, 0, len(t.weights))
 	for idx, weight := range t.weights {
 		if t.done {
 			break
@@ -458,7 +458,7 @@ func (t *tuner) calculateGradient(batchSize int) []EvaluationGradientVariable {
 func (t *tuner) gradientDescent() bool {
 	anyImprovements := false
 	const momentumRatio = 0.1
-	prevGradient := make([]EvaluationGradientVariable, len(t.weights))
+	prevGradient := make([]GradientVariable, len(t.weights))
 	for idx, weight := range t.weights {
 		prevGradient[idx].phases = make([]float64, weight.phaseCount())
 	}
@@ -567,12 +567,12 @@ func copyEvaluationValue(ev EvaluationValue) (EvaluationValue, error) {
 	}
 }
 
-type EvaluationGradientVariable struct {
+type GradientVariable struct {
 	phases []float64
 }
 
-func newGradient(counter int) EvaluationGradientVariable {
-	return EvaluationGradientVariable{
+func newGradient(counter int) GradientVariable {
+	return GradientVariable{
 		phases: make([]float64, counter),
 	}
 }
