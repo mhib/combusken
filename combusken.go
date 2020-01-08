@@ -16,7 +16,6 @@ func main() {
 		}
 		return
 	}
-	e := engine.NewEngine()
-	uci := uci.NewUciProtocol(e)
+	uci := uci.NewUciProtocol(engine.NewEngine())
 	uci.Run()
 }

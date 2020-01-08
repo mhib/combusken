@@ -14,12 +14,11 @@ import (
 )
 
 type UciProtocol struct {
-	commands  map[string]func()
+	commands  map[string]func(args ...string)
 	messages  chan interface{}
 	engine    Engine
 	positions []backend.Position
 	cancel    context.CancelFunc
-	fields    []string
 	state     func(msg interface{})
 }
 
@@ -30,7 +29,7 @@ func NewUciProtocol(e Engine) *UciProtocol {
 		engine:    e,
 		positions: []backend.Position{backend.InitialPosition},
 	}
-	uci.commands = map[string]func(){
+	uci.commands = map[string]func(args ...string){
 		"uci":        uci.uciCommand,
 		"isready":    uci.isReadyCommand,
 		"position":   uci.positionCommand,
@@ -56,6 +55,7 @@ func (uci *UciProtocol) Run() {
 	for scanner.Scan() {
 		var commandLine = scanner.Text()
 		if commandLine == "quit" {
+			uci.stopCommand()
 			break
 		}
 		uci.messages <- commandLine
@@ -72,8 +72,7 @@ func (uci *UciProtocol) idle(msg interface{}) {
 		var commandName = fields[0]
 		var cmd, ok = uci.commands[commandName]
 		if ok {
-			uci.fields = fields[1:]
-			cmd()
+			cmd(fields[1:]...)
 		} else {
 			debugUci("Command not found.")
 		}
@@ -105,7 +104,7 @@ func debugUci(s string) {
 	fmt.Println("info string " + s)
 }
 
-func (uci *UciProtocol) uciCommand() {
+func (uci *UciProtocol) uciCommand(...string) {
 	var name, version, author = uci.engine.GetInfo()
 	fmt.Printf("id name %s %s\n", name, version)
 	fmt.Printf("id author %s\n", author)
@@ -116,12 +115,12 @@ func (uci *UciProtocol) uciCommand() {
 	fmt.Println("uciok")
 }
 
-func (uci *UciProtocol) isReadyCommand() {
+func (uci *UciProtocol) isReadyCommand(...string) {
+	uci.engine.NewGame()
 	fmt.Println("readyok")
 }
 
-func (uci *UciProtocol) positionCommand() {
-	var args = uci.fields
+func (uci *UciProtocol) positionCommand(args ...string) {
 	var token = args[0]
 	var fen string
 	var movesIndex = findIndexString(args, "moves")
@@ -161,8 +160,8 @@ func findIndexString(slice []string, value string) int {
 	return -1
 }
 
-func (uci *UciProtocol) goCommand() {
-	var limits = parseLimits(uci.fields)
+func (uci *UciProtocol) goCommand(fields ...string) {
+	var limits = parseLimits(fields)
 	var ctx, cancel = context.WithCancel(context.Background())
 	var searchParams = SearchParams{
 		Positions: uci.positions,
@@ -215,22 +214,18 @@ func parseLimits(args []string) (result LimitsType) {
 	return
 }
 
-func (uci *UciProtocol) uciNewGameCommand() {
+func (uci *UciProtocol) uciNewGameCommand(...string) {
 	uci.engine.NewGame()
 }
 
-func (uci *UciProtocol) ponderhitCommand() {
+func (uci *UciProtocol) ponderhitCommand(...string) {
+	debugUci("Not implemented")
 }
 
-func (uci *UciProtocol) stopCommand() {
+func (uci *UciProtocol) stopCommand(...string) {
 	if uci.cancel != nil {
 		uci.cancel()
 	}
-}
-
-type Uci struct {
-	engine Engine
-	cancel context.CancelFunc
 }
 
 func updateUci(s SearchInfo) {
@@ -251,15 +246,15 @@ func updateUci(s SearchInfo) {
 	fmt.Print(sb.String())
 }
 
-func (uci *UciProtocol) setOptionCommand() {
-	if len(uci.fields) < 4 {
+func (uci *UciProtocol) setOptionCommand(fields ...string) {
+	if len(fields) < 4 {
 		debugUci("invalid setoption arguments")
 		return
 	}
 
-	var valIdx = findIndexString(uci.fields, "value")
-	var name = strings.Join(uci.fields[1:valIdx], " ")
-	var value = uci.fields[valIdx+1]
+	var valIdx = findIndexString(fields, "value")
+	var name = strings.Join(fields[1:valIdx], " ")
+	var value = fields[valIdx+1]
 
 	for _, option := range uci.engine.GetOptions() {
 		if strings.EqualFold(option.Name, name) {
