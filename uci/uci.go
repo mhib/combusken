@@ -1,4 +1,4 @@
-// Based on https://github.com/ChizhovVadim/CounterGo/blob/master/shell/uciprotocol.go
+// Based on Counter's implementation
 package uci
 
 import . "github.com/mhib/combusken/engine"
