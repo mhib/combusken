@@ -78,3 +78,7 @@ func (t *TranspositionTable) Set(key uint64, value int16, depth int, bestMove ba
 	element.depth = uint8(depth - NoneDepth)
 	element.bestMove = bestMove
 }
+
+func (t *TranspositionTable) Prefetch(key uint64) {
+	prefetch(&t.Entries[key&t.Mask])
+}

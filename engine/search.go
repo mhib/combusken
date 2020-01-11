@@ -103,6 +103,10 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
+
+		// Prefetch as early as possible
+		transposition.GlobalTransTable.Prefetch(child.Key)
+
 		moveCount++
 		childInCheck := child.IsInCheck()
 		val = -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
@@ -334,6 +338,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
+
+		// Prefetch as early as possible
+		transposition.GlobalTransTable.Prefetch(child.Key)
+
 		moveCount++
 		childInCheck := child.IsInCheck()
 		reduction := 0
@@ -530,6 +538,9 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 
 	for i := range moves {
 		pos.MakeLegalMove(moves[i].Move, child)
+		// Prefetch as early as possible
+		transposition.GlobalTransTable.Prefetch(child.Key)
+
 		moveCount++
 		if !moves[i].IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, moves[i].Move)
