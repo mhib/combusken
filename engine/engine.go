@@ -166,6 +166,7 @@ func (e *Engine) NewGame() {
 		e.threads[i].engine = e
 	}
 	transposition.GlobalPawnKingTable = transposition.NewPKTable(e.PawnHash.Val)
+	runtime.GC()
 }
 
 func (e *Engine) callUpdate(s SearchInfo) {
