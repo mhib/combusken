@@ -267,7 +267,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				multicut := false
 				if t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled, beta, &multicut) {
 					newDepth++
-				} else if multicut {
+				}
+				if multicut {
 					return Max(int(hashValue)-depth, -Mate)
 				}
 			}
