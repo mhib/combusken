@@ -293,7 +293,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 					// If hasMove exceeds beta
 					// and after search with reduced depth other moves also exceeds beta
 					// then this position is probably too good, and we can prune this subtree
-				} else if reducedBeta >= beta {
+				} else if val >= reducedBeta && reducedBeta >= beta {
 					return reducedBeta
 				}
 				// restore child
