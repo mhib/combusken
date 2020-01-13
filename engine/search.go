@@ -252,21 +252,53 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			singularCandidate := depth >= 8 &&
 				int(hashDepth) >= depth-2 &&
 				hashFlag != TransAlpha
-			// Check extension
-			// Moves with positive SEE and gives check are searched with increased depth
-			if inCheck && SeeSign(pos, hashMove) {
-				newDepth++
-				// Singular extension
-				// https://www.chessprogramming.org/Singular_Extensions
-			} else if singularCandidate {
+
+			// Singular extension / multicut
+			// https://www.chessprogramming.org/Singular_Extensions
+			// https://www.chessprogramming.org/Multi-Cut
+			if singularCandidate {
 				evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
 				t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 				sortMoves(evaled)
 				movesSorted = true
 				evaled = evaled[1:]
-				if t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
-					newDepth++
+
+				// Store child as we already made a move into it in alphaBeta
+				oldChild := *child
+				reducedBeta := Max(int(hashValue)-depth, -Mate)
+				quiets := 0
+				for i := range evaled {
+					if !pos.MakeMove(evaled[i].Move, child) {
+						continue
+					}
+					val = -t.alphaBeta(depth/2-1, -reducedBeta-1, -reducedBeta, height+1, child.IsInCheck())
+					if val > reducedBeta {
+						break
+					}
+					if !evaled[i].Move.IsCaptureOrPromotion() {
+						quiets++
+						if quiets >= 6 {
+							break
+						}
+					} else if evaled[i].Value < MaxBadCapture {
+						break
+					}
 				}
+				if val <= reducedBeta {
+					newDepth++
+					// If hasMove exceeds beta
+					// and after search with reduced depth other moves also exceeds beta
+					// then this position is probably too good, and we can prune this subtree
+				} else if reducedBeta >= beta {
+					return reducedBeta
+				}
+				// restore child
+				*child = oldChild
+
+				// Check extension
+				// Moves with positive SEE and gives check are searched with increased depth
+			} else if inCheck && SeeSign(pos, hashMove) {
+				newDepth++
 			}
 			// Store move if it is quiet
 			if !hashMove.IsCaptureOrPromotion() {
@@ -423,36 +455,6 @@ afterLoop:
 	}
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), depth, bestMove, flag)
 	return alpha
-}
-
-func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, moves []EvaledMove) bool {
-	var pos *Position = &t.stack[height].position
-	var child *Position = &t.stack[height+1].position
-	// Store child as we already made a move into it in alphaBeta
-	oldChild := *child
-	val := -Mate
-	rBeta := Max(hashValue-depth, -Mate)
-	quiets := 0
-	for i := range moves {
-		if !pos.MakeMove(moves[i].Move, child) {
-			continue
-		}
-		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck())
-		if val > rBeta {
-			break
-		}
-		if !moves[i].Move.IsCaptureOrPromotion() {
-			quiets++
-			if quiets >= 6 {
-				break
-			}
-		} else if moves[i].Value < MaxBadCapture {
-			break
-		}
-	}
-	// restore child
-	*child = oldChild
-	return val <= rBeta
 }
 
 func (t *thread) isDraw(height int) bool {
