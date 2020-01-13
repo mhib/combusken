@@ -253,10 +253,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				int(hashDepth) >= depth-2 &&
 				hashFlag != TransAlpha
 
-			// Singular extension / multicut
-			// https://www.chessprogramming.org/Singular_Extensions
-			// https://www.chessprogramming.org/Multi-Cut
-			if singularCandidate {
+			// Check extension
+			// Moves with positive SEE and gives check are searched with increased depth
+			if inCheck && SeeSign(pos, hashMove) {
+				newDepth++
+			} else if singularCandidate {
+				// Singular extension / multicut
+				// https://www.chessprogramming.org/Singular_Extensions
+				// https://www.chessprogramming.org/Multi-Cut
 				evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
 				t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 				sortMoves(evaled)
@@ -295,10 +299,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				// restore child
 				*child = oldChild
 
-				// Check extension
-				// Moves with positive SEE and gives check are searched with increased depth
-			} else if inCheck && SeeSign(pos, hashMove) {
-				newDepth++
 			}
 			// Store move if it is quiet
 			if !hashMove.IsCaptureOrPromotion() {
