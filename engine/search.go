@@ -348,9 +348,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 		// Late Move Reduction
 		// https://www.chessprogramming.org/Late_Move_Reductions
-		if depth >= 3 && !inCheck && moveCount > 1 && evaled[i].Value < MinSpecialMoveValue && !isNoisy && !childInCheck {
+		if depth >= 3 && !inCheck && moveCount > 1 && !isNoisy && !childInCheck {
 			reduction = lmr(depth, moveCount)
 			reduction += BoolToInt(!pvNode)
+
+			// less reudction for special moves
+			reduction -= BoolToInt(evaled[i].Value >= MinSpecialMoveValue)
 
 			// Increase reduction if not improving
 			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation() < t.stack[height-2].Evaluation())
