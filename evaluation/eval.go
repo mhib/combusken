@@ -383,10 +383,8 @@ func init() {
 	}
 }
 
-// CounterGO's version
 func IsLateEndGame(pos *Position) bool {
-	return ((pos.Pieces[Rook]|pos.Pieces[Queen])&pos.Colours[pos.SideToMove]) == 0 &&
-		!MoreThanOne((pos.Pieces[Knight]|pos.Pieces[Bishop])&pos.Colours[pos.SideToMove])
+	return ((pos.Pieces[Rook]|pos.Pieces[Queen]|pos.Pieces[Bishop]|pos.Pieces[Knight])&pos.Colours[pos.SideToMove]) == 0
 }
 
 func evaluateKingPawns(pos *Position) Score {
