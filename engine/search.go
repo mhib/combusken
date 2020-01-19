@@ -41,6 +41,10 @@ func lossIn(height int) int {
 	return -Mate + height
 }
 
+func winIn(height int) int {
+	return Mate - height
+}
+
 func depthToMate(val int) int {
 	if val >= ValueWin {
 		return Mate - val
@@ -181,6 +185,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Node is not pv if it is searched with null window
 	pvNode := alpha != beta-1
 
+	// Mate distance pruning
+	alpha = Max(lossIn(height), alpha)
+	beta = Min(winIn(height+1), beta)
+	if alpha >= beta {
+		return alpha
+	}
+
 	alphaOrig := alpha
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
 	hashValue = transposition.ValueFromTrans(hashValue, height)
@@ -210,7 +221,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
 		pos.MakeNullMove(child)
-		reduction := depth / 4 + 3 + Min(int(t.stack[height].Evaluation()) - beta, 384) / 128
+		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
 		if tmpVal >= beta {
 			return beta
