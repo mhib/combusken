@@ -11,6 +11,10 @@ const rookPhase = 2
 const queenPhase = 4
 const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + queenPhase*2
 
+const SCALE_NORMAL = 4
+const SCALE_ONE_PAWN = 1
+const SCALE_DRAW = 0
+
 var PawnValue = S(103, 117)
 var KnightValue = S(510, 420)
 var BishopValue = S(472, 416)
@@ -900,8 +904,33 @@ func Evaluate(pos *Position) int {
 		}
 	}
 
-	scale := scaleFactor(pos, score.End())
+	var scale int
+	// scale factor inlined
+	{
 
+		colour := BoolToInt(score.End() > 0)
+		popCount := PopCount(pos.Colours[colour])
+		switch popCount {
+		case 2:
+			// One minor is a draw
+			scale = BoolToInt(!(PopCount(pos.Colours[colour]) == 2 && (pos.Colours[colour]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0)) * 4
+		case 3:
+			if !MoreThanOne(pos.Pieces[Pawn] & pos.Colours[colour]) {
+				nonPawnAdvantage := (PopCount(pos.Pieces[Queen]&pos.Colours[colour])-PopCount(pos.Pieces[Queen]&pos.Colours[colour^1]))*4 +
+					(PopCount(pos.Pieces[Rook]&pos.Colours[colour])-PopCount(pos.Pieces[Rook]&pos.Colours[colour^1]))*2 +
+					(PopCount((pos.Pieces[Bishop]|pos.Pieces[Knight])&pos.Colours[colour]) - PopCount((pos.Pieces[Bishop]|pos.Pieces[Knight])&pos.Colours[colour^1]))
+				if nonPawnAdvantage <= 1 {
+					// With one pawn advantage it will be hard to win, with one minor advantage it is a draw
+					scale = BoolToInt(pos.Pieces[Pawn]&pos.Colours[colour] != 0)
+				}
+			} else {
+				scale = SCALE_NORMAL
+			}
+		default:
+			scale = SCALE_NORMAL
+		}
+
+	}
 	// tapering eval
 	phase = (phase*256 + (totalPhase / 2)) / totalPhase
 	result := (int(score.Middle())*(256-phase) + (int(score.End()) * phase * scale / SCALE_NORMAL)) / 256
@@ -910,15 +939,4 @@ func Evaluate(pos *Position) int {
 		return result
 	}
 	return -result
-}
-
-const SCALE_NORMAL = 1
-const SCALE_DRAW = 0
-
-func scaleFactor(pos *Position, endResult int16) int {
-	if (endResult > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
-		(endResult < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
-		return SCALE_DRAW
-	}
-	return SCALE_NORMAL
 }
