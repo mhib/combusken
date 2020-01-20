@@ -17,9 +17,9 @@ const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
 
-const seePruningDepth = 6
-const seeQuietMargin = -100
-const seeNoisyMargin = -18
+const seePruningDepth = 8
+const seeQuietMargin = -80
+const seeNoisyMargin = -16
 
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
