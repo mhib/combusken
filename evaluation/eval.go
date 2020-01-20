@@ -14,7 +14,7 @@ const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + 
 var PawnValue = S(103, 117)
 var KnightValue = S(510, 420)
 var BishopValue = S(472, 416)
-var RookValue = S(655, 681)
+var RookValue = S(672, 678)
 var QueenValue = S(1435, 1322)
 
 // Piece Square Values
@@ -41,14 +41,14 @@ var pieceScores = [King + 1][8][4]Score{
 		{S(-1, -28), S(-36, -19), S(-113, -5), S(-92, -4)},
 	},
 	{ // Rook
-		{S(-5, -17), S(-12, -4), S(12, -13), S(14, -15)},
-		{S(-42, 0), S(-6, -17), S(-9, -10), S(2, -11)},
-		{S(-37, -7), S(-14, -8), S(-3, -17), S(-11, -13)},
-		{S(-39, 3), S(-9, -3), S(-16, 1), S(-12, -2)},
-		{S(-38, 8), S(-23, 2), S(11, 6), S(-6, 0)},
-		{S(-25, 4), S(16, 1), S(20, -4), S(-8, 3)},
-		{S(7, 10), S(6, 15), S(48, 1), S(60, -7)},
-		{S(6, 12), S(8, 10), S(-21, 18), S(14, 11)},
+		{S(-1, -21), S(-9, -7), S(13, -12), S(14, -15)},
+		{S(-41, -3), S(-7, -17), S(-6, -13), S(4, -15)},
+		{S(-36, -9), S(-13, -8), S(-1, -18), S(-12, -13)},
+		{S(-38, 4), S(-10, -3), S(-15, 1), S(-13, -3)},
+		{S(-37, 8), S(-22, 2), S(10, 7), S(-6, 0)},
+		{S(-25, 4), S(16, 1), S(20, -4), S(-8, 4)},
+		{S(7, 12), S(6, 15), S(50, 4), S(59, -7)},
+		{S(6, 12), S(9, 10), S(-24, 19), S(21, 11)},
 	},
 	{ // Queen
 		{S(0, -58), S(16, -72), S(15, -60), S(33, -68)},
@@ -100,8 +100,8 @@ var mobilityBonus = [...][32]Score{
 	{S(-28, -73), S(-13, -59), S(8, -27), S(12, -7), S(24, 2), S(35, 8), // Bishops
 		S(42, 11), S(45, 12), S(48, 16), S(55, 14), S(66, 0), S(91, 2),
 		S(50, 23), S(66, 8)},
-	{S(-28, -35), S(-31, -29), S(-17, 10), S(-7, 36), S(0, 50), S(4, 58), // Rooks
-		S(10, 64), S(17, 66), S(18, 67), S(36, 67), S(37, 69), S(40, 73),
+	{S(-27, -35), S(-34, -22), S(-17, 20), S(-13, 35), S(-6, 49), S(-3, 62), // Rooks
+		S(2, 68), S(16, 66), S(17, 66), S(32, 67), S(37, 71), S(40, 73),
 		S(50, 73), S(61, 68), S(92, 58)},
 	{S(-22, -20), S(-48, -8), S(-4, -141), S(-10, -118), S(-2, -19), S(4, -23), // Queens
 		S(3, -21), S(13, -5), S(17, 19), S(20, 22), S(21, 36), S(22, 46),
@@ -170,7 +170,10 @@ var minorBehindPawn = S(6, 27)
 var tempo = S(27, 28)
 
 // Rook on semiopen, open file
-var rookOnFile = [2]Score{S(12, 23), S(58, -3)}
+var rookOnFile = [2]Score{S(8, 23), S(54, -3)}
+
+// king can castle / king cannot castle
+var trappedRook = [2]Score{S(-4, -13), S(-53, -5)}
 
 var kingDefenders = [12]Score{
 	S(-80, 0), S(-65, 0), S(-39, 0), S(-16, 0),
@@ -384,7 +387,7 @@ func init() {
 }
 
 func IsLateEndGame(pos *Position) bool {
-	return ((pos.Pieces[Rook]|pos.Pieces[Queen]|pos.Pieces[Bishop]|pos.Pieces[Knight])&pos.Colours[pos.SideToMove]) == 0
+	return ((pos.Pieces[Rook] | pos.Pieces[Queen] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[pos.SideToMove]) == 0
 }
 
 func evaluateKingPawns(pos *Position) Score {
@@ -735,6 +738,11 @@ func Evaluate(pos *Position) int {
 			score += rookOnFile[1]
 		} else if (pos.Pieces[Pawn]&pos.Colours[White])&FILES[File(fromId)] == 0 {
 			score += rookOnFile[0]
+		} else if mobility <= 3 {
+			kingFile := File(whiteKingLocation)
+			if (kingFile < FILE_E) == (File(fromId) < kingFile) {
+				score += trappedRook[BoolToInt(^pos.Flags&(WhiteKingSideCastleFlag|WhiteQueenSideCastleFlag) == 0)]
+			}
 		}
 
 		if attacks&blackKingArea != 0 {
@@ -762,6 +770,11 @@ func Evaluate(pos *Position) int {
 			score -= rookOnFile[1]
 		} else if (pos.Pieces[Pawn]&pos.Colours[Black])&FILES[File(fromId)] == 0 {
 			score -= rookOnFile[0]
+		} else if mobility <= 3 {
+			kingFile := File(blackKingLocation)
+			if (kingFile < FILE_E) == (File(fromId) < kingFile) {
+				score -= trappedRook[BoolToInt(^pos.Flags&(BlackKingSideCastleFlag|BlackQueenSideCastleFlag) == 0)]
+			}
 		}
 
 		if attacks&whiteKingArea != 0 {
