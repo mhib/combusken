@@ -206,11 +206,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	t.stack[height].InvalidateEvaluation()
+	t.MoveEvaluator.ResetKillers(height + 1)
 
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
 		pos.MakeNullMove(child)
-		reduction := depth / 4 + 3 + Min(int(t.stack[height].Evaluation()) - beta, 384) / 128
+		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
 		if tmpVal >= beta {
 			return beta
@@ -534,6 +535,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	moveCount := 0
 	t.stack[0].PV.clear()
 	t.stack[0].InvalidateEvaluation()
+	t.MoveEvaluator.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {
