@@ -207,10 +207,15 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	t.stack[height].InvalidateEvaluation()
 
+	// Reverse futility pruning
+	if !pvNode && depth < 6 && int(t.stack[height].Evaluation())-90*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
+		return int(t.stack[height].Evaluation())
+	}
+
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
 		pos.MakeNullMove(child)
-		reduction := depth / 4 + 3 + Min(int(t.stack[height].Evaluation()) - beta, 384) / 128
+		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
 		if tmpVal >= beta {
 			return beta
