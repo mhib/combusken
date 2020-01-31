@@ -208,7 +208,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.stack[height].InvalidateEvaluation()
 
 	// Reverse futility pruning
-	if !pvNode && depth < 6 && int(t.stack[height].Evaluation())-90*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
+	if !pvNode && depth < 6 && int(t.stack[height].Evaluation())-100*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
 		return int(t.stack[height].Evaluation())
 	}
 
