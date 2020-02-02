@@ -4,6 +4,10 @@ import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 import "github.com/mhib/combusken/transposition"
 
+const tuning = false
+
+var T Trace
+
 const pawnPhase = 0
 const knightPhase = 1
 const bishopPhase = 1
@@ -403,6 +407,10 @@ func evaluateKingPawns(pos *Position) Score {
 		fromId = BitScan(fromBB)
 
 		score += whitePawnsPos[fromId]
+		if tuning {
+			T.PawnValue++
+			T.PawnScores[Rank(fromId)][File(fromId)]++
+		}
 
 		// Passed bonus
 		if whitePassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
@@ -413,10 +421,20 @@ func evaluateKingPawns(pos *Position) Score {
 					passedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
 					passedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
 
+			if tuning {
+				T.PassedRank[Rank(fromId)]++
+				T.PassedFile[FileMirror[File(fromId)]]++
+				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
+				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
+			}
+
 		}
 		// Isolated pawn penalty
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			score += isolated
+			if tuning {
+				T.Isolated++
+			}
 		}
 
 		// Pawn is backward if there are no pawns behind it and cannot increase rank without being attacked by enemy pawn
@@ -424,47 +442,85 @@ func evaluateKingPawns(pos *Position) Score {
 			PawnAttacks[White][fromId+8]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 			if FILES[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 				score += backwardOpen
+				if tuning {
+					T.BackwardOpen++
+				}
 			} else {
 				score += backward
+				if tuning {
+					T.Backward++
+				}
 			}
 		} else if whitePawnsConnectedMask[fromId]&(pos.Colours[White]&pos.Pieces[Pawn]) != 0 {
 			score += whitePawnsConnected[fromId]
+			if tuning {
+				T.PawnsConnected[Rank(fromId)][FileMirror[File(fromId)]]++
+			}
 		}
 	}
 
 	// white doubled pawns
 	score += Score(PopCount(pos.Pieces[Pawn]&pos.Colours[White]&South(pos.Pieces[Pawn]&pos.Colours[White]))) * doubled
+	if tuning {
+		T.Doubled += PopCount(pos.Pieces[Pawn] & pos.Colours[White] & South(pos.Pieces[Pawn]&pos.Colours[White]))
+	}
 
 	// black pawns
 	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
 		score -= blackPawnsPos[fromId]
+
+		if tuning {
+			T.PawnValue--
+			T.PawnScores[7-Rank(fromId)][File(fromId)]--
+		}
 		if blackPassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			score -=
 				passedRank[7-Rank(fromId)] +
 					passedFile[File(fromId)] +
 					passedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
 					passedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
+			if tuning {
+				T.PassedRank[7-Rank(fromId)]--
+				T.PassedFile[File(fromId)]--
+				T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
+				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
+			}
 
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			score -= isolated
+			if tuning {
+				T.Isolated--
+			}
 		}
 		if whitePassedMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 &&
 			PawnAttacks[Black][fromId-8]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 			if FILES[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 				score -= backwardOpen
+				if tuning {
+					T.BackwardOpen--
+				}
 			} else {
 				score -= backward
+				if tuning {
+					T.Backward--
+				}
 			}
 		} else if blackPawnsConnectedMask[fromId]&(pos.Colours[Black]&pos.Pieces[Pawn]) != 0 {
 			score -= blackPawnsConnected[fromId]
+			if tuning {
+				T.PawnsConnected[7-Rank(fromId)][FileMirror[File(fromId)]]--
+			}
 		}
 	}
 
 	// black doubled pawns
 	score -= Score(PopCount(pos.Pieces[Pawn]&pos.Colours[Black]&North(pos.Pieces[Pawn]&pos.Colours[Black]))) * doubled
+	if tuning {
+		T.Doubled -= PopCount(pos.Pieces[Pawn] & pos.Colours[Black] & North(pos.Pieces[Pawn]&pos.Colours[Black]))
+	}
 
 	// White king storm shelter
 	for file := Max(File(whiteKingLocation)-1, FILE_A); file <= Min(File(whiteKingLocation)+1, FILE_H); file++ {
@@ -484,9 +540,16 @@ func evaluateKingPawns(pos *Position) Score {
 		}
 		sameFile := BoolToInt(file == File(whiteKingLocation))
 		score += kingShelter[sameFile][file][ourDist]
+		if tuning {
+			T.KingShelter[sameFile][file][ourDist]++
+		}
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
 		score += kingStorm[blocked][FileMirror[file]][theirDist]
+
+		if tuning {
+			T.KingStorm[blocked][FileMirror[file]][ourDist]++
+		}
 	}
 
 	// Black king storm / shelter
@@ -507,9 +570,15 @@ func evaluateKingPawns(pos *Position) Score {
 		}
 		sameFile := BoolToInt(file == File(blackKingLocation))
 		score -= kingShelter[sameFile][file][ourDist]
+		if tuning {
+			T.KingShelter[sameFile][file][ourDist]--
+		}
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
 		score -= kingStorm[blocked][FileMirror[file]][theirDist]
+		if tuning {
+			T.KingStorm[blocked][FileMirror[file]][theirDist]--
+		}
 	}
 	transposition.GlobalPawnKingTable.Set(pos.PawnKey, score)
 	return score
@@ -575,6 +644,11 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += whiteKnightsPos[fromId]
 		score += mobilityBonus[0][mobility]
+		if tuning {
+			T.KnightValue++
+			T.PieceScores[Knight][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.MobilityBonus[0][mobility]++
+		}
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
@@ -582,12 +656,21 @@ func Evaluate(pos *Position) int {
 
 		if (pos.Pieces[Pawn]>>8)&SquareMask[fromId] != 0 {
 			score += minorBehindPawn
+			if tuning {
+				T.MinorBehindPawn++
+			}
 		}
 		if SquareMask[fromId]&whiteOutpustRanks != 0 && whiteOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 				score += knightOutpostDefendedBonus
+				if tuning {
+					T.KnightOutpostDefendedBonus++
+				}
 			} else {
 				score += knightOutpostUndefendedBonus
+				if tuning {
+					T.KnightOutpostUndefendedBonus++
+				}
 			}
 		}
 		if attacks&blackKingArea != 0 {
@@ -606,6 +689,11 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= blackKnightsPos[fromId]
 		score -= mobilityBonus[0][mobility]
+		if tuning {
+			T.KnightValue--
+			T.PieceScores[Knight][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.MobilityBonus[0][mobility]--
+		}
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
@@ -613,12 +701,21 @@ func Evaluate(pos *Position) int {
 
 		if (pos.Pieces[Pawn]<<8)&SquareMask[fromId] != 0 {
 			score -= minorBehindPawn
+			if tuning {
+				T.MinorBehindPawn--
+			}
 		}
 		if SquareMask[fromId]&blackOutpustRanks != 0 && blackOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 				score -= knightOutpostDefendedBonus
+				if tuning {
+					T.KnightOutpostDefendedBonus--
+				}
 			} else {
 				score -= knightOutpostUndefendedBonus
+				if tuning {
+					T.KnightOutpostUndefendedBonus--
+				}
 			}
 		}
 		if attacks&whiteKingArea != 0 {
@@ -638,6 +735,11 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += mobilityBonus[1][mobility]
 		score += whiteBishopsPos[fromId]
+		if tuning {
+			T.BishopValue++
+			T.PieceScores[Bishop][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.MobilityBonus[1][mobility]++
+		}
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
@@ -645,12 +747,21 @@ func Evaluate(pos *Position) int {
 
 		if (pos.Pieces[Pawn]>>8)&SquareMask[fromId] != 0 {
 			score += minorBehindPawn
+			if tuning {
+				T.MinorBehindPawn++
+			}
 		}
 		if SquareMask[fromId]&whiteOutpustRanks != 0 && whiteOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 				score += bishopOutpostDefendedBonus
+				if tuning {
+					T.BishopOutpostDefendedBonus++
+				}
 			} else {
 				score += bishopOutpostUndefendedBonus
+				if tuning {
+					T.BishopOutpostUndefendedBonus++
+				}
 			}
 		}
 
@@ -662,6 +773,9 @@ func Evaluate(pos *Position) int {
 			rammedCount = Score(PopCount(whiteRammedPawns & BLACK_SQUARES))
 		}
 		score += bishopRammedPawns * rammedCount
+		if tuning {
+			T.BishopRammedPawns += int(rammedCount)
+		}
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
@@ -673,6 +787,9 @@ func Evaluate(pos *Position) int {
 	// It is not checked if bishops have opposite colors, but that is almost always the case
 	if MoreThanOne(pos.Pieces[Bishop] & pos.Colours[White]) {
 		score += bishopPair
+		if tuning {
+			T.BishopPair++
+		}
 	}
 
 	// black bishops
@@ -685,6 +802,11 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= mobilityBonus[1][mobility]
 		score -= blackBishopsPos[fromId]
+		if tuning {
+			T.BishopValue--
+			T.PieceScores[Bishop][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.MobilityBonus[1][mobility]--
+		}
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
@@ -692,12 +814,21 @@ func Evaluate(pos *Position) int {
 
 		if (pos.Pieces[Pawn]<<8)&SquareMask[fromId] != 0 {
 			score -= minorBehindPawn
+			if tuning {
+				T.MinorBehindPawn--
+			}
 		}
 		if SquareMask[fromId]&blackOutpustRanks != 0 && blackOutpostMask[fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 				score -= bishopOutpostDefendedBonus
+				if tuning {
+					T.BishopOutpostDefendedBonus--
+				}
 			} else {
 				score -= bishopOutpostUndefendedBonus
+				if tuning {
+					T.BishopOutpostUndefendedBonus--
+				}
 			}
 		}
 		var rammedCount Score
@@ -707,6 +838,9 @@ func Evaluate(pos *Position) int {
 			rammedCount = Score(PopCount(blackRammedPawns & BLACK_SQUARES))
 		}
 		score -= bishopRammedPawns * rammedCount
+		if tuning {
+			T.BishopRammedPawns -= int(rammedCount)
+		}
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
@@ -716,6 +850,10 @@ func Evaluate(pos *Position) int {
 
 	if MoreThanOne(pos.Pieces[Bishop] & pos.Colours[Black]) {
 		score -= bishopPair
+
+		if tuning {
+			T.BishopPair--
+		}
 	}
 
 	// white rooks
@@ -728,14 +866,26 @@ func Evaluate(pos *Position) int {
 		score += mobilityBonus[2][mobility]
 		score += whiteRooksPos[fromId]
 
+		if tuning {
+			T.RookValue++
+			T.PieceScores[Rook][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.MobilityBonus[2][mobility]++
+		}
+
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
 		whiteAttackedBy[Rook] |= attacks
 
 		if pos.Pieces[Pawn]&FILES[File(fromId)] == 0 {
 			score += rookOnFile[1]
+			if tuning {
+				T.RookOnFile[1]++
+			}
 		} else if (pos.Pieces[Pawn]&pos.Colours[White])&FILES[File(fromId)] == 0 {
 			score += rookOnFile[0]
+			if tuning {
+				T.RookOnFile[0]++
+			}
 		}
 
 		if attacks&blackKingArea != 0 {
@@ -755,14 +905,26 @@ func Evaluate(pos *Position) int {
 		score -= mobilityBonus[2][mobility]
 		score -= blackRooksPos[fromId]
 
+		if tuning {
+			T.RookValue--
+			T.PieceScores[Rook][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.MobilityBonus[2][mobility]--
+		}
+
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks
 		blackAttackedBy[Rook] |= attacks
 
 		if pos.Pieces[Pawn]&FILES[File(fromId)] == 0 {
 			score -= rookOnFile[1]
+			if tuning {
+				T.RookOnFile[1]--
+			}
 		} else if (pos.Pieces[Pawn]&pos.Colours[Black])&FILES[File(fromId)] == 0 {
 			score -= rookOnFile[0]
+			if tuning {
+				T.RookOnFile[0]--
+			}
 		}
 
 		if attacks&whiteKingArea != 0 {
@@ -781,6 +943,12 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += mobilityBonus[3][mobility]
 		score += whiteQueensPos[fromId]
+
+		if tuning {
+			T.QueenValue++
+			T.PieceScores[Queen][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.MobilityBonus[3][mobility]++
+		}
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
@@ -802,6 +970,12 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= mobilityBonus[3][mobility]
 		score -= blackQueensPos[fromId]
+
+		if tuning {
+			T.QueenValue--
+			T.PieceScores[Queen][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.MobilityBonus[3][mobility]--
+		}
 
 		blackAttackedByTwo |= blackAttacked & attacks
 		blackAttacked |= attacks

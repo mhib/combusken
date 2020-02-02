@@ -10,7 +10,7 @@ import (
 func main() {
 	if len(os.Args) > 1 {
 		if os.Args[1] == "tune" {
-			evaluation.Tune()
+			evaluation.TraceTune()
 		} else if os.Args[1] == "bench" {
 			engine.Benchmark()
 		}
