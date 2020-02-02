@@ -64,7 +64,7 @@ func (t *emptyPKTableType) Set(uint64, Score) {
 func (t *emptyPKTableType) Clear() {
 }
 
-// Copy if quiescence search to extract quiet position
+// Copy of quiescence search to extract quiet position
 func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	t.stack[height].pv.clear()
 	pos := &t.stack[height].position
@@ -219,7 +219,7 @@ func (t *tuner) computeError(entriesCount int) float64 {
 		c = (t - sum) - y
 		sum = t
 	}
-	return sum / float64(len(t.entries))
+	return sum / float64(entriesCount)
 }
 
 func (t *tuner) calculateOptimalK() {
