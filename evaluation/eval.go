@@ -4,7 +4,7 @@ import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 import "github.com/mhib/combusken/transposition"
 
-const tuning = false
+const tuning = true
 
 var T Trace
 
@@ -990,8 +990,14 @@ func Evaluate(pos *Position) int {
 	// tempo bonus
 	if pos.SideToMove == White {
 		score += tempo
+		if tuning {
+			T.Tempo++
+		}
 	} else {
 		score -= tempo
+		if tuning {
+			T.Tempo--
+		}
 	}
 
 	if phase < 0 {
@@ -1004,6 +1010,10 @@ func Evaluate(pos *Position) int {
 	)
 	score += whiteKingPos[whiteKingLocation]
 	score += kingDefenders[whiteKingDefenders]
+	if tuning {
+		T.PieceScores[King][Rank(whiteKingLocation)][FileMirror[File(whiteKingLocation)]]++
+		T.KingDefenders[whiteKingDefenders]++
+	}
 	if int(blackKingAttackersCount) > 1-PopCount(pos.Colours[Black]&pos.Pieces[Queen]) {
 
 		// Weak squares are attacked by the enemy, defended no more
@@ -1043,6 +1053,10 @@ func Evaluate(pos *Position) int {
 	)
 	score -= blackKingPos[blackKingLocation]
 	score -= kingDefenders[blackKingDefenders]
+	if tuning {
+		T.PieceScores[King][7-Rank(blackKingLocation)][FileMirror[File(blackKingLocation)]]--
+		T.KingDefenders[blackKingDefenders]--
+	}
 	if int(whiteKingAttackersCount) > 1-PopCount(pos.Colours[White]&pos.Pieces[Queen]) {
 		// Weak squares are attacked by the enemy, defended no more
 		// than once and only defended by our Queens or our King

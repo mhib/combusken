@@ -33,6 +33,7 @@ type traceEntry struct {
 	phase        float64
 	factors      [2]float64
 	coefficients []coefficient
+	evalDiff     float64
 }
 
 type weight [2]float64
@@ -99,7 +100,7 @@ func (t *traceTuner) computeLinearError() float64 {
 			var c, sum float64
 			for y := idx; y < len(t.entries); y += numCPU {
 				entry := t.entries[y]
-				diff := entry.result - sigmoid(t.k, t.linearEvaluation(&entry))
+				diff := entry.result - sigmoid(t.k, entry.evalDiff+t.linearEvaluation(&entry))
 
 				// Kahan summation
 				y := (diff * diff) - c
@@ -146,20 +147,20 @@ func (t *traceTuner) calculateOptimalK() {
 }
 
 func TraceTune() {
-	t := &traceTuner{done: false, batchSize: 16384}
+	t := &traceTuner{done: false, batchSize: 16384 * 2}
+	t.weights = loadWeights()
+	t.bestWeights = make([]weight, len(t.weights))
+	copy(t.bestWeights, t.weights)
 
 	transposition.GlobalPawnKingTable = &emptyPKTableType{}
 	inputChan := make(chan string)
 	go loadEntries(inputChan)
 	var thread thread
 	for fen := range inputChan {
-		if entry, ok := parseTraceEntry(&thread, fen); ok {
+		if entry, ok := t.parseTraceEntry(&thread, fen); ok {
 			t.entries = append(t.entries, entry)
 		}
 	}
-	t.weights = loadWeights()
-	t.bestWeights = make([]weight, len(t.weights))
-	copy(t.bestWeights, t.weights)
 	fmt.Println("Number of entries:")
 	fmt.Println(len(t.entries))
 	t.calculateOptimalK()
@@ -194,13 +195,15 @@ func TraceTune() {
 			copy(t.bestWeights, t.weights)
 			fmt.Printf("Iteration %d error: %.17g\n", iteration, t.bestError)
 			printWeights(t.bestWeights)
+		} else {
+			break
 		}
 
 		iteration++
 	}
 }
 
-func parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
+func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
 	var res traceEntry
 	sepIdx := strings.Index(fen, ";")
 	boardFen := fen[:sepIdx]
@@ -248,9 +251,11 @@ func parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
 		res.phase = 0.0
 	}
 
-	res.factors[MIDDLE] = 1.0 - res.phase/totalPhase
-	res.factors[END] = res.phase / totalPhase
-	res.phase = (res.phase*256 + (totalPhase / 2)) / totalPhase
+	res.factors[MIDDLE] = 1.0 - res.phase/float64(totalPhase)
+	res.factors[END] = res.phase / float64(totalPhase)
+	res.phase = (res.phase*256.0 + (totalPhase / 2)) / float64(totalPhase)
+
+	res.evalDiff = res.eval - tuner.linearEvaluation(&res)
 
 	return res, true
 }
@@ -283,10 +288,10 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 		wg.Wait()
 		close(resultChan)
 	}()
-	for entry := range resultChan {
+	for threadResult := range resultChan {
 		for idx := range res {
 			for i := MIDDLE; i <= END; i++ {
-				res[idx][i] += entry[idx][i]
+				res[idx][i] += threadResult[idx][i]
 			}
 		}
 	}
@@ -299,7 +304,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
 		middle += t.weights[coeff.idx][MIDDLE] * float64(coeff.value)
 		end += t.weights[coeff.idx][END] * float64(coeff.value)
 	}
-	return (middle*(256-entry.phase) + end*entry.phase) / 256
+	return (middle*(256.0-entry.phase) + end*entry.phase) / 256.0
 }
 
 // Optimization taken from Ethereal
@@ -309,7 +314,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
 // https://www.wolframalpha.com/input/?i=%281%2F%281+%2B+10%5E%28-400kx%29%29%29+*+%281+-+1%2F%281+%2B+10%5E%28-400kx%29%29+%29
 // https://www.wolframalpha.com/input/?i=%28d%2Fdx+%28y-+%281%2F%281+%2B+10%5E%28-400kx%29%29%29%29%5E2%29+%2F+%28%281%2F%281+%2B+10%5E%28-400kx%29%29%29+*+%281+-+1%2F%281+%2B+10%5E%28-400kx%29%29+%29+*+%28y+-+1%2F%281+%2B+10%5E%28-400kx%29%29%29%29
 func (t *traceTuner) singleLinearDerivative(entry *traceEntry) float64 {
-	sigma := sigmoid(t.k, t.linearEvaluation(entry))
+	sigma := sigmoid(t.k, entry.evalDiff+t.linearEvaluation(entry))
 	sigmaPrim := sigma * (1 - sigma)
 	return -((entry.result - sigma) * sigmaPrim)
 }
