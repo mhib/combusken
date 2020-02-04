@@ -4,7 +4,7 @@ import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 import "github.com/mhib/combusken/transposition"
 
-const tuning = true
+const tuning = false
 
 var T Trace
 
@@ -423,7 +423,7 @@ func evaluateKingPawns(pos *Position) Score {
 
 			if tuning {
 				T.PassedRank[Rank(fromId)]++
-				T.PassedFile[FileMirror[File(fromId)]]++
+				T.PassedFile[File(fromId)]++
 				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
 				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
 			}
@@ -548,7 +548,7 @@ func evaluateKingPawns(pos *Position) Score {
 		score += kingStorm[blocked][FileMirror[file]][theirDist]
 
 		if tuning {
-			T.KingStorm[blocked][FileMirror[file]][ourDist]++
+			T.KingStorm[blocked][FileMirror[file]][theirDist]++
 		}
 	}
 
