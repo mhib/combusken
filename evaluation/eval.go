@@ -305,7 +305,7 @@ func loadScoresToPieceSquares() {
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
 			whitePawnsPos[y*8+x] = pawnScores[y][x] + PawnValue
-			blackPawnsPos[(7-y)*8+(7-x)] = pawnScores[y][x] + PawnValue
+			blackPawnsPos[(7-y)*8+x] = pawnScores[y][x] + PawnValue
 		}
 	}
 }
@@ -422,7 +422,7 @@ func evaluateKingPawns(pos *Position) Score {
 
 			if tuning {
 				T.PassedRank[Rank(fromId)]++
-				T.PassedFile[FileMirror[File(fromId)]]++
+				T.PassedFile[File(fromId)]++
 				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
 				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
 			}
@@ -547,7 +547,7 @@ func evaluateKingPawns(pos *Position) Score {
 		score += kingStorm[blocked][FileMirror[file]][theirDist]
 
 		if tuning {
-			T.KingStorm[blocked][FileMirror[file]][ourDist]++
+			T.KingStorm[blocked][FileMirror[file]][theirDist]++
 		}
 	}
 
