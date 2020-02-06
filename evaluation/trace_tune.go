@@ -30,7 +30,7 @@ type coefficient struct {
 type traceEntry struct {
 	result       float64
 	eval         float64
-	phase        float64
+	phase        int
 	factors      [2]float64
 	coefficients []coefficient
 	evalDiff     float64
@@ -193,7 +193,7 @@ func TraceTune() {
 		if currentError < t.bestError {
 			t.bestError = currentError
 			copy(t.bestWeights, t.weights)
-			fmt.Printf("Iteration %d error: %.17g\n", iteration, t.bestError)
+			fmt.Printf("Iteration %d error: %.17g regularization: %.17g\n", iteration, t.bestError, t.regularization())
 			printWeights(t.bestWeights)
 		} else {
 			break
@@ -201,6 +201,17 @@ func TraceTune() {
 
 		iteration++
 	}
+}
+
+const regularizationWeight = 0.2e-7
+
+func (t *traceTuner) regularization() float64 {
+	sum := 0.0
+	for _, weight := range t.weights {
+		sum += math.Abs(weight[0])
+		sum += math.Abs(weight[1])
+	}
+	return sum * regularizationWeight
 }
 
 func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
@@ -241,19 +252,18 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 		}
 	}
 
-	res.phase = float64(
-		totalPhase - queenPhase*PopCount(board.Pieces[Queen]) -
-			rookPhase*PopCount(board.Pieces[Rook]) -
-			bishopPhase*PopCount(board.Pieces[Bishop]) -
-			knightPhase*PopCount(board.Pieces[Knight]))
+	res.phase = (totalPhase - queenPhase*PopCount(board.Pieces[Queen]) -
+		rookPhase*PopCount(board.Pieces[Rook]) -
+		bishopPhase*PopCount(board.Pieces[Bishop]) -
+		knightPhase*PopCount(board.Pieces[Knight]))
 
 	if res.phase < 0 {
-		res.phase = 0.0
+		res.phase = 0
 	}
 
-	res.factors[MIDDLE] = 1.0 - res.phase/float64(totalPhase)
-	res.factors[END] = res.phase / float64(totalPhase)
-	res.phase = (res.phase*256.0 + (totalPhase / 2)) / float64(totalPhase)
+	res.factors[MIDDLE] = 1.0 - float64(res.phase)/float64(totalPhase)
+	res.factors[END] = float64(res.phase) / float64(totalPhase)
+	res.phase = (res.phase*256 + (totalPhase / 2)) / totalPhase
 
 	res.evalDiff = res.eval - tuner.linearEvaluation(&res)
 
@@ -295,7 +305,23 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 			}
 		}
 	}
+
+	for idx := range res {
+		for i := MIDDLE; i <= END; i++ {
+			res[idx][i] += sign(t.weights[idx][i]) * regularizationWeight
+		}
+	}
 	return res
+}
+
+func sign(x float64) float64 {
+	if x == 0 {
+		return 0
+	} else if x > 0 {
+		return 1
+	} else {
+		return -1
+	}
 }
 
 func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
@@ -304,7 +330,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
 		middle += t.weights[coeff.idx][MIDDLE] * float64(coeff.value)
 		end += t.weights[coeff.idx][END] * float64(coeff.value)
 	}
-	return (middle*(256.0-entry.phase) + end*entry.phase) / 256.0
+	return (middle*(256.0-float64(entry.phase)) + end*float64(entry.phase)) / 256.0
 }
 
 // Optimization taken from Ethereal
