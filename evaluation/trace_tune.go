@@ -193,7 +193,7 @@ func TraceTune() {
 		if currentError < t.bestError {
 			t.bestError = currentError
 			copy(t.bestWeights, t.weights)
-			fmt.Printf("Iteration %d error: %.17g\n", iteration, t.bestError)
+			fmt.Printf("Iteration %d error: %.17g regularization: %.17g\n", iteration, t.bestError, t.regularization())
 			printWeights(t.bestWeights)
 		} else {
 			break
@@ -201,6 +201,17 @@ func TraceTune() {
 
 		iteration++
 	}
+}
+
+const regularizationWeight = 0.2e-8
+
+func (t *traceTuner) regularization() float64 {
+	sum := 0.0
+	for _, weight := range t.weights {
+		sum += math.Abs(weight[0])
+		sum += math.Abs(weight[1])
+	}
+	return sum * regularizationWeight
 }
 
 func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
@@ -295,7 +306,23 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 			}
 		}
 	}
+
+	for idx := range res {
+		for i := MIDDLE; i <= END; i++ {
+			res[idx][i] += sign(res[idx][i]) * regularizationWeight / float64(t.batchSize)
+		}
+	}
 	return res
+}
+
+func sign(x float64) float64 {
+	if x == 0 {
+		return 0
+	} else if x > 0 {
+		return 1
+	} else {
+		return -1
+	}
 }
 
 func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
