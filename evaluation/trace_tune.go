@@ -203,7 +203,7 @@ func TraceTune() {
 	}
 }
 
-const regularizationWeight = 0.2e-8
+const regularizationWeight = 0.2e-7
 
 func (t *traceTuner) regularization() float64 {
 	sum := 0.0
