@@ -100,7 +100,7 @@ func (t *traceTuner) computeLinearError() float64 {
 			var c, sum float64
 			for y := idx; y < len(t.entries); y += numCPU {
 				entry := t.entries[y]
-				diff := entry.result - sigmoid(t.k, entry.evalDiff+t.linearEvaluation(&entry))
+				diff := entry.result - sigmoid(t.k, t.linearEvaluation(&entry))
 
 				// Kahan summation
 				y := (diff * diff) - c
@@ -315,12 +315,12 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 }
 
 func sign(x float64) float64 {
-	if x == 0 {
-		return 0
-	} else if x > 0 {
+	if x > 0 {
 		return 1
-	} else {
+	} else if x < 0 {
 		return -1
+	} else {
+		return 0
 	}
 }
 
@@ -340,7 +340,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
 // https://www.wolframalpha.com/input/?i=%281%2F%281+%2B+10%5E%28-400kx%29%29%29+*+%281+-+1%2F%281+%2B+10%5E%28-400kx%29%29+%29
 // https://www.wolframalpha.com/input/?i=%28d%2Fdx+%28y-+%281%2F%281+%2B+10%5E%28-400kx%29%29%29%29%5E2%29+%2F+%28%281%2F%281+%2B+10%5E%28-400kx%29%29%29+*+%281+-+1%2F%281+%2B+10%5E%28-400kx%29%29+%29+*+%28y+-+1%2F%281+%2B+10%5E%28-400kx%29%29%29%29
 func (t *traceTuner) singleLinearDerivative(entry *traceEntry) float64 {
-	sigma := sigmoid(t.k, entry.evalDiff+t.linearEvaluation(entry))
+	sigma := sigmoid(t.k, t.linearEvaluation(entry))
 	sigmaPrim := sigma * (1 - sigma)
 	return -((entry.result - sigma) * sigmaPrim)
 }
