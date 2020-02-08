@@ -4,7 +4,7 @@ import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 import "github.com/mhib/combusken/transposition"
 
-const tuning = false
+const tuning = true
 
 var T Trace
 
