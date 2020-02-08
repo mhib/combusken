@@ -414,7 +414,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 afterLoop:
-	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
+	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, height)
 	}
 
