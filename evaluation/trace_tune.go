@@ -308,7 +308,7 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 
 	for idx := range res {
 		for i := MIDDLE; i <= END; i++ {
-			res[idx][i] += sign(res[idx][i]) * regularizationWeight
+			res[idx][i] += sign(t.weights[idx][i]) * regularizationWeight
 		}
 	}
 	return res
