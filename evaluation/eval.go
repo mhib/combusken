@@ -75,23 +75,22 @@ var pieceScores = [King + 1][8][4]Score{
 // Pawns Square scores
 var pawnScores = [7][8]Score{
 	{},
-	{S(-16, 3), S(17, -2), S(-6, 9), S(6, 5), S(3, 10), S(-6, 11), S(17, 0), S(-14, 3)},
-	{S(-12, -7), S(-6, -3), S(-1, 0), S(5, -3), S(3, -1), S(2, -2), S(-5, -6), S(-4, -5)},
-	{S(-18, 1), S(-4, 0), S(16, -6), S(25, -9), S(19, -7), S(14, -3), S(-6, 1), S(-13, 3)},
-	{S(2, 12), S(25, 1), S(16, -8), S(36, -14), S(33, -16), S(11, 0), S(29, 2), S(-5, 15)},
-	{S(10, 39), S(27, 28), S(51, 6), S(47, 1), S(55, -5), S(74, 10), S(9, 35), S(9, 43)},
-	{S(-5, 65), S(7, 65), S(3, 37), S(2, 38), S(84, 28), S(-11, 46), S(1, 46), S(-69, 81)},
+	{S(-21, 7), S(13, -1), S(-11, 11), S(5, 4), S(0, 15), S(-2, 11), S(23, -1), S(-10, 0)},
+	{S(-10, -7), S(-14, -3), S(3, -7), S(6, -1), S(3, -1), S(-1, 2), S(1, -6), S(-6, -5)},
+	{S(-14, 2), S(-9, 0), S(17, -9), S(23, -10), S(23, -6), S(15, -4), S(-2, 0), S(-21, 4)},
+	{S(2, 13), S(27, -3), S(11, -5), S(35, -13), S(36, -12), S(20, -3), S(33, 5), S(-5, 15)},
+	{S(11, 40), S(23, 30), S(53, 13), S(47, 1), S(90, -11), S(94, -2), S(56, 19), S(10, 42)},
+	{S(-2, 57), S(100, 37), S(20, 37), S(17, 34), S(82, 38), S(1, 36), S(-34, 62), S(-116, 105)},
 }
 
-var pawnsConnected = [8][4]Score{
+var pawnsConnected = [7][4]Score{
 	{S(0, 0), S(0, 0), S(0, 0), S(0, 0)},
-	{S(12, -23), S(5, 10), S(8, -9), S(1, 16)},
-	{S(6, 1), S(30, 4), S(14, 10), S(13, 18)},
-	{S(9, 8), S(22, 8), S(14, 9), S(23, 11)},
-	{S(13, 16), S(10, 25), S(28, 24), S(31, 21)},
-	{S(12, 58), S(43, 56), S(75, 55), S(73, 47)},
-	{S(7, 59), S(146, -1), S(160, 21), S(215, 41)},
-	{S(0, 0), S(0, 0), S(0, 0), S(0, 0)},
+	{S(13, -23), S(5, 10), S(8, -10), S(3, 19)},
+	{S(7, 1), S(30, 4), S(14, 10), S(13, 19)},
+	{S(13, 8), S(22, 9), S(15, 10), S(21, 11)},
+	{S(13, 17), S(8, 25), S(26, 24), S(32, 21)},
+	{S(15, 56), S(38, 62), S(61, 61), S(74, 45)},
+	{S(7, 58), S(150, 0), S(168, 22), S(352, 41)},
 }
 
 var mobilityBonus = [...][32]Score{
@@ -111,13 +110,13 @@ var mobilityBonus = [...][32]Score{
 }
 
 var passedFriendlyDistance = [8]Score{
-	S(0, 0), S(5, 23), S(-5, 9), S(-8, -12),
-	S(-14, -20), S(-17, -23), S(4, -27), S(-31, -15),
+	S(0, 0), S(6, 23), S(-5, 9), S(-8, -12),
+	S(-15, -21), S(-18, -23), S(4, -27), S(-31, -18),
 }
 
 var passedEnemyDistance = [8]Score{
-	S(0, 0), S(-56, -72), S(23, -28), S(14, 6),
-	S(15, 27), S(8, 36), S(4, 40), S(-13, 48),
+	S(0, 0), S(-57, -73), S(31, -30), S(16, 7),
+	S(15, 27), S(8, 37), S(4, 41), S(-12, 48),
 }
 
 var blackPawnsPos [64]Score
@@ -144,17 +143,17 @@ var blackKingPos [64]Score
 var whiteKingPos [64]Score
 
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
-var passedRank = [7]Score{S(0, 0), S(-2, -30), S(-7, -11), S(-7, 31), S(27, 74), S(39, 160), S(110, 249)}
+var passedRank = [7]Score{S(0, 0), S(-1, -32), S(-6, -11), S(-7, 31), S(27, 74), S(39, 162), S(124, 250)}
 
 // PassedFile[File] contains a bonus according to the file of a passed pawn
-var passedFile = [8]Score{S(-6, 21), S(-24, 21), S(-29, 9), S(-26, -6),
-	S(-17, -5), S(7, -2), S(-10, 17), S(-7, 11),
+var passedFile = [8]Score{S(-5, 22), S(-17, 21), S(-26, 13), S(-26, -5),
+	S(-17, -7), S(6, -2), S(-11, 16), S(-6, 9),
 }
 
 var isolated = S(-10, -11)
-var doubled = S(-11, -34)
-var backward = S(5, -2)
-var backwardOpen = S(-15, -7)
+var doubled = S(-12, -33)
+var backward = S(3, -2)
+var backwardOpen = S(-17, -5)
 
 var bishopPair = S(47, 60)
 var bishopRammedPawns = S(-7, -13)
@@ -291,17 +290,19 @@ func loadScoresToPieceSquares() {
 			blackKingPos[(7-y)*8+x] = pieceScores[King][y][x]
 			blackKingPos[(7-y)*8+(7-x)] = pieceScores[King][y][x]
 
-			whitePawnsConnected[y*8+x] = pawnsConnected[y][x]
-			whitePawnsConnected[y*8+(7-x)] = pawnsConnected[y][x]
-			blackPawnsConnected[(7-y)*8+x] = pawnsConnected[y][x]
-			blackPawnsConnected[(7-y)*8+(7-x)] = pawnsConnected[y][x]
+			if y != 7 {
+				whitePawnsConnected[y*8+x] = pawnsConnected[y][x]
+				whitePawnsConnected[y*8+(7-x)] = pawnsConnected[y][x]
+				blackPawnsConnected[(7-y)*8+x] = pawnsConnected[y][x]
+				blackPawnsConnected[(7-y)*8+(7-x)] = pawnsConnected[y][x]
+			}
 		}
 	}
 
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
 			whitePawnsPos[y*8+x] = pawnScores[y][x] + PawnValue
-			blackPawnsPos[(7-y)*8+(7-x)] = pawnScores[y][x] + PawnValue
+			blackPawnsPos[(7-y)*8+x] = pawnScores[y][x] + PawnValue
 		}
 	}
 }
@@ -384,7 +385,7 @@ func init() {
 }
 
 func IsLateEndGame(pos *Position) bool {
-	return ((pos.Pieces[Rook]|pos.Pieces[Queen]|pos.Pieces[Bishop]|pos.Pieces[Knight])&pos.Colours[pos.SideToMove]) == 0
+	return ((pos.Pieces[Rook] | pos.Pieces[Queen] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[pos.SideToMove]) == 0
 }
 
 func evaluateKingPawns(pos *Position) Score {

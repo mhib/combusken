@@ -647,7 +647,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 			res = append(res, ScoreValue{&pawnScores[y][x]})
 		}
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
 			res = append(res, ScoreValue{&pawnsConnected[y][x]})
 		}
