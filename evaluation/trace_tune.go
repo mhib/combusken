@@ -215,6 +215,11 @@ func (t *traceTuner) regularization() float64 {
 }
 
 func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("Error during parsing: %s\n", fen)
+		}
+	}()
 	var res traceEntry
 	sepIdx := strings.Index(fen, ";")
 	boardFen := fen[:sepIdx]
