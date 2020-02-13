@@ -12,14 +12,14 @@ const HistoryMultiplier = 32
 const HistoryDivisor = 512
 
 type MoveEvaluator struct {
-	KillerMoves  [STACK_SIZE][2]Move
+	KillerMoves  [STACK_SIZE + 1][2]Move
 	CounterMoves [2][64][64]Move
 	EvalHistory  [2][64][64]int
 }
 
 func (mv *MoveEvaluator) ResetKillers(height int) {
-	mv.KillerMoves[height+1][0] = NullMove
-	mv.KillerMoves[height+1][1] = NullMove
+	mv.KillerMoves[height][0] = NullMove
+	mv.KillerMoves[height][1] = NullMove
 }
 
 func (mv *MoveEvaluator) Clear() {

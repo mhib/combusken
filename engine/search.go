@@ -206,6 +206,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	t.stack[height].InvalidateEvaluation()
+	t.MoveEvaluator.ResetKillers(height + 1)
 
 	// Reverse futility pruning
 	if !pvNode && depth < 6 && int(t.stack[height].Evaluation())-90*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
@@ -539,6 +540,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	moveCount := 0
 	t.stack[0].PV.clear()
 	t.stack[0].InvalidateEvaluation()
+	t.MoveEvaluator.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
 
 	for i := range moves {
