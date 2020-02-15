@@ -122,6 +122,7 @@ func NewEngine() (ret Engine) {
 	ret.PawnHash = IntUciOption{"PawnHash", 0, 8, 2}
 	ret.MoveOverhead = IntUciOption{"Move Overhead", 0, 10000, 50}
 	ret.threads = make([]thread, 1)
+	ret.Update = func(SearchInfo) {}
 	return
 }
 
