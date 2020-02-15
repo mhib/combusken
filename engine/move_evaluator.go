@@ -106,7 +106,7 @@ func mvvlva(move Move) int {
 	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
 }
 
-// In Quiescent search it is expected that SEE will be check anyway
+// In Quiescent search it is expected that SEE will be checked anyway
 func (mv *MoveEvaluator) EvaluateQsMoves(pos *Position, moves []EvaledMove, bestMove Move, inCheck bool) {
 	if inCheck {
 		for i := range moves {

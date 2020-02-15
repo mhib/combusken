@@ -39,8 +39,6 @@ type Position struct {
 	Flags      uint8
 }
 
-const maxMoves = 256
-
 var InitialPosition Position = ParseFen(InitialPositionFen)
 
 var rookCastleFlags [64]uint8

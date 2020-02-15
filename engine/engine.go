@@ -10,6 +10,7 @@ import . "github.com/mhib/combusken/utils"
 
 const MAX_HEIGHT = 127
 const STACK_SIZE = MAX_HEIGHT + 1
+const MAX_MOVES = 256
 
 var errTimeout = errors.New("Search timeout")
 
@@ -65,8 +66,8 @@ type SearchInfo struct {
 type StackEntry struct {
 	position backend.Position
 	PV
-	moves                [256]backend.EvaledMove
-	quietsSearched       [256]backend.Move
+	moves                [MAX_MOVES]backend.EvaledMove
+	quietsSearched       [MAX_MOVES]backend.Move
 	evaluation           int16
 	evaluationCalculated bool
 }
@@ -81,10 +82,6 @@ func (se *StackEntry) Evaluation() int16 {
 		se.evaluationCalculated = true
 	}
 	return se.evaluation
-}
-
-func (se *StackEntry) NonCachedEvaluation() int {
-	return evaluation.Evaluate(&se.position)
 }
 
 type PV struct {
@@ -167,12 +164,6 @@ func (e *Engine) NewGame() {
 	}
 	transposition.GlobalPawnKingTable = transposition.NewPKTable(e.PawnHash.Val)
 	runtime.GC()
-}
-
-func (e *Engine) callUpdate(s SearchInfo) {
-	if e.Update != nil {
-		e.Update(s)
-	}
 }
 
 func (e *Engine) nodes() (sum int) {

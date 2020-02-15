@@ -21,6 +21,9 @@ const seePruningDepth = 8
 const seeQuietMargin = -80
 const seeNoisyMargin = -18
 
+const reverseFutilityPruningDepth = 6
+const reverseFutilityPruningMargin = 90
+
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 
@@ -209,7 +212,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.MoveEvaluator.ResetKillers(height + 1)
 
 	// Reverse futility pruning
-	if !pvNode && depth < 6 && int(t.stack[height].Evaluation())-90*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
+	if !pvNode && depth < reverseFutilityPruningDepth && int(t.stack[height].Evaluation())-reverseFutilityPruningMargin*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
 		return int(t.stack[height].Evaluation())
 	}
 
@@ -614,7 +617,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		case <-ctx.Done():
 			return lastBestMove
 		case res := <-resultChan:
-			e.callUpdate(SearchInfo{newUciScore(res.value), i, thread.nodes, res.moves})
+			e.Update(SearchInfo{newUciScore(res.value), i, thread.nodes, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}
@@ -704,7 +707,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				continue
 			}
 			nodes := e.nodes()
-			e.callUpdate(SearchInfo{newUciScore(res.value), res.depth, nodes, res.moves})
+			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
 				return res.Move
 			}

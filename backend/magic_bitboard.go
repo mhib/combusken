@@ -1,7 +1,7 @@
 package backend
 
 // Names as in https://stackoverflow.com/a/30862064
-// Pretty much everything as in this answer, but index right shift is done by constant value(bishopShift, rookShift)
+// Pretty much everything as in this answer, but index right shift is done by constant values(bishopShift, rookShift)
 // Pseudo-random number generation from https://github.com/goutham/magic-bits
 
 import (

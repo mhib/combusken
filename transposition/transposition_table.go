@@ -4,8 +4,6 @@ import "github.com/mhib/combusken/backend"
 import "unsafe"
 import . "github.com/mhib/combusken/utils"
 
-const maxValue = Mate
-
 const NoneDepth = -6
 
 var GlobalTransTable TranspositionTable
