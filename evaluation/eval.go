@@ -251,16 +251,16 @@ var blackForwardRanksMasks [8]uint64
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
-var kingSafetyAttacksWeights = [King + 1]int16{0, -3, 0, -1, 15, 0}
-var kingSafetyAttackValue int16 = 105
-var kingSafetyWeakSquares int16 = 17
-var kingSafetyFriendlyPawns int16 = -7
-var kingSafetyNoEnemyQueens int16 = 40
-var kingSafetySafeQueenCheck int16 = 77
-var kingSafetySafeRookCheck int16 = 113
-var kingSafetySafeBishopCheck int16 = 97
-var kingSafetySafeKnightCheck int16 = 147
-var kingSafetyAdjustment int16 = -72
+var kingSafetyAttacksWeights = [King + 1]int16{0, -4, -2, 1, 10, 0}
+var kingSafetyAttackValue int16 = 106
+var kingSafetyWeakSquares int16 = 19
+var kingSafetyFriendlyPawns int16 = -8
+var kingSafetyNoEnemyQueens int16 = 65
+var kingSafetySafeQueenCheck int16 = 76
+var kingSafetySafeRookCheck int16 = 114
+var kingSafetySafeBishopCheck int16 = 91
+var kingSafetySafeKnightCheck int16 = 146
+var kingSafetyAdjustment int16 = -80
 
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
