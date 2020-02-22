@@ -26,9 +26,9 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			fromId = BitScan(fromBB)
 			fromMask = SquareMask[uint(fromId)]
 			if fromMask&RANK_7_BB != 0 {
-				toMask = fromMask << 8
-				if allOccupation&toMask == 0 {
-					addPromotions(NewMove(fromId, fromId+8, Pawn, None, 0), buffer[size:])
+				toId = fromId + 8
+				if allOccupation&SquareMask[toId] == 0 {
+					addPromotions(NewMove(fromId, toId, Pawn, None, 0), buffer[size:])
 					size += 4
 				}
 				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
