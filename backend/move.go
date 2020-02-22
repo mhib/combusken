@@ -75,7 +75,7 @@ func (m Move) IsCaptureOrPromotion() bool {
 }
 
 func (m Move) IsCastling() bool {
-	t := m >> 18 // Type() inlined
+	t := m.Type()
 	return t&3 == 0 && t&(1<<2) != 0
 }
 
