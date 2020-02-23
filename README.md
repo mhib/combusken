@@ -1,5 +1,5 @@
 # Combusken
-Combusken is a UCI-compliant open source chess engine using [Alpha-beta algorithm](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning). You can play with on [lichess](https://lichess.org/@/combuskengine).
+Combusken is a UCI-compliant open source chess engine using [Alpha-beta algorithm](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning). You can play with it on [lichess](https://lichess.org/@/combuskengine).
 
 
 ## UCI options
@@ -28,10 +28,10 @@ Games for tuning must be put in `games.fen` file.
 ## Thanks
 + [Counter](https://github.com/ChizhovVadim/CounterGo) by Vadim Chizhov
 
-UCI protocol implementation and search cancelation pattern is based on CounterGO's. 
+UCI protocol implementation and search cancelation pattern is based on CounterGO's.
 Also some miscellaneous things like LMP weights, or EPD parsing.
- 
-+ [Ethereal](https://github.com/AndyGrant/Ethereal) by Andrew Grant, Alayan & Laldon 
+
++ [Ethereal](https://github.com/AndyGrant/Ethereal) by Andrew Grant, Alayan & Laldon
 
 Combusken's search procedure is heavily inspired by Ethereal's, some parts of evaluation(for example king safety) were taken directly from it.
 Andrew Grant's [OpenBench](https://github.com/AndyGrant/OpenBench) is used for testing.
@@ -49,4 +49,4 @@ Some evaluation heuristics.
 It's [tuning positions set](http://www.zurichess.xyz/blog/texels-tuning-method/) was used in Combusken's tuning
 
 ## License
-Combusken is distributed under the GNU General Public License version 3 (GPL v3). 
+Combusken is distributed under the GNU General Public License version 3 (GPL v3).
