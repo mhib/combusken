@@ -109,7 +109,7 @@ type SearchParams struct {
 }
 
 func (e *Engine) GetInfo() (name, version, author string) {
-	return "Combusken", "0.0.2", "Marcin Henryk Bartkowiak"
+	return "Combusken", "1.0.0", "Marcin Henryk Bartkowiak"
 }
 
 func (e *Engine) GetOptions() []*IntUciOption {
