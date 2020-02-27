@@ -277,7 +277,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				hashFlag != TransAlpha
 			// Check extension
 			// Moves with positive SEE and gives check are searched with increased depth
-			if inCheck && SeeSign(pos, hashMove) {
+			if inCheck {
 				newDepth++
 				// Singular extension
 				// https://www.chessprogramming.org/Singular_Extensions
@@ -383,11 +383,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 		newDepth := depth - 1
+
 		// Check extension
-		// Moves with positive SEE and gives check are searched with increased depth
-		if inCheck && SeeSign(pos, evaled[i].Move) {
-			newDepth++
-		}
+		newDepth += BoolToInt(inCheck)
 
 		// Store move if it is quiet
 		if !isNoisy {
@@ -582,10 +580,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			}
 		}
 		var val int
-		newDepth := depth - 1
-		if inCheck && SeeSign(pos, moves[i].Move) {
-			newDepth++
-		}
+		newDepth := depth - 1 + BoolToInt(inCheck)
 		if reduction > 0 {
 			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck)
 			if val <= alpha {
