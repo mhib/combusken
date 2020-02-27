@@ -380,6 +380,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 			// Increase reduction if not improving
 			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation() < t.stack[height-2].Evaluation())
+
+			// Increase reduction if tt move is noisy
+			reduction += BoolToInt(hashMoveChecked && hashMove.IsCaptureOrPromotion())
+
+			// Increase for King moves that evade checks
+			reduction += BoolToInt(inCheck && evaled[i].MovedPiece() == King)
+
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 		newDepth := depth - 1
