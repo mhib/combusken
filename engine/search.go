@@ -406,9 +406,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 		newDepth := depth - 1
-		// Check extension
-		// Moves with positive SEE and gives check are searched with increased depth
-		if inCheck && SeeSign(pos, evaled[i].Move) {
+
+		// Castling extension
+		if evaled[i].IsCastling() {
+			newDepth++
+
+			// Check extension
+			// Moves with positive SEE and gives check are searched with increased depth
+		} else if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
 		}
 
@@ -609,7 +614,9 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		}
 		var val int
 		newDepth := depth - 1
-		if inCheck && SeeSign(pos, moves[i].Move) {
+		if moves[i].IsCastling() {
+			newDepth++
+		} else if inCheck && SeeSign(pos, moves[i].Move) {
 			newDepth++
 		}
 		if reduction > 0 {
