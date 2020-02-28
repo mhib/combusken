@@ -29,7 +29,7 @@ const futilityPruningDepth = 8
 
 const SMPCycles = 16
 
-const WindowSize = 50
+const WindowSize = 25
 const WindowDepth = 6
 
 const QSDepthChecks = 0
