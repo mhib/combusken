@@ -7,6 +7,7 @@ import (
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
+	"github.com/mhib/combusken/fathom"
 	"github.com/mhib/combusken/transposition"
 	. "github.com/mhib/combusken/utils"
 )
@@ -216,6 +217,28 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 	}
+
+	// Probe tablebase
+	if fathom.IsWDLProbeable(pos, depth) {
+		if tbResult := fathom.ProbeWDL(pos, depth); tbResult != fathom.TB_RESULT_FAILED {
+			var ttBound int
+			if tbResult == fathom.TB_LOSS {
+				tmpVal = ValueLoss + height + 1
+				ttBound = TransAlpha
+			} else if tbResult == fathom.TB_WIN {
+				tmpVal = ValueWin - height - 1
+				ttBound = TransBeta
+			} else {
+				tmpVal = 0
+				ttBound = TransExact
+			}
+			if ttBound == TransExact || ttBound == TransBeta && tmpVal >= beta || ttBound == TransAlpha && tmpVal <= alpha {
+				transposition.GlobalTransTable.Set(pos.Key, int16(tmpVal), MAX_HEIGHT-1, NullMove, ttBound)
+				return tmpVal
+			}
+		}
+	}
+
 	var child *Position = &t.stack[height+1].position
 
 	if depth <= 0 {
@@ -679,11 +702,28 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	if len(rootMoves) == 1 {
 		return rootMoves[0].Move
 	}
+
+	if fathom.IsDTZProbeable(pos) {
+		if ok, bestMove, wdl, dtz := fathom.ProbeDTZ(pos, rootMoves); ok {
+			var score int
+			if wdl == fathom.TB_LOSS {
+				score = ValueLoss + dtz + 1
+			} else if wdl == fathom.TB_WIN {
+				score = ValueWin - dtz - 1
+			} else {
+				score = 0
+			}
+			e.Update(SearchInfo{newUciScore(score), MAX_HEIGHT - 1, 0, []Move{bestMove}})
+			return bestMove
+		}
+	}
+
 	ordMove := NullMove
 	if hashOk, _, _, hashMove, _ := transposition.GlobalTransTable.Get(pos.Key); hashOk {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
+
 	sortMoves(rootMoves)
 
 	if e.Threads.Val == 1 {
