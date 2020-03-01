@@ -6,6 +6,7 @@ import "runtime"
 import "github.com/mhib/combusken/backend"
 import "github.com/mhib/combusken/evaluation"
 import "github.com/mhib/combusken/transposition"
+import "github.com/mhib/combusken/fathom"
 import . "github.com/mhib/combusken/utils"
 
 const MAX_HEIGHT = 127
@@ -14,18 +15,13 @@ const MAX_MOVES = 256
 
 var errTimeout = errors.New("Search timeout")
 
-type IntUciOption struct {
-	Name string
-	Min  int
-	Max  int
-	Val  int
-}
-
 type Engine struct {
-	Hash              IntUciOption
-	Threads           IntUciOption
-	MoveOverhead      IntUciOption
-	PawnHash          IntUciOption
+	Hash              IntOption
+	Threads           IntOption
+	MoveOverhead      IntOption
+	PawnHash          IntOption
+	SyzygyPath        StringOption
+	SyzygyProbeDepth  IntOption
 	done              <-chan struct{}
 	RepeatedPositions map[uint64]interface{}
 	MovesCount        int
@@ -109,18 +105,20 @@ type SearchParams struct {
 }
 
 func (e *Engine) GetInfo() (name, version, author string) {
-	return "Combusken", "1.0.0", "Marcin Henryk Bartkowiak"
+	return "Combusken", "1.1.0", "Marcin Henryk Bartkowiak"
 }
 
-func (e *Engine) GetOptions() []*IntUciOption {
-	return []*IntUciOption{&e.Hash, &e.Threads, &e.PawnHash, &e.MoveOverhead}
+func (e *Engine) GetOptions() []EngineOption {
+	return []EngineOption{&e.Hash, &e.Threads, &e.PawnHash, &e.MoveOverhead, &e.SyzygyPath}
 }
 
 func NewEngine() (ret Engine) {
-	ret.Hash = IntUciOption{"Hash", 4, 2048, 256}
-	ret.Threads = IntUciOption{"Threads", 1, runtime.NumCPU(), 1}
-	ret.PawnHash = IntUciOption{"PawnHash", 0, 8, 2}
-	ret.MoveOverhead = IntUciOption{"Move Overhead", 0, 10000, 50}
+	ret.Hash = IntOption{"Hash", 4, 2048, 256}
+	ret.Threads = IntOption{"Threads", 1, runtime.NumCPU(), 1}
+	ret.PawnHash = IntOption{"PawnHash", 0, 8, 2}
+	ret.MoveOverhead = IntOption{"Move Overhead", 0, 10000, 50}
+	ret.SyzygyPath = StringOption{"SyzygyPath", "", false}
+	ret.SyzygyProbeDepth = IntOption{"SyzygyProbeDepth", 0, 100, 0}
 	ret.threads = make([]thread, 1)
 	ret.Update = func(SearchInfo) {}
 	return
@@ -164,6 +162,11 @@ func (e *Engine) NewGame() {
 		e.threads[i].engine = e
 	}
 	transposition.GlobalPawnKingTable = transposition.NewPKTable(e.PawnHash.Val)
+	fathom.MIN_PROBE_DEPTH = e.SyzygyProbeDepth.Val
+	if e.SyzygyPath.Dirty {
+		fathom.SetPath(e.SyzygyPath.Val)
+		e.SyzygyPath.Clean()
+	}
 	runtime.GC()
 }
 

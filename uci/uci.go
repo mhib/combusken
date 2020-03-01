@@ -109,8 +109,7 @@ func (uci *UciProtocol) uciCommand(...string) {
 	fmt.Printf("id name %s %s\n", name, version)
 	fmt.Printf("id author %s\n", author)
 	for _, option := range uci.engine.GetOptions() {
-		fmt.Printf("option name %v type %v default %v min %v max %v\n",
-			option.Name, "spin", option.Val, option.Min, option.Max)
+		fmt.Println(option.ToUci())
 	}
 	fmt.Println("uciok")
 }
@@ -257,17 +256,11 @@ func (uci *UciProtocol) setOptionCommand(fields ...string) {
 	var value = fields[valIdx+1]
 
 	for _, option := range uci.engine.GetOptions() {
-		if strings.EqualFold(option.Name, name) {
-			v, err := strconv.Atoi(value)
+		if strings.EqualFold(option.GetName(), name) {
+			err := option.SetValue(value)
 			if err != nil {
-				debugUci("invalid setoption arguments")
-				return
+				debugUci(err.Error())
 			}
-			if v < option.Min || v > option.Max {
-				debugUci("argument out of range")
-				return
-			}
-			option.Val = v
 			return
 		}
 	}
