@@ -25,6 +25,11 @@ In order to work it requires compilation with `tuning` constant set to `true` in
 
 Games for tuning must be put in `games.fen` file.
 
+## Logo
+![Logo](https://raw.githubusercontent.com/mhib/combusken/master/logo.png)
+
+by Graham Banks
+
 ## Thanks
 + [Counter](https://github.com/ChizhovVadim/CounterGo) by Vadim Chizhov
 
@@ -50,3 +55,4 @@ It's [tuning positions set](http://www.zurichess.xyz/blog/texels-tuning-method/)
 
 ## License
 Combusken is distributed under the GNU General Public License version 3 (GPL v3).
+
