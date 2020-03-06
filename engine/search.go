@@ -30,7 +30,7 @@ const futilityPruningDepth = 8
 
 const SMPCycles = 16
 
-const WindowSize = 50
+const WindowSize = 25
 const WindowDepth = 6
 
 const QSDepthChecks = 0
@@ -546,6 +546,7 @@ type result struct {
 func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resultChan chan result) int {
 	var alpha, beta int
 	delta := WindowSize
+	searchDepth := depth
 	if depth >= WindowDepth {
 		alpha = Max(-Mate, lastValue-delta)
 		beta = Min(Mate, lastValue+delta)
@@ -555,7 +556,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 		beta = Mate
 	}
 	for {
-		res := t.depSearch(depth, alpha, beta, moves)
+		res := t.depSearch(Max(1, searchDepth), alpha, beta, moves)
 		if res.value > alpha && res.value < beta {
 			resultChan <- res
 			return res.value
@@ -563,9 +564,11 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 		if res.value <= alpha {
 			beta = (alpha + beta) / 2
 			alpha = Max(-Mate, alpha-delta)
+			searchDepth = depth
 		}
 		if res.value >= beta {
 			beta = Min(Mate, beta+delta)
+			searchDepth--
 		}
 		delta += delta/2 + 5
 	}
