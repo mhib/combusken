@@ -719,5 +719,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, SingleValue{&kingSafetySafeBishopCheck})
 	res = append(res, SingleValue{&kingSafetySafeKnightCheck})
 	res = append(res, SingleValue{&kingSafetyAdjustment})
+	res = append(res, ScoreValue{&hanging})
+
 	return
 }
