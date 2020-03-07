@@ -15,7 +15,7 @@ const rookPhase = 2
 const queenPhase = 4
 const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + queenPhase*2
 
-var PawnValue = S(103, 117)
+var PawnValue = S(104, 118)
 var KnightValue = S(510, 420)
 var BishopValue = S(472, 416)
 var RookValue = S(655, 681)
@@ -115,12 +115,12 @@ var mobilityBonus = [...][32]Score{
 
 var passedFriendlyDistance = [8]Score{
 	S(0, 0), S(6, 23), S(-5, 9), S(-8, -12),
-	S(-15, -21), S(-18, -23), S(4, -27), S(-31, -18),
+	S(-14, -21), S(-17, -23), S(5, -28), S(-31, -18),
 }
 
 var passedEnemyDistance = [8]Score{
-	S(0, 0), S(-57, -73), S(31, -30), S(16, 7),
-	S(15, 27), S(8, 37), S(4, 41), S(-12, 48),
+	S(0, 0), S(-58, -73), S(31, -30), S(16, 7),
+	S(15, 27), S(8, 38), S(4, 41), S(-12, 48),
 }
 
 var blackPawnsPos [64]Score
@@ -147,12 +147,14 @@ var blackKingPos [64]Score
 var whiteKingPos [64]Score
 
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
-var passedRank = [7]Score{S(0, 0), S(-1, -32), S(-6, -11), S(-7, 31), S(27, 74), S(39, 162), S(124, 250)}
+var passedRank = [7]Score{S(0, 0), S(2, -31), S(-6, -11), S(-7, 31), S(27, 76), S(39, 163), S(124, 250)}
 
 // PassedFile[File] contains a bonus according to the file of a passed pawn
-var passedFile = [8]Score{S(-5, 22), S(-17, 21), S(-26, 13), S(-26, -5),
-	S(-17, -7), S(6, -2), S(-11, 16), S(-6, 9),
+var passedFile = [8]Score{S(-6, 22), S(-17, 21), S(-26, 13), S(-26, -5),
+	S(-17, -7), S(6, -1), S(-12, 16), S(-6, 10),
 }
+
+var passedStacked = [8]Score{S(0, 0), S(17, -37), S(-6, -34), S(-32, -34), S(-68, -35), S(1, -16), S(0, 0), S(0, 0)}
 
 var isolated = S(-10, -11)
 var doubled = S(-12, -33)
@@ -249,7 +251,10 @@ var whiteKingAreaMask [64]uint64
 var blackKingAreaMask [64]uint64
 
 var whiteForwardRanksMask [8]uint64
-var blackForwardRanksMasks [8]uint64
+var blackForwardRanksMask [8]uint64
+
+var whiteForwardFileMask [64]uint64
+var blackForwardFileMask [64]uint64
 
 // Outpost bitboards
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
@@ -384,7 +389,12 @@ func init() {
 		for y := rank; y <= RANK_8; y++ {
 			whiteForwardRanksMask[rank] |= RANKS[y]
 		}
-		blackForwardRanksMasks[rank] = (^whiteForwardRanksMask[rank]) | RANKS[rank]
+		blackForwardRanksMask[rank] = (^whiteForwardRanksMask[rank]) | RANKS[rank]
+	}
+
+	for y := 0; y < 64; y++ {
+		whiteForwardFileMask[y] = whiteForwardRanksMask[Rank(y)] & FILES[File(y)] & ^SquareMask[y]
+		blackForwardFileMask[y] = blackForwardRanksMask[Rank(y)] & FILES[File(y)] & ^SquareMask[y]
 	}
 }
 
@@ -428,7 +438,14 @@ func evaluateKingPawns(pos *Position) Score {
 				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
 			}
 
+			if pos.Pieces[Pawn]&pos.Colours[White]&whiteForwardFileMask[fromId] != 0 {
+				score += passedStacked[Rank(fromId)]
+				if tuning {
+					T.PassedStacked[Rank(fromId)]++
+				}
+			}
 		}
+
 		// Isolated pawn penalty
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			score += isolated
@@ -488,6 +505,12 @@ func evaluateKingPawns(pos *Position) Score {
 				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
 			}
 
+			if pos.Pieces[Pawn]&pos.Colours[Black]&blackForwardFileMask[fromId] != 0 {
+				score -= passedStacked[7-Rank(fromId)]
+				if tuning {
+					T.PassedStacked[7-Rank(fromId)]--
+				}
+			}
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			score -= isolated
@@ -554,14 +577,14 @@ func evaluateKingPawns(pos *Position) Score {
 
 	// Black king storm / shelter
 	for file := Max(File(blackKingLocation)-1, FILE_A); file <= Min(File(blackKingLocation)+1, FILE_H); file++ {
-		ours := pos.Pieces[Pawn] & FILES[file] & pos.Colours[Black] & blackForwardRanksMasks[Rank(blackKingLocation)]
+		ours := pos.Pieces[Pawn] & FILES[file] & pos.Colours[Black] & blackForwardRanksMask[Rank(blackKingLocation)]
 		var ourDist int
 		if ours == 0 {
 			ourDist = 7
 		} else {
 			ourDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(ours)))
 		}
-		theirs := pos.Pieces[Pawn] & FILES[file] & pos.Colours[White] & blackForwardRanksMasks[Rank(blackKingLocation)]
+		theirs := pos.Pieces[Pawn] & FILES[file] & pos.Colours[White] & blackForwardRanksMask[Rank(blackKingLocation)]
 		var theirDist int
 		if theirs == 0 {
 			theirDist = 7
