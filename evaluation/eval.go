@@ -16,7 +16,7 @@ const queenPhase = 4
 const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + queenPhase*2
 
 var PawnValue = S(104, 118)
-var KnightValue = S(510, 420)
+var KnightValue = S(504, 422)
 var BishopValue = S(472, 416)
 var RookValue = S(655, 681)
 var QueenValue = S(1435, 1322)
@@ -25,14 +25,14 @@ var QueenValue = S(1435, 1322)
 var pieceScores = [King + 1][8][4]Score{
 	{},
 	{ // knight
-		{S(-59, -40), S(-12, -54), S(-39, -33), S(-10, -24)},
-		{S(-21, -56), S(-27, -36), S(-13, -31), S(-3, -22)},
-		{S(-21, -40), S(-1, -32), S(-1, -17), S(5, -2)},
-		{S(-16, -29), S(13, -26), S(11, 0), S(11, 2)},
-		{S(-2, -34), S(7, -21), S(14, 2), S(32, 3)},
-		{S(-37, -52), S(27, -43), S(-11, -1), S(28, -5)},
-		{S(-78, -51), S(-44, -28), S(56, -57), S(-3, -23)},
-		{S(-211, -70), S(-76, -78), S(-130, -34), S(1, -57)},
+		{S(-59, -40), S(-17, -54), S(-40, -35), S(-13, -24)},
+		{S(-18, -56), S(-25, -37), S(-13, -31), S(-7, -22)},
+		{S(-17, -39), S(-1, -31), S(-3, -18), S(5, -3)},
+		{S(-16, -28), S(14, -25), S(13, -1), S(6, 3)},
+		{S(-2, -32), S(7, -20), S(15, 2), S(28, 2)},
+		{S(-37, -51), S(22, -43), S(-52, -9), S(28, -6)},
+		{S(-76, -49), S(-42, -27), S(54, -53), S(-2, -21)},
+		{S(-210, -69), S(-76, -73), S(-127, -30), S(1, -55)},
 	},
 	{ // Bishop
 		{S(-9, -11), S(6, -4), S(7, -9), S(7, -4)},
@@ -169,6 +169,8 @@ var bishopOutpostDefendedBonus = S(80, 2)
 
 var knightOutpostUndefendedBonus = S(32, -15)
 var knightOutpostDefendedBonus = S(54, 13)
+
+var distantKnight = [4]Score{S(-11, 8), S(-12, 0), S(-25, -5), S(-18, -2)}
 
 var minorBehindPawn = S(6, 27)
 
@@ -696,6 +698,14 @@ func Evaluate(pos *Position) int {
 				}
 			}
 		}
+
+		kingDistance := Min(int(distanceBetween[fromId][whiteKingLocation]), int(distanceBetween[fromId][blackKingLocation]))
+		if kingDistance >= 4 {
+			score += distantKnight[kingDistance-4]
+			if tuning {
+				T.DistantKnight[kingDistance-4]++
+			}
+		}
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
@@ -739,6 +749,13 @@ func Evaluate(pos *Position) int {
 				if tuning {
 					T.KnightOutpostUndefendedBonus--
 				}
+			}
+		}
+		kingDistance := Min(int(distanceBetween[fromId][whiteKingLocation]), int(distanceBetween[fromId][blackKingLocation]))
+		if kingDistance >= 4 {
+			score -= distantKnight[kingDistance-4]
+			if tuning {
+				T.DistantKnight[kingDistance-4]--
 			}
 		}
 		if attacks&whiteKingArea != 0 {

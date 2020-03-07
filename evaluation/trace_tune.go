@@ -406,6 +406,9 @@ func loadTrace() (res []int) {
 	res = append(res, T.BishopOutpostDefendedBonus)
 	res = append(res, T.KnightOutpostUndefendedBonus)
 	res = append(res, T.KnightOutpostDefendedBonus)
+	for y := 0; y < 4; y++ {
+		res = append(res, T.DistantKnight[y])
+	}
 	res = append(res, T.MinorBehindPawn)
 	res = append(res, T.Tempo)
 	res = append(res, T.RookOnFile[0])
