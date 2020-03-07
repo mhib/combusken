@@ -16,6 +16,7 @@ type Trace struct {
 	PassedEnemyDistance          [8]int
 	PassedRank                   [7]int
 	PassedFile                   [8]int
+	PassedStacked                [8]int
 	Isolated                     int
 	Doubled                      int
 	Backward                     int

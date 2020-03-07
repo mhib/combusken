@@ -422,8 +422,6 @@ func (t *tuner) richardsExtrapolationDerivative(batchSize, idx, phase, h int) fl
 		3.0
 }
 
-const normalizeGradient = false
-
 func (t *tuner) calculateGradient(batchSize int) []GradientVariable {
 	res := make([]GradientVariable, 0, len(t.weights))
 	for idx, weight := range t.weights {
@@ -435,21 +433,6 @@ func (t *tuner) calculateGradient(batchSize int) []GradientVariable {
 			gradient.phases[phase] = t.symmetricDerivative(batchSize, idx, phase, 1)
 		}
 		res = append(res, gradient)
-	}
-
-	if normalizeGradient {
-		length := 0.0
-		for _, elem := range res {
-			for _, value := range elem.phases {
-				length += value * value
-			}
-		}
-		length = math.Sqrt(length)
-		for elIdx := range res {
-			for idx := range res[elIdx].phases {
-				res[elIdx].phases[idx] /= length
-			}
-		}
 	}
 
 	return res
@@ -675,6 +658,9 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	}
 	for y := 0; y < 8; y++ {
 		res = append(res, ScoreValue{&passedFile[y]})
+	}
+	for y := 0; y < 8; y++ {
+		res = append(res, ScoreValue{&passedStacked[y]})
 	}
 	res = append(res, ScoreValue{&isolated})
 	res = append(res, ScoreValue{&doubled})
