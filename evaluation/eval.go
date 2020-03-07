@@ -273,6 +273,8 @@ var kingSafetySafeBishopCheck int16 = 93
 var kingSafetySafeKnightCheck int16 = 134
 var kingSafetyAdjustment int16 = -26
 
+var hanging = S(82, 58)
+
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
 		for y := 0; y < 8; y++ {
@@ -1054,13 +1056,12 @@ func Evaluate(pos *Position) int {
 		T.PieceScores[King][Rank(whiteKingLocation)][FileMirror[File(whiteKingLocation)]]++
 		T.KingDefenders[whiteKingDefenders]++
 	}
+
+	// Weak squares are attacked by the enemy, defended no more
+	// than once and only defended by our Queens or our King
+	weakForWhite := blackAttacked & ^whiteAttackedByTwo & (^whiteAttacked | whiteAttackedBy[Queen] | whiteAttackedBy[King])
 	if int(blackKingAttackersCount) > 1-PopCount(pos.Colours[Black]&pos.Pieces[Queen]) {
-
-		// Weak squares are attacked by the enemy, defended no more
-		// than once and only defended by our Queens or our King
-		weak := blackAttacked & ^whiteAttackedByTwo & (^whiteAttacked | whiteAttackedBy[Queen] | whiteAttackedBy[King])
-
-		safe := ^pos.Colours[Black] & (^whiteAttacked | (weak & blackAttackedByTwo))
+		safe := ^pos.Colours[Black] & (^whiteAttacked | (weakForWhite & blackAttackedByTwo))
 
 		knightThreats := KnightAttacks[whiteKingLocation]
 		bishopThreats := BishopAttacks(whiteKingLocation, allOccupation)
@@ -1074,8 +1075,8 @@ func Evaluate(pos *Position) int {
 
 		count := int(blackKingAttackersCount) * int(blackKingAttackersWeight)
 		count += int(kingSafetyAttackValue) * 9 * int(blackKingAttackersCount) / PopCount(whiteKingArea)
-		count += int(kingSafetyWeakSquares) * PopCount(whiteKingArea&weak)
-		count += int(kingSafetyFriendlyPawns) * PopCount(pos.Colours[White]&pos.Pieces[Pawn]&whiteKingArea & ^weak)
+		count += int(kingSafetyWeakSquares) * PopCount(whiteKingArea&weakForWhite)
+		count += int(kingSafetyFriendlyPawns) * PopCount(pos.Colours[White]&pos.Pieces[Pawn]&whiteKingArea & ^weakForWhite)
 		count += int(kingSafetyNoEnemyQueens) * BoolToInt(pos.Colours[Black]&pos.Pieces[Queen] == 0)
 		count += int(kingSafetySafeQueenCheck) * PopCount(queenChecks)
 		count += int(kingSafetySafeRookCheck) * PopCount(rookChecks)
@@ -1097,12 +1098,12 @@ func Evaluate(pos *Position) int {
 		T.PieceScores[King][7-Rank(blackKingLocation)][FileMirror[File(blackKingLocation)]]--
 		T.KingDefenders[blackKingDefenders]--
 	}
-	if int(whiteKingAttackersCount) > 1-PopCount(pos.Colours[White]&pos.Pieces[Queen]) {
-		// Weak squares are attacked by the enemy, defended no more
-		// than once and only defended by our Queens or our King
-		weak := whiteAttacked & ^blackAttackedByTwo & (^blackAttacked | blackAttackedBy[Queen] | blackAttackedBy[King])
 
-		safe := ^pos.Colours[White] & (^blackAttacked | (weak & whiteAttackedByTwo))
+	// Weak squares are attacked by the enemy, defended no more
+	// than once and only defended by our Queens or our King
+	weakForBlack := whiteAttacked & ^blackAttackedByTwo & (^blackAttacked | blackAttackedBy[Queen] | blackAttackedBy[King])
+	if int(whiteKingAttackersCount) > 1-PopCount(pos.Colours[White]&pos.Pieces[Queen]) {
+		safe := ^pos.Colours[White] & (^blackAttacked | (weakForBlack & whiteAttackedByTwo))
 
 		knightThreats := KnightAttacks[blackKingLocation]
 		bishopThreats := BishopAttacks(blackKingLocation, allOccupation)
@@ -1116,8 +1117,8 @@ func Evaluate(pos *Position) int {
 
 		count := int(whiteKingAttackersCount) * int(whiteKingAttackersWeight)
 		count += int(kingSafetyAttackValue) * int(whiteKingAttackersCount) * 9 / PopCount(blackKingArea) // Scale value to king area size
-		count += int(kingSafetyWeakSquares) * PopCount(blackKingArea&weak)
-		count += int(kingSafetyFriendlyPawns) * PopCount(pos.Colours[Black]&pos.Pieces[Pawn]&blackKingArea & ^weak)
+		count += int(kingSafetyWeakSquares) * PopCount(blackKingArea&weakForBlack)
+		count += int(kingSafetyFriendlyPawns) * PopCount(pos.Colours[Black]&pos.Pieces[Pawn]&blackKingArea & ^weakForBlack)
 		count += int(kingSafetyNoEnemyQueens) * BoolToInt(pos.Colours[White]&pos.Pieces[Queen] == 0)
 		count += int(kingSafetySafeQueenCheck) * PopCount(queenChecks)
 		count += int(kingSafetySafeRookCheck) * PopCount(rookChecks)
@@ -1127,6 +1128,30 @@ func Evaluate(pos *Position) int {
 		if count > 0 {
 			score += S(int16(count*count/720), int16(count/20))
 		}
+	}
+
+	// White threats
+	// Bonus if enemy has a hanging piece
+	if weakForBlack != 0 {
+		score += hanging *
+			Score(PopCount((pos.Colours[Black] & ^pos.Pieces[Pawn] & whiteAttackedByTwo)&weakForBlack))
+
+		if tuning {
+			T.Hanging += PopCount((pos.Colours[Black] & ^pos.Pieces[Pawn] & whiteAttackedByTwo) & weakForBlack)
+		}
+
+	}
+
+	// Black threats
+	// Bonus if enemy has a hanging piece
+	if weakForWhite != 0 {
+		score -= hanging *
+			Score(PopCount(pos.Colours[White] & ^pos.Pieces[Pawn] & blackAttackedByTwo & weakForWhite))
+
+		if tuning {
+			T.Hanging -= PopCount(pos.Colours[White] & ^pos.Pieces[Pawn] & blackAttackedByTwo & weakForWhite)
+		}
+
 	}
 
 	scale := scaleFactor(pos, score.End())

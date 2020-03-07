@@ -431,6 +431,8 @@ func loadTrace() (res []int) {
 		}
 	}
 
+	res = append(res, T.Hanging)
+
 	return
 }
 
