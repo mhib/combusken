@@ -298,9 +298,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			singularCandidate := depth >= 8 &&
 				int(hashDepth) >= depth-2 &&
 				hashFlag != TransAlpha
-			// Check extension
-			// Moves with positive SEE and gives check are searched with increased depth
-			if inCheck && SeeSign(pos, hashMove) {
+
+			// Castling extension
+			if hashMove.IsCastling() {
+				newDepth++
+				// Check extension
+				// Moves with positive SEE and gives check are searched with increased depth
+			} else if inCheck && SeeSign(pos, hashMove) {
 				newDepth++
 				// Singular extension
 				// https://www.chessprogramming.org/Singular_Extensions
