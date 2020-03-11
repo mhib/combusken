@@ -115,6 +115,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		// Prefetch as early as possible
 		transposition.GlobalTransTable.Prefetch(child.Key)
 
+		t.SetCurrentMove(height, evaled[i].Move)
 		moveCount++
 		childInCheck := child.IsInCheck()
 		val = -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
@@ -256,6 +257,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
 		pos.MakeNullMove(child)
+		t.MoveEvaluator.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
 		if tmpVal >= beta {
@@ -298,6 +300,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			singularCandidate := depth >= 8 &&
 				int(hashDepth) >= depth-2 &&
 				hashFlag != TransAlpha
+
+			// Prefetch as early as possible
+			transposition.GlobalTransTable.Prefetch(child.Key)
+
 			// Check extension
 			// Moves with positive SEE and gives check are searched with increased depth
 			if inCheck && SeeSign(pos, hashMove) {
@@ -314,10 +320,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 					newDepth++
 				}
 			}
+
 			// Store move if it is quiet
 			if !hashMove.IsCaptureOrPromotion() {
 				quietsSearched = append(quietsSearched, hashMove)
 			}
+
+			t.SetCurrentMove(height, hashMove)
 
 			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 
@@ -381,9 +390,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			!SeeAbove(pos, evaled[i].Move, seeMargins[BoolToInt(isNoisy)]) {
 			continue
 		}
+
 		if !pos.MakeMove(evaled[i].Move, child) {
 			continue
 		}
+
+		t.SetCurrentMove(height, evaled[i].Move)
 
 		// Prefetch as early as possible
 		transposition.GlobalTransTable.Prefetch(child.Key)
@@ -483,6 +495,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 		if !pos.MakeMove(moves[i].Move, child) {
 			continue
 		}
+		t.SetCurrentMove(height, moves[i].Move)
 		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck())
 		if val > rBeta {
 			break
@@ -591,13 +604,15 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		// Prefetch as early as possible
 		transposition.GlobalTransTable.Prefetch(child.Key)
 
+		t.SetCurrentMove(0, moves[i].Move)
+
 		moveCount++
 		if !moves[i].IsCaptureOrPromotion() {
 			quietsSearched = append(quietsSearched, moves[i].Move)
 		}
 		reduction := 0
 		childInCheck := child.IsInCheck()
-		if !inCheck && moveCount > 1 && moves[i].Value <= MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
+		if !inCheck && moveCount > 1 && moves[i].Value < MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
 			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(1, depth) {
 				continue
