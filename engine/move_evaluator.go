@@ -66,14 +66,20 @@ func (mv *MoveEvaluator) Clear() {
 	}
 }
 
-func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, depth, height int) {
-	if pos.LastMove != NullMove {
+func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, depth, height int, failHigh bool) {
+	unsignedBonus := Min(depth*depth, HistoryMax)
+
+	if !failHigh {
+		if depth < 4 {
+			return
+		}
+		unsignedBonus /= 4
+	} else if pos.LastMove != NullMove {
 		if mv.KillerMoves[height][0] != bestMove {
 			mv.KillerMoves[height][0], mv.KillerMoves[height][1] = bestMove, mv.KillerMoves[height][0]
 		}
 		mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()] = bestMove
 	}
-	unsignedBonus := Min(depth*depth, HistoryMax)
 
 	followUp := NullMove
 	if height > 1 {

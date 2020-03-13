@@ -467,8 +467,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 afterLoop:
-	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
-		t.Update(pos, quietsSearched, bestMove, depth, height)
+	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
+		t.Update(pos, quietsSearched, bestMove, depth, height, alpha >= beta)
 	}
 
 	var flag int
@@ -650,8 +650,8 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			alpha = t.contempt(pos, depth)
 		}
 	}
-	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
-		t.Update(pos, quietsSearched, bestMove, depth, 0)
+	if bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
+		t.Update(pos, quietsSearched, bestMove, depth, 0, alpha >= beta)
 	}
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
