@@ -70,10 +70,10 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 	unsignedBonus := Min(depth*depth, HistoryMax)
 
 	if !failHigh {
-		if depth < 4 {
+		if depth < 2 {
 			return
 		}
-		unsignedBonus /= 4
+		unsignedBonus /= 3
 	} else if pos.LastMove != NullMove {
 		if mv.KillerMoves[height][0] != bestMove {
 			mv.KillerMoves[height][0], mv.KillerMoves[height][1] = bestMove, mv.KillerMoves[height][0]
