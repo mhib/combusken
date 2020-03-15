@@ -66,19 +66,23 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		return t.contempt(pos, depth)
 	}
 
+	hashMove := NullMove
 	var ttDepth int
 	if inCheck || depth >= QSDepthChecks {
 		ttDepth = QSDepthChecks
 	} else {
 		ttDepth = QSDepthNoChecks
 	}
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
-	if hashOk && int(hashDepth) >= ttDepth {
-		tmpHashValue := int(transposition.ValueFromTrans(hashValue, height))
-		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
-			(hashFlag == TransBeta && tmpHashValue >= beta) {
-			return tmpHashValue
+	if !inCheck {
+		hashOk, hashValue, hashDepth, tmpHashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
+		if hashOk && int(hashDepth) >= ttDepth {
+			tmpHashValue := int(transposition.ValueFromTrans(hashValue, height))
+			if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
+				(hashFlag == TransBeta && tmpHashValue >= beta) {
+				return tmpHashValue
+			}
 		}
+		hashMove = tmpHashMove
 	}
 
 	child := &t.stack[height+1].position
