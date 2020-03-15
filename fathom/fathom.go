@@ -1,4 +1,4 @@
-// +build amd64
+// +build !nocgo
 
 package fathom
 
@@ -9,16 +9,6 @@ import "C"
 import "unsafe"
 import "github.com/mhib/combusken/backend"
 import "strings"
-
-const (
-	TB_LOSS = iota
-	TB_BLESSED_LOSS
-	TB_DRAW
-	TB_CURSED_WIN
-	TB_WIN
-)
-
-const TB_RESULT_FAILED = 0xFFFFFFFF
 
 var MAX_PIECE_COUNT = 0
 var MIN_PROBE_DEPTH = 0
