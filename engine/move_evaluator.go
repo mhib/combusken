@@ -73,7 +73,7 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 		if depth < 3 {
 			return
 		}
-		unsignedBonus /= 6
+		unsignedBonus /= 8
 	} else if pos.LastMove != NullMove {
 		if mv.KillerMoves[height][0] != bestMove {
 			mv.KillerMoves[height][0], mv.KillerMoves[height][1] = bestMove, mv.KillerMoves[height][0]
