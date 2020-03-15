@@ -100,6 +100,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		bestVal = Evaluate(pos)
 		// Early return if not in check and evaluation exceeded beta
 		if bestVal >= beta {
+			transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(bestVal, height), ttDepth, NullMove, TransBeta)
 			return beta
 		}
 		if alpha < bestVal {
