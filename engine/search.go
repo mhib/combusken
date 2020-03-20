@@ -297,20 +297,20 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			moveCount++
 			childInCheck := child.IsInCheck()
 			newDepth := depth - 1
-			singularCandidate := depth >= 8 &&
-				int(hashDepth) >= depth-2 &&
-				hashFlag != TransAlpha
 
 			// Prefetch as early as possible
 			transposition.GlobalTransTable.Prefetch(child.Key)
 
-			// Check extension
-			// Moves with positive SEE and gives check are searched with increased depth
-			if inCheck && SeeSign(pos, hashMove) {
+			// Castling extension
+			if hashMove.IsCastling() {
+				newDepth++
+				// Check extension
+				// Moves with positive SEE and gives check are searched with increased depth
+			} else if inCheck && SeeSign(pos, hashMove) {
 				newDepth++
 				// Singular extension
 				// https://www.chessprogramming.org/Singular_Extensions
-			} else if singularCandidate {
+			} else if depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha {
 				evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
 				t.EvaluateMoves(pos, evaled, hashMove, height, depth)
 				sortMoves(evaled)
@@ -418,9 +418,14 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 		newDepth := depth - 1
-		// Check extension
-		// Moves with positive SEE and gives check are searched with increased depth
-		if inCheck && SeeSign(pos, evaled[i].Move) {
+
+		// Castling extension
+		if evaled[i].IsCastling() {
+			newDepth++
+
+			// Check extension
+			// Moves with positive SEE and gives check are searched with increased depth
+		} else if inCheck && SeeSign(pos, evaled[i].Move) {
 			newDepth++
 		}
 
@@ -624,7 +629,9 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		}
 		var val int
 		newDepth := depth - 1
-		if inCheck && SeeSign(pos, moves[i].Move) {
+		if moves[i].IsCastling() {
+			newDepth++
+		} else if inCheck && SeeSign(pos, moves[i].Move) {
 			newDepth++
 		}
 		if reduction > 0 {
