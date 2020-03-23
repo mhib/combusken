@@ -188,8 +188,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	pvNode := alpha != beta-1
 
 	// Mate distance pruning
-	alpha = Max(lossIn(height), alpha)
-	beta = Min(winIn(height+1), beta)
+	alpha = Max(lossIn(height+1), alpha)
+	beta = Min(winIn(height+2), beta)
 	if alpha >= beta {
 		return alpha
 	}
