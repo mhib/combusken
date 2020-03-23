@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/utils"
 )
 
 // From zurichess
