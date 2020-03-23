@@ -27,6 +27,8 @@ const reverseFutilityPruningMargin = 90
 
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
+const probCutDepth = 5
+const probCutMargin = 100
 
 const SMPCycles = 16
 
@@ -265,6 +267,32 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 	}
 
+	var evaled []EvaledMove
+
+	// Probcut pruning
+	// If we have a good enough capture and a reduced search returns a value
+	// much above beta, we can (almost) safely prune the previous move.
+	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin && int(t.stack[height].Evaluation())+pos.MaxMoveValue() >= beta+probCutMargin {
+		evaluation := int(t.stack[height].Evaluation())
+		rBeta := Min(beta+probCutMargin, ValueWin-1)
+		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
+		t.EvaluateQsMoves(pos, evaled, hashMove, false)
+		for i := range evaled {
+			maxMoveToFirst(evaled[i:])
+			if !SeeAbove(pos, evaled[i].Move, rBeta-evaluation) {
+				continue
+			}
+			if !pos.MakeMove(evaled[i].Move, child) {
+				continue
+			}
+			t.SetCurrentMove(height, evaled[i].Move)
+			tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, child.IsInCheck())
+			if tmpVal >= rBeta {
+				return tmpVal
+			}
+		}
+	}
+
 	val := MinInt
 
 	// Internal iterative deepening
@@ -288,7 +316,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	movesSorted := false
 	hashMoveChecked := false
 	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
-	var evaled []EvaledMove
 
 	// Check hashMove before move generation
 	if pos.IsMovePseudoLegal(hashMove) {

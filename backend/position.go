@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	. "github.com/mhib/combusken/utils"
 	"strings"
 )
 
@@ -386,4 +387,19 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 	}
 
 	return false
+}
+
+func (pos *Position) MaxMoveValue() (maxValue int) {
+	maxValue = SEEValues[Pawn]
+	for piece := Queen; piece > Pawn; piece-- {
+		if pos.Pieces[piece]&pos.Colours[pos.SideToMove^1] != 0 {
+			maxValue = SEEValues[piece]
+			break
+		}
+	}
+	if (pos.SideToMove == White && (pos.Pieces[Pawn]&pos.Colours[White]&RANK_7_BB) != 0) ||
+		(pos.SideToMove == Black && (pos.Pieces[Pawn]&pos.Colours[Black]&RANK_2_BB) != 0) {
+		maxValue += SEEValues[Queen] - SEEValues[Pawn]
+	}
+	return maxValue
 }
