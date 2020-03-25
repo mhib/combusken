@@ -153,7 +153,7 @@ func mvvlva(move Move) int {
 	if move.IsPromotion() {
 		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
 	}
-	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
+	return captureScore - mvvlvaScores[move.MovedPiece()]
 }
 
 // In Quiescent search it is expected that SEE will be checked anyway
