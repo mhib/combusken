@@ -28,7 +28,7 @@ const reverseFutilityPruningMargin = 90
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 const probCutDepth = 5
-const probCutMargin = 100
+const probCutMargin = 90
 
 const SMPCycles = 16
 
