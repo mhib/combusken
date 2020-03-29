@@ -288,7 +288,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 			probCutCount++
 			t.SetCurrentMove(height, evaled[i].Move)
-			tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, child.IsInCheck())
+			isChildInCheck := child.IsInCheck()
+			tmpVal = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
+			if tmpVal >= rBeta {
+				tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
+			}
 			if tmpVal >= rBeta {
 				return tmpVal
 			}
