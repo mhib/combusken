@@ -46,8 +46,12 @@ func IsWDLProbeable(pos *backend.Position, depth int) bool {
 		pos.FiftyMove == 0 &&
 		pos.EpSquare == 0 &&
 		pos.Flags == 0xF &&
-		depth >= MIN_PROBE_DEPTH &&
-		backend.PopCount(pos.Colours[backend.White]|pos.Colours[backend.Black]) <= MAX_PIECE_COUNT
+		depthCardinalityCheck(pos, depth)
+}
+
+func depthCardinalityCheck(pos *backend.Position, depth int) bool {
+	cardinality := backend.PopCount(pos.Colours[backend.White] | pos.Colours[backend.Black])
+	return cardinality < MAX_PIECE_COUNT || (cardinality == MAX_PIECE_COUNT && depth >= MIN_PROBE_DEPTH)
 }
 
 func IsDTZProbeable(pos *backend.Position) bool {
