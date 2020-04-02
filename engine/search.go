@@ -378,7 +378,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
 				continue
 			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation() >= t.stack[height-2].Evaluation()), depth) {
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(t.IsImproving(height, t.stack[height].Evaluation())), depth) {
 				continue
 			}
 		}
@@ -414,7 +414,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction -= BoolToInt(evaled[i].Value >= MinSpecialMoveValue)
 
 			// Increase reduction if not improving
-			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation() < t.stack[height-2].Evaluation())
+			reduction += BoolToInt(!t.IsImproving(height, t.stack[height].Evaluation()))
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 		newDepth := depth - 1

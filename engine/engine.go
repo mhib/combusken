@@ -80,6 +80,19 @@ func (se *StackEntry) Evaluation() int16 {
 	return se.evaluation
 }
 
+func (t *thread) IsImproving(height int, currentValue int16) bool {
+	if height < 2 {
+		return true
+	}
+	if t.stack[height-2].evaluationCalculated {
+		return currentValue > t.stack[height-2].evaluation
+	} else {
+		return height < 4 ||
+			!t.stack[height-4].evaluationCalculated ||
+			currentValue > t.stack[height-4].evaluation
+	}
+}
+
 type PV struct {
 	size  int
 	items [STACK_SIZE]backend.Move
