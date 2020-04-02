@@ -28,7 +28,7 @@ const reverseFutilityPruningMargin = 90
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 const probCutDepth = 5
-const probCutMargin = 120
+const probCutMargin = 189
 
 const SMPCycles = 16
 
@@ -274,7 +274,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// much above beta, we can (almost) safely prune the previous move.
 	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin {
 		evaluation := int(t.stack[height].Evaluation())
-		rBeta := Min(beta+probCutMargin, ValueWin-1)
+		improving := BoolToInt(height < 2 || evaluation > int(t.stack[height-2].Evaluation()))
+		rBeta := Min(beta+probCutMargin-45*improving, ValueWin-1)
 		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
 		t.EvaluateQsMoves(pos, evaled, hashMove, false)
 		probCutCount := 0
