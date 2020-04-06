@@ -35,4 +35,7 @@ type Trace struct {
 	KingShelter                  [2][8][8]int
 	KingStorm                    [2][4][8]int
 	Hanging                      int
+	ThreatByKing                 int
+	ThreatByMinor                [King + 1]int
+	ThreatByRook                 [King + 1]int
 }

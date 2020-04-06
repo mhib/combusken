@@ -274,6 +274,9 @@ var kingSafetySafeKnightCheck int16 = 132
 var kingSafetyAdjustment int16 = -32
 
 var hanging = S(82, 58)
+var threatByKing = S(18, 33)
+var threatByMinor = [King + 1]Score{S(0, 0), S(16, 23), S(28, 34), S(64, 22), S(47, 45), S(79, 161)}
+var threatByRook = [King + 1]Score{S(0, 0), S(-1, 17), S(-1, 28), S(6, 46), S(91, 31), S(51, 41)}
 
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
@@ -650,14 +653,14 @@ func Evaluate(pos *Position) int {
 	attacks = WhitePawnsAttacks(pos.Pieces[Pawn] & pos.Colours[White])
 	whiteAttackedByTwo |= whiteAttacked & attacks
 	whiteAttacked |= attacks
-	//whiteAttackedBy[Pawn] |= attacks
+	whiteAttackedBy[Pawn] |= attacks
 	whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 
 	// black pawns
 	attacks = BlackPawnsAttacks(pos.Pieces[Pawn] & pos.Colours[Black])
 	blackAttackedByTwo |= blackAttacked & attacks
 	blackAttacked |= attacks
-	//blackAttackedBy[Pawn] |= attacks
+	blackAttackedBy[Pawn] |= attacks
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 
 	score := evaluateKingPawns(pos)
@@ -1131,8 +1134,35 @@ func Evaluate(pos *Position) int {
 	}
 
 	// White threats
-	// Bonus if enemy has a hanging piece
-	if weakForBlack != 0 {
+	blackStronglyProtected := blackAttackedBy[Pawn] | (blackAttackedByTwo & ^whiteAttackedByTwo)
+	blackDefended := pos.Colours[Black] & ^pos.Pieces[Pawn] & blackStronglyProtected
+	if ((pos.Colours[Black] & weakForBlack) | blackDefended) != 0 {
+		for fromBB = pos.Colours[Black] & (blackDefended | weakForBlack) & (whiteAttackedBy[Knight] | whiteAttackedBy[Bishop]) & ^pos.Pieces[Pawn]; fromBB != 0; fromBB &= (fromBB - 1) {
+			fromId = BitScan(fromBB)
+			threatenedPiece := pos.TypeOnSquare(SquareMask[fromId])
+			score += threatByMinor[threatenedPiece]
+			if tuning {
+				T.ThreatByMinor[threatenedPiece]++
+			}
+		}
+
+		for fromBB = pos.Colours[Black] & (blackDefended | weakForBlack) & whiteAttackedBy[Rook] & ^pos.Pieces[Pawn]; fromBB != 0; fromBB &= (fromBB - 1) & ^pos.Pieces[Pawn] {
+			fromId = BitScan(fromBB)
+			threatenedPiece := pos.TypeOnSquare(SquareMask[fromId])
+			score += threatByRook[threatenedPiece]
+			if tuning {
+				T.ThreatByRook[threatenedPiece]++
+			}
+		}
+
+		if weakForBlack&pos.Colours[Black]&whiteAttackedBy[King] != 0 {
+			score += threatByKing
+			if tuning {
+				T.ThreatByKing++
+			}
+		}
+
+		// Bonus if enemy has a hanging piece
 		score += hanging *
 			Score(PopCount((pos.Colours[Black] & ^pos.Pieces[Pawn] & whiteAttackedByTwo)&weakForBlack))
 
@@ -1143,15 +1173,41 @@ func Evaluate(pos *Position) int {
 	}
 
 	// Black threats
-	// Bonus if enemy has a hanging piece
-	if weakForWhite != 0 {
+	whiteStronglyProtected := whiteAttackedBy[Pawn] | (whiteAttackedByTwo & ^blackAttackedByTwo)
+	whiteDefended := pos.Colours[White] & ^pos.Pieces[Pawn] & whiteStronglyProtected
+	if ((pos.Colours[White] & weakForWhite) | whiteDefended) != 0 {
+		for fromBB = pos.Colours[White] & (whiteDefended | weakForWhite) & (blackAttackedBy[Knight] | blackAttackedBy[Bishop]) & ^pos.Pieces[Pawn]; fromBB != 0; fromBB &= (fromBB - 1) {
+			fromId = BitScan(fromBB)
+			threatenedPiece := pos.TypeOnSquare(SquareMask[fromId])
+			score -= threatByMinor[threatenedPiece]
+			if tuning {
+				T.ThreatByMinor[threatenedPiece]--
+			}
+		}
+
+		for fromBB = pos.Colours[White] & (whiteDefended | weakForWhite) & blackAttackedBy[Rook] & ^pos.Pieces[Pawn]; fromBB != 0; fromBB &= (fromBB - 1) {
+			fromId = BitScan(fromBB)
+			threatenedPiece := pos.TypeOnSquare(SquareMask[fromId])
+			score -= threatByRook[threatenedPiece]
+			if tuning {
+				T.ThreatByRook[threatenedPiece]--
+			}
+		}
+
+		if weakForWhite&pos.Colours[White]&blackAttackedBy[King] != 0 {
+			score -= threatByKing
+			if tuning {
+				T.ThreatByKing--
+			}
+		}
+
+		// Bonus if enemy has a hanging piece
 		score -= hanging *
 			Score(PopCount(pos.Colours[White] & ^pos.Pieces[Pawn] & blackAttackedByTwo & weakForWhite))
 
 		if tuning {
 			T.Hanging -= PopCount(pos.Colours[White] & ^pos.Pieces[Pawn] & blackAttackedByTwo & weakForWhite)
 		}
-
 	}
 
 	scale := scaleFactor(pos, score.End())

@@ -520,6 +520,14 @@ func loadWeights() []weight {
 			}
 		}
 	}
+	tmp = append(tmp, hanging)
+	tmp = append(tmp, threatByKing)
+	for x := Pawn; x <= King; x++ {
+		tmp = append(tmp, threatByMinor[x])
+	}
+	for x := Pawn; x <= King; x++ {
+		tmp = append(tmp, threatByRook[x])
+	}
 
 	res := make([]weight, 0, len(tmp))
 	for _, s := range tmp {
