@@ -337,13 +337,13 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 		var attacks, forward uint64
 		if pos.SideToMove == White {
 			if move.Type() == EPCapture {
-				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_5_BB&fromMask != 0
+				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)+1])&RANK_5_BB&fromMask != 0
 			}
 			attacks = PawnAttacks[White][move.From()]
 			forward = North(fromMask) & ^occupancy
 		} else {
 			if move.Type() == EPCapture {
-				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)]|SquareMask[uint(pos.EpSquare)+1])&RANK_4_BB&fromMask != 0
+				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)+1])&RANK_4_BB&fromMask != 0
 			}
 			attacks = PawnAttacks[Black][move.From()]
 			forward = South(fromMask) & ^occupancy
@@ -364,7 +364,7 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 			return false
 		}
 		if move.IsNormal() {
-			return move.IsNormal() && (KingAttacks[move.From()] & ^we)&toMask != 0
+			return (KingAttacks[move.From()] & ^we)&toMask != 0
 		}
 		if pos.SideToMove == White {
 			if move == WhiteKingSideCastle {
