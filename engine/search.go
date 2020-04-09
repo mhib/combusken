@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"math/rand"
+	"runtime"
 	"sync"
 
 	. "github.com/mhib/combusken/backend"
@@ -767,6 +768,10 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		// Start parallel searching
 		go func(idx int) {
 			defer recoverFromTimeout()
+			if idx != 0 {
+				runtime.LockOSThread()
+				defer runtime.UnlockOSThread()
+			}
 			e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan, idx)
 			wg.Done()
 		}(i)
