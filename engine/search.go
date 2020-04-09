@@ -561,7 +561,7 @@ type result struct {
 
 // https://www.chessprogramming.org/Aspiration_Windows
 // After a lot of tries ELO gain have been accomplished only with relatively large window(50 cp)
-func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resultChan chan result) int {
+func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) result {
 	var alpha, beta int
 	delta := WindowSize
 	searchDepth := depth
@@ -576,8 +576,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, resu
 	for {
 		res := t.depSearch(Max(1, searchDepth), alpha, beta, moves)
 		if res.value > alpha && res.value < beta {
-			resultChan <- res
-			return res.value
+			return res
 		}
 		if res.value <= alpha {
 			beta = (alpha + beta) / 2
@@ -668,12 +667,15 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
 	var lastBestMove Move
 	thread := e.threads[0]
+	var res result
 	lastValue := -Mate
 	for i := 1; ; i++ {
 		resultChan := make(chan result, 1)
 		go func(depth int) {
 			defer recoverFromTimeout()
-			lastValue = thread.aspirationWindow(depth, lastValue, rootMoves, resultChan)
+			res = thread.aspirationWindow(depth, lastValue, rootMoves)
+			resultChan <- res
+			lastValue = res.value
 		}(i)
 		select {
 		case <-ctx.Done():
@@ -699,6 +701,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 }
 
 func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, idx int) {
+	var res result
 	mainThread := idx == 0
 	lastValue := -Mate
 	// I do not think this matters much, but at the beginning only thread with id 0 have sorted moves list
@@ -710,7 +713,9 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 	// Depth skipping pattern taken from Ethereal
 	cycle := idx % SMPCycles
 	for depth := 1; depth <= MAX_HEIGHT; depth++ {
-		lastValue = t.aspirationWindow(depth, lastValue, moves, resultChan)
+		res = t.aspirationWindow(depth, lastValue, moves)
+		resultChan <- res
+		lastValue = res.value
 		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
 			depth += SkipSize[cycle]
 		}
