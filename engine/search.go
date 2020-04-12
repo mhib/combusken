@@ -316,9 +316,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				sortMoves(evaled)
 				movesSorted = true
 				evaled = evaled[1:]
-				if t.isMoveSingular(depth, height, hashMove, int(hashValue), evaled) {
-					newDepth++
+				isSingular, multiCut := t.isMoveSingular(depth, height, hashMove, int(hashValue), beta, evaled)
+				if multiCut {
+					return Max(int(hashValue)-depth, -Mate)
 				}
+				newDepth += BoolToInt(isSingular)
 			}
 
 			// Store move if it is quiet
@@ -488,7 +490,7 @@ afterLoop:
 	return alpha
 }
 
-func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, moves []EvaledMove) bool {
+func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue, beta int, moves []EvaledMove) (bool, bool) {
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
 	// Store child as we already made a move into it in alphaBeta
@@ -516,7 +518,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 	}
 	// restore child
 	*child = oldChild
-	return val <= rBeta
+	return val <= rBeta, val > rBeta && rBeta >= beta
 }
 
 func (t *thread) isDraw(height int) bool {
