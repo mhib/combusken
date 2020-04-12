@@ -15,8 +15,6 @@ type Magic struct {
 }
 
 var (
-	rookMoveBoard            [64][1 << MAX_ROOK_BITS]uint64
-	bishopMoveBoard          [64][1 << MAX_BISHOP_BITS]uint64
 	bishopMagics, rookMagics [64]Magic
 	bishopAttacks            [0x1480]uint64
 	rookAttacks              [0x19000]uint64
@@ -127,12 +125,14 @@ func initBishopBlockerBoard(bishopBlockerMask *[64]uint64) (bishopBlockerBoard [
 	return
 }
 
-func initRookMoveBoard(rookBlockerMask *[64]uint64, rookBlockerBoard [][]uint64) {
+func initRookMoveBoard(rookBlockerMask *[64]uint64, rookBlockerBoard [][]uint64) [64][1 << MAX_ROOK_BITS]uint64 {
+	var rookMoveBoard [64][1 << MAX_ROOK_BITS]uint64
 	for y, boards := range rookBlockerBoard {
 		for x, board := range boards {
 			rookMoveBoard[y][x] = generateRookMoveBoard(rookBlockerMask[y], y, board)
 		}
 	}
+	return rookMoveBoard
 }
 
 func generateRookMoveBoard(blockerMask uint64, idx int, board uint64) (res uint64) {
@@ -213,15 +213,17 @@ func generateBishopMoveBoard(blockerMask uint64, idx int, board uint64) (res uin
 	return
 }
 
-func initBishopMoveBoard(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64) {
+func initBishopMoveBoard(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64) [64][1 << MAX_BISHOP_BITS]uint64 {
+	var bishopMoveBoard [64][1 << MAX_BISHOP_BITS]uint64
 	for y, boards := range bishopBlockerBoard {
 		for x, board := range boards {
 			bishopMoveBoard[y][x] = generateBishopMoveBoard(blockerMask[y], y, board)
 		}
 	}
+	return bishopMoveBoard
 }
 
-func initRookAttacks(blockerMask *[64]uint64, rookBlockerBoard [][]uint64) {
+func initRookAttacks(blockerMask *[64]uint64, rookBlockerBoard [][]uint64, rookMoveBoard *[64][1 << MAX_ROOK_BITS]uint64) {
 	rookMagics[0].offset = unsafe.Pointer(&rookAttacks[0])
 	for idx := range rookMagicIdx {
 		magic := &rookMagics[idx]
@@ -238,7 +240,7 @@ func initRookAttacks(blockerMask *[64]uint64, rookBlockerBoard [][]uint64) {
 	}
 }
 
-func initBishopAttacks(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64) {
+func initBishopAttacks(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64, bishopMoveBoard *[64][1 << MAX_BISHOP_BITS]uint64) {
 	bishopMagics[0].offset = unsafe.Pointer(&bishopAttacks[0])
 	for idx := range bishopMagicIdx {
 		magic := &bishopMagics[idx]
@@ -259,12 +261,12 @@ func init() {
 	var rookBlockerMask [64]uint64
 	initArray(&rookBlockerMask, generateRookBlockerMask)
 	rookBlockerBoard := initRookBlockerBoard(&rookBlockerMask)
-	initRookMoveBoard(&rookBlockerMask, rookBlockerBoard)
-	initRookAttacks(&rookBlockerMask, rookBlockerBoard)
+	rookMoveBoard := initRookMoveBoard(&rookBlockerMask, rookBlockerBoard)
+	initRookAttacks(&rookBlockerMask, rookBlockerBoard, &rookMoveBoard)
 
 	var bishopBlockerMask [64]uint64
 	initArray(&bishopBlockerMask, generateBishopBlockerMask)
 	bishopBlockerBoard := initBishopBlockerBoard(&bishopBlockerMask)
-	initBishopMoveBoard(&bishopBlockerMask, bishopBlockerBoard)
-	initBishopAttacks(&bishopBlockerMask, bishopBlockerBoard)
+	bishopMoveBoard := initBishopMoveBoard(&bishopBlockerMask, bishopBlockerBoard)
+	initBishopAttacks(&bishopBlockerMask, bishopBlockerBoard, &bishopMoveBoard)
 }
