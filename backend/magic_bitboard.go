@@ -6,7 +6,6 @@ package backend
 
 import (
 	"math/rand"
-	"sync"
 )
 
 const (
@@ -188,41 +187,15 @@ func initBishopMoveBoard(bishopBlockerBoard [][]uint64) {
 }
 
 func initRookMagicIndex(rookBlockerBoard [][]uint64) {
-	var wg sync.WaitGroup
-	idxChan := make(chan int)
-	for i := 0; i < 1; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for idx := range idxChan {
-				rookMagicIndex[idx] = findMagic(rookBlockerBoard[idx], rookMoveBoard[idx][:], rookShift)
-			}
-		}()
+	for idx := range rookBlockerBoard {
+		rookMagicIndex[idx] = findMagic(rookBlockerBoard[idx], rookMoveBoard[idx][:], rookShift)
 	}
-	for idx := range rookBlockerMask {
-		idxChan <- idx
-	}
-	close(idxChan)
-	wg.Wait()
 }
 
 func initBishopMagicIndex(bishopBlockerBoard [][]uint64) {
-	var wg sync.WaitGroup
-	idxChan := make(chan int)
-	for i := 0; i < 1; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for idx := range idxChan {
-				bishopMagicIndex[idx] = findMagic(bishopBlockerBoard[idx], bishopMoveBoard[idx][:], bishopShift)
-			}
-		}()
+	for idx := range bishopBlockerBoard {
+		bishopMagicIndex[idx] = findMagic(bishopBlockerBoard[idx], bishopMoveBoard[idx][:], bishopShift)
 	}
-	for idx := range bishopBlockerMask {
-		idxChan <- idx
-	}
-	close(idxChan)
-	wg.Wait()
 }
 
 func u64rand() uint64 {
