@@ -336,11 +336,13 @@ func QueenAttacks(square int, occupancy uint64) uint64 {
 }
 
 func RookAttacks(square int, occupancy uint64) uint64 {
-	return rookMoveBoard[square][(rookBlockerMask[square]&occupancy)*rookMagicIndex[square]>>rookShift]
+	magic := rookMagics[square]
+	return rookMoveBoard[square][(magic.blockerMask&occupancy)*magic.magicIndex>>rookShift]
 }
 
 func BishopAttacks(square int, occupancy uint64) uint64 {
-	return bishopMoveBoard[square][(bishopBlockerMask[square]&occupancy)*bishopMagicIndex[square]>>bishopShift]
+	magic := bishopMagics[square]
+	return bishopMoveBoard[square][(magic.blockerMask&occupancy)*magic.magicIndex>>bishopShift]
 }
 
 func squareString(square int) (res string) {
@@ -361,15 +363,4 @@ func init() {
 		SquareString[i] = squareString(i)
 	}
 
-	initArray(&rookBlockerMask, generateRookBlockerMask)
-	rookBlockerBoard := initRookBlockerBoard()
-	initRookMoveBoard(rookBlockerBoard)
-	initRookMagicIndex(rookBlockerBoard)
-	initRookAttacks(rookBlockerBoard)
-
-	initArray(&bishopBlockerMask, generateBishopBlockerMask)
-	bishopBlockerBoard := initBishopBlockerBoard()
-	initBishopMoveBoard(bishopBlockerBoard)
-	initBishopMagicIndex(bishopBlockerBoard)
-	initBishopAttacks(bishopBlockerBoard)
 }

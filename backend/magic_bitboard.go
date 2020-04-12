@@ -15,11 +15,15 @@ const (
 	rookShift       uint = 64 - MAX_ROOK_BITS
 )
 
+type Magic struct {
+	blockerMask uint64
+	magicIndex  uint64
+}
+
 var (
-	rookMoveBoard                      [64][1 << MAX_ROOK_BITS]uint64
-	bishopMoveBoard                    [64][1 << MAX_BISHOP_BITS]uint64
-	bishopBlockerMask, rookBlockerMask [64]uint64
-	rookMagicIndex, bishopMagicIndex   [64]uint64
+	rookMoveBoard            [64][1 << MAX_ROOK_BITS]uint64
+	bishopMoveBoard          [64][1 << MAX_BISHOP_BITS]uint64
+	bishopMagics, rookMagics [64]Magic
 )
 
 func generateRookBlockerMask(mask uint64) uint64 {
@@ -76,31 +80,30 @@ func combinations(x uint64) []uint64 {
 	return res
 }
 
-func initRookBlockerBoard() (rookBlockerBoard [][]uint64) {
-	for _, val := range rookBlockerMask {
+func initRookBlockerBoard(rookBlockerMask *[64]uint64) (rookBlockerBoard [][]uint64) {
+	for _, val := range *rookBlockerMask {
 		rookBlockerBoard = append(rookBlockerBoard, combinations(val))
 	}
 	return
 }
 
-func initBishopBlockerBoard() (bishopBlockerBoard [][]uint64) {
-	for _, val := range bishopBlockerMask {
+func initBishopBlockerBoard(bishopBlockerMask *[64]uint64) (bishopBlockerBoard [][]uint64) {
+	for _, val := range *bishopBlockerMask {
 		bishopBlockerBoard = append(bishopBlockerBoard, combinations(val))
 	}
 	return
 }
 
-func initRookMoveBoard(rookBlockerBoard [][]uint64) {
+func initRookMoveBoard(rookBlockerMask *[64]uint64, rookBlockerBoard [][]uint64) {
 	for y, boards := range rookBlockerBoard {
 		for x, board := range boards {
-			rookMoveBoard[y][x] = generateRookMoveBoard(y, board)
+			rookMoveBoard[y][x] = generateRookMoveBoard(rookBlockerMask[y], y, board)
 		}
 	}
 }
 
-func generateRookMoveBoard(idx int, board uint64) (res uint64) {
+func generateRookMoveBoard(blockerMask uint64, idx int, board uint64) (res uint64) {
 	mask := uint64(1) << uint64(idx)
-	blockerMask := rookBlockerMask[idx]
 
 	if File(idx) != FILE_A {
 		for tmpMask := West(mask); ; tmpMask = West(tmpMask) {
@@ -138,9 +141,8 @@ func generateRookMoveBoard(idx int, board uint64) (res uint64) {
 	return
 }
 
-func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
+func generateBishopMoveBoard(blockerMask uint64, idx int, board uint64) (res uint64) {
 	mask := uint64(1) << uint64(idx)
-	blockerMask := bishopBlockerMask[idx]
 
 	if mask&FILE_H_BB == 0 && mask&RANK_8_BB == 0 {
 		for tmpMask := NorthEast(mask); ; tmpMask = NorthEast(tmpMask) {
@@ -178,23 +180,23 @@ func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
 	return
 }
 
-func initBishopMoveBoard(bishopBlockerBoard [][]uint64) {
+func initBishopMoveBoard(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64) {
 	for y, boards := range bishopBlockerBoard {
 		for x, board := range boards {
-			bishopMoveBoard[y][x] = generateBishopMoveBoard(y, board)
+			bishopMoveBoard[y][x] = generateBishopMoveBoard(blockerMask[y], y, board)
 		}
 	}
 }
 
-func initRookMagicIndex(rookBlockerBoard [][]uint64) {
+func initRookMagicIndex(rookBlockerMask *[64]uint64, rookBlockerBoard [][]uint64) {
 	for idx := range rookBlockerBoard {
-		rookMagicIndex[idx] = findMagic(rookBlockerBoard[idx], rookMoveBoard[idx][:], rookShift)
+		rookMagics[idx] = Magic{rookBlockerMask[idx], findMagic(rookBlockerBoard[idx], rookMoveBoard[idx][:], rookShift)}
 	}
 }
 
-func initBishopMagicIndex(bishopBlockerBoard [][]uint64) {
+func initBishopMagicIndex(bishopBlockerMask *[64]uint64, bishopBlockerBoard [][]uint64) {
 	for idx := range bishopBlockerBoard {
-		bishopMagicIndex[idx] = findMagic(bishopBlockerBoard[idx], bishopMoveBoard[idx][:], bishopShift)
+		bishopMagics[idx] = Magic{bishopBlockerMask[idx], findMagic(bishopBlockerBoard[idx], bishopMoveBoard[idx][:], bishopShift)}
 	}
 }
 
@@ -232,9 +234,9 @@ func findMagic(array []uint64, cmpArray []uint64, bits uint) uint64 {
 
 func initRookAttacks(rookBlockerBoard [][]uint64) {
 	var rookAttacks [64][1 << 12]uint64
-	for idx, magic := range rookMagicIndex {
+	for idx, magic := range rookMagics {
 		for innerIdx, el := range rookBlockerBoard[idx] {
-			mult := uint64(el*magic) >> rookShift
+			mult := uint64(el*magic.magicIndex) >> rookShift
 			rookAttacks[idx][mult] = rookMoveBoard[idx][innerIdx]
 		}
 	}
@@ -243,11 +245,27 @@ func initRookAttacks(rookBlockerBoard [][]uint64) {
 
 func initBishopAttacks(bishopBlockerBoard [][]uint64) {
 	var bishopAttacks [64][1 << 9]uint64
-	for idx, magic := range bishopMagicIndex {
+	for idx, magic := range bishopMagics {
 		for innerIdx, el := range bishopBlockerBoard[idx] {
-			mult := uint64(el*magic) >> bishopShift
+			mult := uint64(el*magic.magicIndex) >> bishopShift
 			bishopAttacks[idx][mult] = bishopMoveBoard[idx][innerIdx]
 		}
 	}
 	copy(bishopMoveBoard[:], bishopAttacks[:])
+}
+
+func init() {
+	var rookBlockerMask [64]uint64
+	initArray(&rookBlockerMask, generateRookBlockerMask)
+	rookBlockerBoard := initRookBlockerBoard(&rookBlockerMask)
+	initRookMoveBoard(&rookBlockerMask, rookBlockerBoard)
+	initRookMagicIndex(&rookBlockerMask, rookBlockerBoard)
+	initRookAttacks(rookBlockerBoard)
+
+	var bishopBlockerMask [64]uint64
+	initArray(&bishopBlockerMask, generateBishopBlockerMask)
+	bishopBlockerBoard := initBishopBlockerBoard(&bishopBlockerMask)
+	initBishopMoveBoard(&bishopBlockerMask, bishopBlockerBoard)
+	initBishopMagicIndex(&bishopBlockerMask, bishopBlockerBoard)
+	initBishopAttacks(bishopBlockerBoard)
 }
