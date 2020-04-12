@@ -3,6 +3,7 @@ package backend
 import (
 	"fmt"
 	"math/bits"
+	"unsafe"
 )
 
 const (
@@ -337,12 +338,12 @@ func QueenAttacks(square int, occupancy uint64) uint64 {
 
 func RookAttacks(square int, occupancy uint64) uint64 {
 	magic := rookMagics[square]
-	return rookMoveBoard[square][(magic.blockerMask&occupancy)*magic.magicIndex>>rookShift]
+	return *((*uint64)(unsafe.Pointer(uintptr(magic.offset) + uintptr(magic.blockerMask&occupancy*magic.magicIndex>>magic.shift)<<3)))
 }
 
 func BishopAttacks(square int, occupancy uint64) uint64 {
 	magic := bishopMagics[square]
-	return bishopMoveBoard[square][(magic.blockerMask&occupancy)*magic.magicIndex>>bishopShift]
+	return *((*uint64)(unsafe.Pointer(uintptr(magic.offset) + uintptr(magic.blockerMask&occupancy*magic.magicIndex>>magic.shift)<<3)))
 }
 
 func squareString(square int) (res string) {
