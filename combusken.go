@@ -9,14 +9,14 @@ import (
 
 func main() {
 	if len(os.Args) > 1 {
-		if os.Args[1] == "tune" {
+		switch os.Args[1] {
+		case "tune":
 			evaluation.Tune()
-		} else if os.Args[1] == "trace-tune" {
+		case "trace-tune":
 			evaluation.TraceTune()
-		} else if os.Args[1] == "bench" {
+		case "bench":
 			engine.Benchmark()
 		}
-		return
 	}
 	uci := uci.NewUciProtocol(engine.NewEngine())
 	uci.Run()
