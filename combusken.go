@@ -17,6 +17,7 @@ func main() {
 		case "bench":
 			engine.Benchmark()
 		}
+		return
 	}
 	uci := uci.NewUciProtocol(engine.NewEngine())
 	uci.Run()
