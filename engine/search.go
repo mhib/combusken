@@ -276,26 +276,29 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		evaluation := int(t.stack[height].Evaluation())
 		improving := BoolToInt(height < 2 || evaluation > int(t.stack[height-2].Evaluation()))
 		rBeta := Min(beta+probCutMargin-45*improving, ValueWin-1)
-		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
-		t.EvaluateQsMoves(pos, evaled, hashMove, false)
-		probCutCount := 0
-		for i := 0; i < len(evaled) && probCutCount < 3; i++ {
-			maxMoveToFirst(evaled[i:])
-			if !SeeAbove(pos, evaled[i].Move, rBeta-evaluation) {
-				continue
-			}
-			if !pos.MakeMove(evaled[i].Move, child) {
-				continue
-			}
-			probCutCount++
-			t.SetCurrentMove(height, evaled[i].Move)
-			isChildInCheck := child.IsInCheck()
-			tmpVal = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
-			if tmpVal >= rBeta {
-				tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
-			}
-			if tmpVal >= rBeta {
-				return tmpVal
+		//Idea from stockfish
+		if !(hashMove != NullMove && int(hashDepth) >= depth-4 && int(hashValue) < rBeta) {
+			evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
+			t.EvaluateQsMoves(pos, evaled, hashMove, false)
+			probCutCount := 0
+			for i := 0; i < len(evaled) && probCutCount < 3; i++ {
+				maxMoveToFirst(evaled[i:])
+				if !SeeAbove(pos, evaled[i].Move, rBeta-evaluation) {
+					continue
+				}
+				if !pos.MakeMove(evaled[i].Move, child) {
+					continue
+				}
+				probCutCount++
+				t.SetCurrentMove(height, evaled[i].Move)
+				isChildInCheck := child.IsInCheck()
+				tmpVal = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				if tmpVal >= rBeta {
+					tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				}
+				if tmpVal >= rBeta {
+					return tmpVal
+				}
 			}
 		}
 	}
