@@ -28,7 +28,7 @@ const reverseFutilityPruningMargin = 90
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 const probCutDepth = 5
-const probCutMargin = 120
+const probCutMargin = 140
 
 const SMPCycles = 16
 
@@ -272,29 +272,30 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Probcut pruning
 	// If we have a good enough capture and a reduced search returns a value
 	// much above beta, we can (almost) safely prune the previous move.
-	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin {
+	if !pvNode && !inCheck && depth >= probCutDepth && Abs(beta) < ValueWin {
 		evaluation := int(t.stack[height].Evaluation())
 		rBeta := Min(beta+probCutMargin, ValueWin-1)
-		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
-		t.EvaluateQsMoves(pos, evaled, hashMove, false)
-		probCutCount := 0
-		for i := 0; i < len(evaled) && probCutCount < 3; i++ {
-			maxMoveToFirst(evaled[i:])
-			if !SeeAbove(pos, evaled[i].Move, rBeta-evaluation) {
-				continue
-			}
-			if !pos.MakeMove(evaled[i].Move, child) {
-				continue
-			}
-			probCutCount++
-			t.SetCurrentMove(height, evaled[i].Move)
-			isChildInCheck := child.IsInCheck()
-			tmpVal = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
-			if tmpVal >= rBeta {
-				tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
-			}
-			if tmpVal >= rBeta {
-				return tmpVal
+
+		//Idea from stockfish
+		if !(hashMove != NullMove && int(hashDepth) >= depth-4 && int(hashValue) < rBeta) {
+			evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
+			t.EvaluateQsMoves(pos, evaled, hashMove, false)
+			probCutCount := 0
+			for i := 0; i < len(evaled) && probCutCount < 3; i++ {
+				maxMoveToFirst(evaled[i:])
+				if !SeeAbove(pos, evaled[i].Move, rBeta-evaluation) || !pos.MakeMove(evaled[i].Move, child) {
+					continue
+				}
+				probCutCount++
+				t.SetCurrentMove(height, evaled[i].Move)
+				isChildInCheck := child.IsInCheck()
+				tmpVal = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				if tmpVal >= rBeta {
+					tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				}
+				if tmpVal >= rBeta {
+					return tmpVal
+				}
 			}
 		}
 	}
