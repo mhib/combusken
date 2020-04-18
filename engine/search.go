@@ -121,7 +121,6 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 			val = int(eval)
 			transposition.GlobalTransTable.Set(pos.Key, UnknownValue, eval, transposition.NoneDepth, NullMove, TransNone)
 		}
-		t.setEvaluation(height, eval)
 		// Early return if not in check and evaluation exceeded beta
 		if val >= beta {
 			return beta
@@ -131,6 +130,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		moves = pos.GenerateAllCaptures(t.stack[height].moves[:])
 	}
+	t.setEvaluation(height, eval)
 
 	t.EvaluateQsMoves(pos, moves, hashMove, inCheck)
 
@@ -313,7 +313,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			improving = t.evaluation(height) > t.evaluation(height-2)
 		} else {
 			improving = height <= 3 ||
-				(t.evaluation(height-4) == UnknownValue || t.evaluation(height) > t.evaluation(height-4))
+				t.evaluation(height-4) == UnknownValue ||
+				t.evaluation(height) > t.evaluation(height-4)
 		}
 	} else {
 		improving = true
@@ -325,7 +326,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	// Null move pruning
-	if pos.LastMove != NullMove && depth >= 2 && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
+	if pos.LastMove != NullMove && depth >= 2 && int(eval) >= beta && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) {
 		pos.MakeNullMove(child)
 		t.MoveEvaluator.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
@@ -361,7 +362,7 @@ afterPreMovesPruning:
 	var moves []EvaledMove
 
 	// Check hashMove before move generation
-	if pos.IsMovePseudoLegal(hashMove) {
+	if hashMove != NullMove && pos.IsMovePseudoLegal(hashMove) {
 		hashMoveChecked = true
 		if pos.MakeMove(hashMove, child) {
 			moveCount++
