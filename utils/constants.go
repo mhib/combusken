@@ -1,9 +1,11 @@
 package utils
 
 const Mate = 32000
+const UnknownValue = int16(32002)
 
 const (
-	TransBeta  = iota + 1 // Lower bound
-	TransAlpha            // Upper bound
+	TransNone  = iota
+	TransBeta  // Lower bound
+	TransAlpha // Upper bound
 	TransExact
 )
