@@ -4,7 +4,6 @@ import "context"
 import "errors"
 import "runtime"
 import "github.com/mhib/combusken/backend"
-import "github.com/mhib/combusken/evaluation"
 import "github.com/mhib/combusken/transposition"
 import "github.com/mhib/combusken/fathom"
 import . "github.com/mhib/combusken/utils"
@@ -62,22 +61,17 @@ type SearchInfo struct {
 type StackEntry struct {
 	position backend.Position
 	PV
-	moves                [MAX_MOVES]backend.EvaledMove
-	quietsSearched       [MAX_MOVES]backend.Move
-	evaluation           int16
-	evaluationCalculated bool
+	moves          [MAX_MOVES]backend.EvaledMove
+	quietsSearched [MAX_MOVES]backend.Move
+	evaluation     int16
 }
 
-func (se *StackEntry) InvalidateEvaluation() {
-	se.evaluationCalculated = false
+func (t *thread) setEvaluation(height int, eval int16) {
+	t.stack[height].evaluation = eval
 }
 
-func (se *StackEntry) Evaluation() int16 {
-	if !se.evaluationCalculated {
-		se.evaluation = int16(evaluation.Evaluate(&se.position))
-		se.evaluationCalculated = true
-	}
-	return se.evaluation
+func (t *thread) evaluation(height int) int16 {
+	return t.stack[height].evaluation
 }
 
 type PV struct {
