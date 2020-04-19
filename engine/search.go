@@ -116,7 +116,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 			if pos.LastMove != NullMove {
 				eval = int16(Evaluate(pos))
 			} else {
-				eval = -t.evaluation(height) + 2*tempo
+				eval = -t.evaluation(height-1) + 2*tempo
 			}
 			val = int(eval)
 		}
