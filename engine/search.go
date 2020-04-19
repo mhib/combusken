@@ -119,7 +119,6 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 				eval = -t.evaluation(height) + 2*tempo
 			}
 			val = int(eval)
-			transposition.GlobalTransTable.Set(pos.Key, UnknownValue, eval, transposition.NoneDepth, NullMove, TransNone)
 		}
 		// Early return if not in check and evaluation exceeded beta
 		if val >= beta {
@@ -305,7 +304,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			eval = -t.evaluation(height-1) + 2*tempo
 		}
 		t.setEvaluation(height, eval)
-		transposition.GlobalTransTable.Set(pos.Key, UnknownValue, eval, transposition.NoneDepth, NullMove, TransNone)
 	}
 
 	if height > 1 {
