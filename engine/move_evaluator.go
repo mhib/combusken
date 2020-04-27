@@ -33,6 +33,10 @@ func (mv *MoveEvaluator) GetPreviousMove(height int) Move {
 	return mv.CurrentMove[height-1]
 }
 
+func (mv *MoveEvaluator) GetPreviousMoveFromCurrentSide(height int) Move {
+	return mv.CurrentMove[height-2]
+}
+
 func (mv *MoveEvaluator) Clear() {
 	for side := 0; side < 2; side++ {
 		for y := 0; y < 64; y++ {
