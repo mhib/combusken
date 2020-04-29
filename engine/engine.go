@@ -105,7 +105,7 @@ type SearchParams struct {
 }
 
 func (e *Engine) GetInfo() (name, version, author string) {
-	return "Combusken", "1.1.0", "Marcin Henryk Bartkowiak"
+	return "Combusken", "1.1.1", "Marcin Henryk Bartkowiak"
 }
 
 func (e *Engine) GetOptions() []EngineOption {
