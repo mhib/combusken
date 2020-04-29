@@ -1,4 +1,4 @@
-// +build nocgo
+// +build !cgo
 
 package fathom
 
