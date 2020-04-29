@@ -36,10 +36,11 @@ const WindowDepth = 6
 const QSDepthChecks = 0
 const QSDepthNoChecks = -1
 
-var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
-var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
+var SkipSize = [...]int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
+var SkipDepths = [...]int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
 
 var PawnValueMiddle = PawnValue.Middle()
+var middleValues = [...]int16{PawnValue.Middle(), KnightValue.Middle(), BishopValue.Middle(), RookValue.Middle(), QueenValue.Middle(), 0, 0}
 
 func lossIn(height int) int {
 	return -Mate + height
@@ -374,12 +375,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		isNoisy := evaled[i].Move.IsCaptureOrPromotion()
 
-		if val > ValueLoss && !inCheck && moveCount > 0 && evaled[i].Value < MinSpecialMoveValue && !isNoisy {
-			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
-				continue
-			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation() >= t.stack[height-2].Evaluation()), depth) {
-				continue
+		if val > ValueLoss && !inCheck && moveCount > 0 && evaled[i].Value < MinSpecialMoveValue {
+			if isNoisy {
+				if !evaled[i].IsPromotion() && depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+2*int(PawnValueMiddle)*depth+int(middleValues[evaled[i].CapturedPiece()]) <= alpha {
+					continue
+				}
+			} else {
+				if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
+					continue
+				}
+				if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation() >= t.stack[height-2].Evaluation()), depth) {
+					continue
+				}
 			}
 		}
 
