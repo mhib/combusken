@@ -317,7 +317,8 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 	fromMask := SquareMask[move.From()]
 	toMask := SquareMask[move.To()]
 
-	if move == NullMove || (we&fromMask) == 0 {
+	if move == NullMove || (we&fromMask) == 0 ||
+		(move.IsCapture() && (move.CapturedPiece() >= King || (move.Type() != EPCapture && pos.Pieces[move.CapturedPiece()]&them&toMask == 0))) {
 		return false
 	}
 
@@ -349,7 +350,12 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 			forward = South(fromMask) & ^occupancy
 		}
 		if move.IsPromotion() {
-			return PROMOTION_RANKS&((attacks&them)|forward) != 0
+			return PROMOTION_RANKS&((attacks&them)|forward) != 0 && move.PromotedPiece() <= Queen
+		}
+
+		// Invalid move type as promotions and EPCapture were checked
+		if move.IsCapture() && move.Type() != Capture {
+			return false
 		}
 
 		// Double pawn push
