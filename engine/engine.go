@@ -113,7 +113,7 @@ func (e *Engine) GetOptions() []EngineOption {
 }
 
 func NewEngine() (ret Engine) {
-	ret.Hash = IntOption{"Hash", 4, 16384, 256}
+	ret.Hash = IntOption{"Hash", 4, 1024 * 256, 256}
 	ret.Threads = IntOption{"Threads", 1, runtime.NumCPU(), 1}
 	ret.PawnHash = IntOption{"PawnHash", 0, 8, 2}
 	ret.MoveOverhead = IntOption{"Move Overhead", 0, 10000, 50}
