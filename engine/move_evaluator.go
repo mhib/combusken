@@ -141,6 +141,37 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 				if followUp != NullMove {
 					moves[i].Value += mv.FollowUpHistory[followUp.MovedPiece()][followUp.To()][moves[i].MovedPiece()][moves[i].To()]
 				}
+				if pos.SideToMove == White {
+					switch moves[i].MovedPiece() {
+					case Pawn:
+						moves[i].Value += int(WhitePawnsPos[moves[i].From()].Middle()-WhitePawnsPos[moves[i].To()].Middle()) * 8
+					case Knight:
+						moves[i].Value += int(WhiteKnightsPos[moves[i].From()].Middle()-WhiteKnightsPos[moves[i].To()].Middle()) * 8
+					case Bishop:
+						moves[i].Value += int(WhiteBishopsPos[moves[i].From()].Middle()-WhiteBishopsPos[moves[i].To()].Middle()) * 8
+					case Rook:
+						moves[i].Value += int(WhiteRooksPos[moves[i].From()].Middle()-WhiteRooksPos[moves[i].To()].Middle()) * 8
+					case Queen:
+						moves[i].Value += int(WhiteQueensPos[moves[i].From()].Middle()-WhiteQueensPos[moves[i].To()].Middle()) * 8
+					case King:
+						moves[i].Value += int(WhiteKingPos[moves[i].From()].Middle()-WhiteKingPos[moves[i].To()].Middle()) * 8
+					}
+				} else {
+					switch moves[i].MovedPiece() {
+					case Pawn:
+						moves[i].Value += int(BlackPawnsPos[moves[i].From()].Middle()-BlackPawnsPos[moves[i].To()].Middle()) * 8
+					case Knight:
+						moves[i].Value += int(BlackKnightsPos[moves[i].From()].Middle()-BlackKnightsPos[moves[i].To()].Middle()) * 8
+					case Bishop:
+						moves[i].Value += int(BlackBishopsPos[moves[i].From()].Middle()-BlackBishopsPos[moves[i].To()].Middle()) * 8
+					case Rook:
+						moves[i].Value += int(BlackRooksPos[moves[i].From()].Middle()-BlackRooksPos[moves[i].To()].Middle()) * 8
+					case Queen:
+						moves[i].Value += int(BlackQueensPos[moves[i].From()].Middle()-BlackQueensPos[moves[i].To()].Middle()) * 8
+					case King:
+						moves[i].Value += int(BlackKingPos[moves[i].From()].Middle()-BlackKingPos[moves[i].To()].Middle()) * 8
+					}
+				}
 			}
 		}
 	}
