@@ -255,7 +255,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	// Null move pruning
-	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
+	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (height < 2 || t.GetPreviousMoveFromCurrentSide(height) != NullMove) && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
 		pos.MakeNullMove(child)
 		t.MoveEvaluator.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
