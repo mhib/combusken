@@ -15,7 +15,7 @@ func addPromotions(move Move, buffer []EvaledMove) {
 
 var forwardByColor = [2]int{-8, +8}
 var secondRank = [2]int{RANK_7, RANK_2}
-var epRank = [2]uint64{RANK_4_BB, RANK_5_BB}
+var epRankBB = [2]uint64{RANK_4_BB, RANK_5_BB}
 
 func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	var size = 0
@@ -65,7 +65,7 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	}
 
 	if pos.EpSquare != 0 {
-		fromBB = (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & epRank[sideToMove] &
+		fromBB = (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & epRankBB[sideToMove] &
 			pos.Pieces[Pawn] & ourOccupation
 		for ; fromBB > 0; fromBB &= (fromBB - 1) {
 			fromId = BitScan(fromBB)
@@ -197,7 +197,7 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 	forward := forwardByColor[sideToMove]
 	if pos.EpSquare != 0 {
 		fromBB = (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) &
-			epRank[sideToMove] & pos.Pieces[Pawn] & ourOccupation
+			epRankBB[sideToMove] & pos.Pieces[Pawn] & ourOccupation
 		for ; fromBB > 0; fromBB &= (fromBB - 1) {
 			fromId = BitScan(fromBB)
 			buffer[size].Move = NewMove(fromId, pos.EpSquare+forward, Pawn, Pawn, NewType(1, 0, 0, 1))
