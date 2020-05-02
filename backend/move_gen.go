@@ -13,63 +13,69 @@ func addPromotions(move Move, buffer []EvaledMove) {
 	buffer[3].Move = move ^ Move((0x2)<<18)
 }
 
+var forwardByColor = [2]int{-8, +8}
+var secondRank = [2]int{RANK_7, RANK_2}
+var epRank = [2]uint64{RANK_4_BB, RANK_5_BB}
+
 func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 	var size = 0
-	var fromBB, fromMask, toBB, toMask uint64
+	var fromBB, toBB, toMask uint64
 	var fromId, toId int
-	ourOccupation := pos.Colours[pos.SideToMove]
-	theirOccupation := pos.Colours[pos.SideToMove^1]
+	sideToMove := pos.SideToMove
+	ourOccupation := pos.Colours[sideToMove]
+	theirOccupation := pos.Colours[sideToMove^1]
 	allOccupation := ourOccupation | theirOccupation
+	forward := forwardByColor[sideToMove]
+	for fromBB = pos.Pieces[Pawn] & ourOccupation; fromBB > 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+		if Rank(fromId) == secondRank[sideToMove^1] {
+			toId = fromId + forward
+			if allOccupation&SquareMask[toId] == 0 {
+				addPromotions(NewMove(fromId, toId, Pawn, None, 0), buffer[size:])
+				size += 4
+			}
+			for toBB = PawnAttacks[sideToMove][fromId] & theirOccupation; toBB > 0; toBB &= (toBB - 1) {
+				toId = BitScan(toBB)
+				toMask = SquareMask[uint(toId)]
+				captureType := pos.TypeOnSquare(toMask)
+				addPromotions(NewMove(fromId, toId, Pawn, captureType, 1), buffer[size:])
+				size += 4
+			}
+		} else {
+			toId = fromId + forward
+			toMask = SquareMask[toId]
+			if allOccupation&toMask == 0 {
+				buffer[size].Move = NewMove(fromId, toId, Pawn, None, 0)
+				size++
 
-	if pos.SideToMove == White {
-		for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB > 0; fromBB &= (fromBB - 1) {
-			fromId = BitScan(fromBB)
-			fromMask = SquareMask[uint(fromId)]
-			if fromMask&RANK_7_BB != 0 {
-				toId = fromId + 8
-				if allOccupation&SquareMask[toId] == 0 {
-					addPromotions(NewMove(fromId, toId, Pawn, None, 0), buffer[size:])
-					size += 4
-				}
-				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					toMask = SquareMask[uint(toId)]
-					captureType := pos.TypeOnSquare(toMask)
-					addPromotions(NewMove(fromId, toId, Pawn, captureType, 1), buffer[size:])
-					size += 4
-				}
-			} else {
-				toId = fromId + 8
+				// Double pawn push
+				toId += forward
 				toMask = SquareMask[toId]
-				if allOccupation&toMask == 0 {
-					buffer[size].Move = NewMove(fromId, toId, Pawn, None, 0)
-					size++
-
-					// Double pawn push
-					toId = fromId + 16
-					toMask = SquareMask[toId]
-					if fromMask&RANK_2_BB != 0 && allOccupation&toMask == 0 {
-						buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 0, 0, 1))
-						size++
-					}
-				}
-				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					buffer[size].Move = NewMove(fromId, toId, Pawn, pos.TypeOnSquare(SquareMask[toId]), NewType(1, 0, 0, 0))
+				if Rank(fromId) == secondRank[sideToMove] && allOccupation&toMask == 0 {
+					buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 0, 0, 1))
 					size++
 				}
 			}
-		}
-		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
-			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[White]; fromBB > 0; fromBB &= (fromBB - 1) {
-				fromId = BitScan(fromBB)
-				buffer[size].Move = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
+			for toBB = PawnAttacks[sideToMove][fromId] & theirOccupation; toBB > 0; toBB &= (toBB - 1) {
+				toId = BitScan(toBB)
+				buffer[size].Move = NewMove(fromId, toId, Pawn, pos.TypeOnSquare(SquareMask[toId]), NewType(1, 0, 0, 0))
 				size++
 			}
 		}
+	}
 
-		// Castling
+	if pos.EpSquare != 0 {
+		fromBB = (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & epRank[sideToMove] &
+			pos.Pieces[Pawn] & ourOccupation
+		for ; fromBB > 0; fromBB &= (fromBB - 1) {
+			fromId = BitScan(fromBB)
+			buffer[size].Move = NewMove(fromId, pos.EpSquare+forward, Pawn, Pawn, NewType(1, 0, 0, 1))
+			size++
+		}
+	}
+
+	// Castling
+	if pos.SideToMove == White {
 		if allOccupation&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(F1, Black) {
 			buffer[size].Move = WhiteKingSideCastle
 			size++
@@ -79,53 +85,6 @@ func (pos *Position) GenerateAllMoves(buffer []EvaledMove) []EvaledMove {
 			size++
 		}
 	} else {
-		for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB > 0; fromBB &= (fromBB - 1) {
-			fromId = BitScan(fromBB)
-			fromMask = SquareMask[uint(fromId)]
-			if fromMask&RANK_2_BB != 0 {
-				toId = fromId - 8
-				if allOccupation&SquareMask[toId] == 0 {
-					addPromotions(NewMove(fromId, toId, Pawn, None, 0), buffer[size:])
-					size += 4
-				}
-				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					captureType := pos.TypeOnSquare(SquareMask[uint(toId)])
-					addPromotions(NewMove(fromId, toId, Pawn, captureType, 1), buffer[size:])
-					size += 4
-				}
-			} else {
-				toId = fromId - 8
-				toMask = SquareMask[uint(toId)]
-				if allOccupation&toMask == 0 {
-					buffer[size].Move = NewMove(fromId, toId, Pawn, None, 0)
-					size++
-
-					// Double pawn push
-					toId = fromId - 16
-					toMask = SquareMask[toId]
-					if fromMask&RANK_7_BB != 0 && allOccupation&(toMask) == 0 {
-						buffer[size].Move = NewMove(fromId, toId, Pawn, None, NewType(0, 0, 0, 1))
-						size++
-					}
-				}
-				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					toMask = SquareMask[uint(toId)]
-					buffer[size].Move = NewMove(fromId, toId, Pawn, pos.TypeOnSquare(toMask), NewType(1, 0, 0, 0))
-					size++
-				}
-			}
-		}
-		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
-			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[Black]; fromBB > 0; fromBB &= (fromBB - 1) {
-				fromId = BitScan(fromBB)
-				buffer[size].Move = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
-				size++
-			}
-		}
-
 		if allOccupation&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(F8, White) {
 			buffer[size].Move = BlackKingSideCastle
 			size++
@@ -227,69 +186,48 @@ func (pos *Position) GenerateAllCaptures(buffer []EvaledMove) []EvaledMove {
 	var fromBB, toBB uint64
 	var fromId, toId, what int
 
-	ourOccupation := pos.Colours[pos.SideToMove]
-	theirOccupation := pos.Colours[pos.SideToMove^1]
+	sideToMove := pos.SideToMove
+	ourOccupation := pos.Colours[sideToMove]
+	theirOccupation := pos.Colours[sideToMove^1]
 	allOccupation := ourOccupation | theirOccupation
 
 	var size = 0
 
 	// PAWNS
-	if pos.SideToMove == White {
-		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_5_BB
-			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[White]; fromBB > 0; fromBB &= (fromBB - 1) {
-				fromId = BitScan(fromBB)
-				buffer[size].Move = NewMove(fromId, pos.EpSquare+8, Pawn, Pawn, NewType(1, 0, 0, 1))
-				size++
-			}
-		}
-		for fromBB = (BlackPawnsAttacks(theirOccupation) | RANK_7_BB) & pos.Pieces[Pawn] & pos.Colours[White]; fromBB != 0; fromBB &= fromBB - 1 {
+	forward := forwardByColor[sideToMove]
+	if pos.EpSquare != 0 {
+		fromBB = (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) &
+			epRank[sideToMove] & pos.Pieces[Pawn] & ourOccupation
+		for ; fromBB > 0; fromBB &= (fromBB - 1) {
 			fromId = BitScan(fromBB)
-			if Rank(fromId) == RANK_7 {
-				if SquareMask[fromId+8]&allOccupation == 0 {
-					buffer[size].Move = NewMove(fromId, fromId+8, Pawn, None, NewType(0, 1, 1, 1))
-					size++
-				}
-				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					what = pos.TypeOnSquare(SquareMask[uint(toId)])
-					buffer[size].Move = NewMove(fromId, toId, Pawn, what, NewType(1, 1, 1, 1))
-				}
-			} else {
-				for toBB = PawnAttacks[White][fromId] & pos.Colours[Black]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					what = pos.TypeOnSquare(SquareMask[uint(toId)])
-					buffer[size].Move = NewMove(fromId, toId, Pawn, what, NewType(1, 0, 0, 0))
-				}
-			}
+			buffer[size].Move = NewMove(fromId, pos.EpSquare+forward, Pawn, Pawn, NewType(1, 0, 0, 1))
+			size++
 		}
+	}
+	if sideToMove == White {
+		fromBB = BlackPawnsAttacks(theirOccupation) | RANK_7_BB
 	} else {
-		if pos.EpSquare != 0 {
-			epBB := (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) & RANK_4_BB
-			for fromBB = epBB & pos.Pieces[Pawn] & pos.Colours[Black]; fromBB > 0; fromBB &= (fromBB - 1) {
-				fromId = BitScan(fromBB)
-				buffer[size].Move = NewMove(fromId, pos.EpSquare-8, Pawn, Pawn, NewType(1, 0, 0, 1))
+		fromBB = WhitePawnsAttacks(theirOccupation) | RANK_2_BB
+	}
+	for fromBB &= pos.Pieces[Pawn] & ourOccupation; fromBB != 0; fromBB &= fromBB - 1 {
+		fromId = BitScan(fromBB)
+		if Rank(fromId) == secondRank[sideToMove^1] {
+			if SquareMask[fromId+forward]&allOccupation == 0 {
+				buffer[size].Move = NewMove(fromId, fromId+forward, Pawn, None, NewType(0, 1, 1, 1))
 				size++
 			}
-		}
-		for fromBB = (WhitePawnsAttacks(theirOccupation) | RANK_2_BB) & pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= fromBB - 1 {
-			fromId = BitScan(fromBB)
-			if Rank(fromId) == RANK_2 {
-				if SquareMask[fromId-8]&allOccupation == 0 {
-					buffer[size].Move = NewMove(fromId, fromId-8, Pawn, None, NewType(0, 1, 1, 1))
-					size++
-				}
-				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					what = pos.TypeOnSquare(SquareMask[uint(toId)])
-					buffer[size].Move = NewMove(fromId, toId, Pawn, what, NewType(1, 1, 1, 1))
-				}
-			} else {
-				for toBB = PawnAttacks[Black][fromId] & pos.Colours[White]; toBB > 0; toBB &= (toBB - 1) {
-					toId = BitScan(toBB)
-					what = pos.TypeOnSquare(SquareMask[uint(toId)])
-					buffer[size].Move = NewMove(fromId, toId, Pawn, what, NewType(1, 0, 0, 0))
-				}
+			for toBB = PawnAttacks[sideToMove][fromId] & theirOccupation; toBB > 0; toBB &= (toBB - 1) {
+				toId = BitScan(toBB)
+				what = pos.TypeOnSquare(SquareMask[uint(toId)])
+				buffer[size].Move = NewMove(fromId, toId, Pawn, what, NewType(1, 1, 1, 1))
+				size++
+			}
+		} else {
+			for toBB = PawnAttacks[sideToMove][fromId] & theirOccupation; toBB > 0; toBB &= (toBB - 1) {
+				toId = BitScan(toBB)
+				what = pos.TypeOnSquare(SquareMask[uint(toId)])
+				buffer[size].Move = NewMove(fromId, toId, Pawn, what, NewType(1, 0, 0, 0))
+				size++
 			}
 		}
 	}
