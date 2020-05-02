@@ -17,7 +17,7 @@ const totalPhase = pawnPhase*16 + knightPhase*4 + bishopPhase*4 + rookPhase*4 + 
 
 var PawnValue = S(101, 120)
 var KnightValue = S(486, 438)
-var BishopValue = S(445, 429)
+var BishopValue = S(441, 428)
 var RookValue = S(651, 693)
 var QueenValue = S(1435, 1322)
 
@@ -35,14 +35,14 @@ var pieceScores = [King + 1][8][4]Score{
 		{S(-210, -69), S(-76, -73), S(-127, -30), S(1, -55)},
 	},
 	{ // Bishop
-		{S(-9, -11), S(6, -4), S(22, -8), S(7, -4)},
-		{S(3, -25), S(52, -29), S(27, -17), S(19, -3)},
-		{S(13, -18), S(30, -12), S(35, 1), S(23, 9)},
-		{S(0, -23), S(4, -19), S(14, -3), S(28, -2)},
-		{S(-21, -13), S(5, -15), S(-2, -1), S(25, -1)},
-		{S(-68, -1), S(-16, -13), S(-37, -1), S(-18, -8)},
-		{S(-75, 2), S(20, -9), S(-14, 2), S(2, -14)},
-		{S(-1, -28), S(-36, -19), S(-113, -5), S(-92, -4)},
+		{S(-6, -18), S(21, -4), S(26, -10), S(23, -4)},
+		{S(13, -24), S(43, -35), S(36, -14), S(23, -5)},
+		{S(21, -18), S(39, -8), S(26, -8), S(27, 6)},
+		{S(0, -22), S(3, -20), S(18, -4), S(19, 1)},
+		{S(-18, -15), S(4, -15), S(-22, 3), S(24, 1)},
+		{S(-100, 10), S(-42, -9), S(-237, 47), S(-40, -1)},
+		{S(-62, 7), S(-22, -2), S(0, 6), S(1, -7)},
+		{S(-26, -24), S(1, -14), S(-82, -2), S(-91, 3)},
 	},
 	{ // Rook
 		{S(-4, -18), S(-10, -6), S(13, -14), S(13, -14)},
@@ -149,7 +149,7 @@ var bishopRammedPawns = S(-7, -13)
 var bishopOutpostUndefendedBonus = S(48, 1)
 var bishopOutpostDefendedBonus = S(80, 6)
 
-var longDiagonalBishop = S(45, 0)
+var longDiagonalBishop = S(17, 11)
 
 var knightOutpostUndefendedBonus = S(43, -15)
 var knightOutpostDefendedBonus = S(57, 16)
