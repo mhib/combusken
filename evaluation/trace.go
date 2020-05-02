@@ -38,4 +38,5 @@ type Trace struct {
 	ThreatByKing                 int
 	ThreatByMinor                [King + 1]int
 	ThreatByRook                 [King + 1]int
+	LongDiagonalBishop           int
 }
