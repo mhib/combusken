@@ -149,6 +149,8 @@ var bishopRammedPawns = S(-7, -13)
 var bishopOutpostUndefendedBonus = S(48, 1)
 var bishopOutpostDefendedBonus = S(80, 6)
 
+var longDiagonalBishop = S(45, 0)
+
 var knightOutpostUndefendedBonus = S(43, -15)
 var knightOutpostDefendedBonus = S(57, 16)
 
@@ -255,8 +257,6 @@ var hanging = S(82, 58)
 var threatByKing = S(18, 33)
 var threatByMinor = [King + 1]Score{S(0, 0), S(16, 23), S(28, 34), S(64, 22), S(47, 45), S(79, 161)}
 var threatByRook = [King + 1]Score{S(0, 0), S(-1, 17), S(-1, 28), S(6, 46), S(91, 31), S(51, 41)}
-
-var longDiagonalBishop = S(45, 0)
 
 func loadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {

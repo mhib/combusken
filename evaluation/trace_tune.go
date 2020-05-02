@@ -404,6 +404,7 @@ func loadTrace() (res []int) {
 	res = append(res, T.BishopRammedPawns)
 	res = append(res, T.BishopOutpostUndefendedBonus)
 	res = append(res, T.BishopOutpostDefendedBonus)
+	res = append(res, T.LongDiagonalBishop)
 	res = append(res, T.KnightOutpostUndefendedBonus)
 	res = append(res, T.KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {
@@ -432,6 +433,13 @@ func loadTrace() (res []int) {
 	}
 
 	res = append(res, T.Hanging)
+	res = append(res, T.ThreatByKing)
+	for i := 0; i <= King; i++ {
+		res = append(res, T.ThreatByMinor[i])
+	}
+	for i := 0; i <= King; i++ {
+		res = append(res, T.ThreatByRook[i])
+	}
 
 	return
 }
@@ -497,6 +505,7 @@ func loadWeights() []weight {
 	tmp = append(tmp, bishopRammedPawns)
 	tmp = append(tmp, bishopOutpostUndefendedBonus)
 	tmp = append(tmp, bishopOutpostDefendedBonus)
+	tmp = append(tmp, longDiagonalBishop)
 	tmp = append(tmp, knightOutpostUndefendedBonus)
 	tmp = append(tmp, knightOutpostDefendedBonus)
 	tmp = append(tmp, minorBehindPawn)

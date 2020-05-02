@@ -24,6 +24,7 @@ type Trace struct {
 	BishopPair                   int
 	BishopRammedPawns            int
 	BishopOutpostUndefendedBonus int
+	LongDiagonalBishop           int
 	BishopOutpostDefendedBonus   int
 	KnightOutpostUndefendedBonus int
 	KnightOutpostDefendedBonus   int
@@ -38,5 +39,4 @@ type Trace struct {
 	ThreatByKing                 int
 	ThreatByMinor                [King + 1]int
 	ThreatByRook                 [King + 1]int
-	LongDiagonalBishop           int
 }
