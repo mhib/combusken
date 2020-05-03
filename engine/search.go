@@ -259,7 +259,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		pos.MakeNullMove(child)
 		t.MoveEvaluator.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
-		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, child.IsInCheck())
+		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
 		if tmpVal >= beta {
 			return beta
 		}
