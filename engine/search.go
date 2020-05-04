@@ -28,8 +28,9 @@ const reverseFutilityPruningMargin = 90
 
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
-const probCutDepth = 5
-const probCutMargin = 189
+
+const probCutDepth = 6
+const probCutMargin = 100
 
 const SMPCycles = 16
 
@@ -274,9 +275,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// If we have a good enough capture and a reduced search returns a value
 	// much above beta, we can (almost) safely prune the previous move.
 	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin {
-		evaluation := int(t.stack[height].Evaluation())
-		improving := BoolToInt(height < 2 || evaluation > int(t.stack[height-2].Evaluation()))
-		rBeta := Min(beta+probCutMargin-45*improving, ValueWin-1)
+		rBeta := Min(beta+probCutMargin, ValueWin-1)
 		//Idea from stockfish
 		if !(hashMove != NullMove && int(hashDepth) >= depth-4 && int(hashValue) < rBeta) {
 			evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
@@ -284,7 +283,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			probCutCount := 0
 			for i := 0; i < len(evaled) && probCutCount < 3; i++ {
 				maxMoveToFirst(evaled[i:])
-				if !SeeAbove(pos, evaled[i].Move, rBeta-evaluation) {
+				if !SeeSign(pos, evaled[i].Move) {
 					continue
 				}
 				if !pos.MakeMove(evaled[i].Move, child) {
