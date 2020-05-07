@@ -8,11 +8,13 @@ type timeManager interface {
 	hardTimeout() time.Duration
 	isSoftTimeout(depth, nodes int) bool
 	updateTime(depth, score int)
+	getStartedAt() time.Time
 }
 
 type depthMoveTimeManager struct {
-	duration int
-	depth    int
+	startedAt time.Time
+	duration  int
+	depth     int
 }
 
 func (manager *depthMoveTimeManager) hardTimeout() time.Duration {
@@ -29,11 +31,19 @@ func (manager *depthMoveTimeManager) isSoftTimeout(depth, nodes int) bool {
 func (manager *depthMoveTimeManager) updateTime(int, int) {
 }
 
+func (manager *depthMoveTimeManager) getStartedAt() time.Time {
+	return manager.startedAt
+}
+
 type tournamentTimeManager struct {
+	startedAt time.Time
 	hard      time.Duration
 	ideal     time.Duration
-	startedAt time.Time
 	lastScore int
+}
+
+func (manager *tournamentTimeManager) getStartedAt() time.Time {
+	return manager.startedAt
 }
 
 func (manager *tournamentTimeManager) hardTimeout() time.Duration {
@@ -69,8 +79,8 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 	}
 }
 
-func newTournamentTimeManager(limits LimitsType, overhead, sideToMove int) *tournamentTimeManager {
-	res := &tournamentTimeManager{startedAt: time.Now()}
+func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, sideToMove int) *tournamentTimeManager {
+	res := &tournamentTimeManager{startedAt: startedAt}
 	var limit, inc int
 	if sideToMove == White {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
@@ -93,15 +103,16 @@ func newTournamentTimeManager(limits LimitsType, overhead, sideToMove int) *tour
 }
 
 func newTimeManager(limits LimitsType, overhead int, sideToMove int) timeManager {
+	startedAt := time.Now()
 	if limits.WhiteTime > 0 || limits.BlackTime > 0 {
-		return newTournamentTimeManager(limits, overhead, sideToMove)
+		return newTournamentTimeManager(startedAt, limits, overhead, sideToMove)
 	} else if limits.MoveTime > 0 {
-		return &depthMoveTimeManager{duration: limits.MoveTime}
+		return &depthMoveTimeManager{startedAt: startedAt, duration: limits.MoveTime}
 	} else if limits.Depth > 0 {
-		return &depthMoveTimeManager{depth: limits.Depth}
+		return &depthMoveTimeManager{startedAt: startedAt, depth: limits.Depth}
 	} else if limits.Infinite {
-		return &depthMoveTimeManager{}
+		return &depthMoveTimeManager{startedAt: startedAt}
 	} else {
-		return &depthMoveTimeManager{duration: 1000}
+		return &depthMoveTimeManager{startedAt: startedAt, duration: 1000}
 	}
 }

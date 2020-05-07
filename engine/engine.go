@@ -53,10 +53,12 @@ func newUciScore(score int) UciScore {
 }
 
 type SearchInfo struct {
-	Score UciScore
-	Depth int
-	Nodes int
-	Moves []backend.Move
+	Score    UciScore
+	Depth    int
+	Nodes    int
+	Nps      int
+	Duration int
+	Moves    []backend.Move
 }
 
 type StackEntry struct {

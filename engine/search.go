@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+	"time"
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
@@ -681,7 +682,8 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		case <-ctx.Done():
 			return lastBestMove
 		case res := <-resultChan:
-			e.Update(SearchInfo{newUciScore(res.value), i, thread.nodes, res.moves})
+			timeSinceStart := time.Since(e.getStartedAt())
+			e.Update(SearchInfo{newUciScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}
@@ -743,7 +745,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			} else {
 				score = 0
 			}
-			e.Update(SearchInfo{newUciScore(score), MAX_HEIGHT - 1, 0, []Move{bestMove}})
+			e.Update(SearchInfo{newUciScore(score), MAX_HEIGHT - 1, 0, 1, 0, []Move{bestMove}})
 			return bestMove
 		}
 	}
@@ -791,7 +793,8 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				continue
 			}
 			nodes := e.nodes()
-			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, res.moves})
+			timeSinceStart := time.Since(e.getStartedAt())
+			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
 				return res.Move
 			}

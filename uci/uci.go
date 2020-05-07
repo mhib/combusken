@@ -235,6 +235,8 @@ func updateUci(s SearchInfo) {
 	} else {
 		sb.WriteString(fmt.Sprintf("cp %d ", s.Score.Centipawn))
 	}
+	sb.WriteString(fmt.Sprintf("nps %d ", s.Nps))
+	sb.WriteString(fmt.Sprintf("time %d ", s.Duration))
 
 	sb.WriteString("pv ")
 	for _, move := range s.Moves {
