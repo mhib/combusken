@@ -3,9 +3,6 @@ package evaluation
 import (
 	"bufio"
 	"fmt"
-	. "github.com/mhib/combusken/backend"
-	"github.com/mhib/combusken/transposition"
-	. "github.com/mhib/combusken/utils"
 	"math"
 	"math/rand"
 	"os"
@@ -15,6 +12,10 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	. "github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/transposition"
+	. "github.com/mhib/combusken/utils"
 )
 
 type tuneEntry struct {
@@ -66,52 +67,53 @@ func (t *emptyPKTableType) Clear() {
 
 // Copy of quiescence search to extract quiet position
 func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
-	t.stack[height].pv.clear()
-	pos := &t.stack[height].position
-
-	if height >= 127 {
-		return 0
-	}
-
-	child := &t.stack[height+1].position
-
-	moveCount := 0
-
-	val := Evaluate(pos)
-
-	var evaled []EvaledMove
-	if inCheck {
-		evaled = pos.GenerateAllMoves(t.stack[height].moves[:])
-	} else {
-		if val >= beta {
-			return beta
-		}
-		if alpha < val {
-			alpha = val
-		}
-		evaled = pos.GenerateAllCaptures(t.stack[height].moves[:])
-	}
-
-	for i := range evaled {
-		if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
-			continue
-		}
-		moveCount++
-		childInCheck := child.IsInCheck()
-		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
-		if val > alpha {
-			alpha = val
-			if val >= beta {
-				return beta
-			}
-			t.stack[height].pv.assign(evaled[i].Move, &t.stack[height+1].pv)
-		}
-	}
-
-	if moveCount == 0 && inCheck {
-		return -Mate + height
-	}
 	return alpha
+	//t.stack[height].pv.clear()
+	//pos := &t.stack[height].position
+
+	//if height >= 127 {
+	//return 0
+	//}
+
+	//child := &t.stack[height+1].position
+
+	//moveCount := 0
+
+	//val := Evaluate(pos)
+
+	//var evaled []EvaledMove
+	//if inCheck {
+	//evaled = pos.GenerateQuiet(t.stack[height].moves[:])
+	//} else {
+	//if val >= beta {
+	//return beta
+	//}
+	//if alpha < val {
+	//alpha = val
+	//}
+	//evaled = pos.GenerateNoisy(t.stack[height].moves[:])
+	//}
+
+	//for i := range evaled {
+	//if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
+	//continue
+	//}
+	//moveCount++
+	//childInCheck := child.IsInCheck()
+	//val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
+	//if val > alpha {
+	//alpha = val
+	//if val >= beta {
+	//return beta
+	//}
+	//t.stack[height].pv.assign(evaled[i].Move, &t.stack[height+1].pv)
+	//}
+	//}
+
+	//if moveCount == 0 && inCheck {
+	//return -Mate + height
+	//}
+	//return alpha
 }
 
 type tuner struct {
