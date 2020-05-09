@@ -3,6 +3,8 @@ package evaluation
 import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 
+var SEEValues = [...]int{100, 450, 450, 675, 1300, Mate / 2, 0}
+
 // Returns true if see non-negative
 func SeeSign(pos *Position, move Move) bool {
 	return SeeAbove(pos, move, 0)
