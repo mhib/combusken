@@ -36,11 +36,11 @@ const (
 	NOISY
 )
 
-var mvvlvaScores = [None + 1]int{10, 40, 45, 68, 145, 256, 0}
+var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
 
 const badNoisyValue = -4096
 
-func mvvlva(move Move) int {
+func mvvlva(move Move) int32 {
 	captureScore := mvvlvaScores[move.CapturedPiece()]
 	if move.IsPromotion() && move.PromotedPiece() == Queen {
 		captureScore += mvvlvaScores[Queen] - mvvlvaScores[Pawn]
@@ -88,11 +88,6 @@ func (mp *MoveProvider) GetMoveStage() uint8 {
 func (mp *MoveProvider) dropNoisy(bestIdx int) {
 	mp.noisySize--
 	mp.Moves[mp.noisySize], mp.Moves[bestIdx] = mp.Moves[bestIdx], mp.Moves[mp.noisySize]
-}
-
-func (mp *MoveProvider) dropQuiet(bestIdx int) {
-	mp.quietsSize--
-	mp.Moves[mp.split+mp.quietsSize], mp.Moves[bestIdx] = mp.Moves[bestIdx], mp.Moves[mp.split+mp.quietsSize]
 }
 
 func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, height int) Move {
@@ -162,19 +157,22 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, height int) 
 		mp.stage++
 		mp.quietsSize = pos.GenerateQuiet(mp.Moves[mp.split:])
 		mh.EvaluateQuiets(pos, mp.Moves[mp.split:mp.split+mp.quietsSize], height)
+		// Partial insertion sort
+		// Idea from stockfish, treshold is a wild guess
+		for i := mp.split + 1; i < mp.split+mp.quietsSize; i++ {
+			if mp.Moves[i].Value > -10000 {
+				j, t := i, mp.Moves[i]
+				for ; j >= mp.split+1 && mp.Moves[j-1].Value > t.Value; j -= 1 {
+					mp.Moves[j] = mp.Moves[j-1]
+				}
+				mp.Moves[j] = t
+			}
+		}
 		fallthrough
 	case QUIET:
 		for mp.quietsSize > 0 {
-			bestIdx = int(mp.split)
-			for i := mp.split + 1; i < mp.split+mp.quietsSize; i++ {
-				if mp.Moves[i].Value > mp.Moves[bestIdx].Value {
-					bestIdx = int(i)
-				}
-			}
-			move = mp.Moves[bestIdx]
-
-			mp.dropQuiet(bestIdx)
-
+			mp.quietsSize--
+			move = mp.Moves[mp.split+mp.quietsSize]
 			if move.Move != mp.ttMove && move.Move != mp.killer1 && move.Move != mp.killer2 && move.Move != mp.counter {
 				return move.Move
 			}
