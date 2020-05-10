@@ -157,16 +157,13 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, height int) 
 		mp.stage++
 		mp.quietsSize = pos.GenerateQuiet(mp.Moves[mp.split:])
 		mh.EvaluateQuiets(pos, mp.Moves[mp.split:mp.split+mp.quietsSize], height)
-		// Partial insertion sort
-		// Idea from stockfish, treshold is a wild guess
+		// Insertion sort
 		for i := mp.split + 1; i < mp.split+mp.quietsSize; i++ {
-			if mp.Moves[i].Value > -11000 {
-				j, t := i, mp.Moves[i]
-				for ; j >= mp.split+1 && mp.Moves[j-1].Value > t.Value; j -= 1 {
-					mp.Moves[j] = mp.Moves[j-1]
-				}
-				mp.Moves[j] = t
+			j, t := i, mp.Moves[i]
+			for ; j >= mp.split+1 && mp.Moves[j-1].Value > t.Value; j -= 1 {
+				mp.Moves[j] = mp.Moves[j-1]
 			}
+			mp.Moves[j] = t
 		}
 		fallthrough
 	case QUIET:
