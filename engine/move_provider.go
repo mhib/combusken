@@ -25,7 +25,6 @@ type MoveProvider struct {
 	killer1    Move
 	killer2    Move
 	kind       uint8
-	treshold   int16
 	stage      uint8
 	split      uint8
 	noisySize  uint8
@@ -52,13 +51,11 @@ func mvvlva(move Move) int {
 func (mp *MoveProvider) InitQs(pos *Position) {
 	mp.kind = NOISY
 	mp.ttMove = NullMove
-	mp.treshold = 0
 	mp.stage = GENERATE_NOISY
 }
 
 func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, ttMove Move) {
 	mp.kind = NORMAL
-	mp.treshold = 0
 	mp.stage = TT_MOVE
 	mp.ttMove = ttMove
 	if pos.LastMove != NullMove {
@@ -130,7 +127,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, height int) 
 				mp.dropNoisy(bestIdx)
 				continue
 			}
-			if !evaluation.SeeAbove(pos, move.Move, int(mp.treshold)) {
+			if !evaluation.SeeSign(pos, move.Move) {
 				mp.Moves[bestIdx].Value = badNoisyValue
 				continue
 			}
