@@ -14,9 +14,9 @@ const HistoryDivisor = 512
 type MoveEvaluator struct {
 	KillerMoves      [STACK_SIZE + 1][2]Move
 	CounterMoves     [2][64][64]Move
-	ButterflyHistory [2][64][64]int
-	FollowUpHistory  [King + 1][64][King + 1][64]int
-	CounterHistory   [King + 1][64][King + 1][64]int
+	ButterflyHistory [2][64][64]int32
+	FollowUpHistory  [King + 1][64][King + 1][64]int32
+	CounterHistory   [King + 1][64][King + 1][64]int32
 	CurrentMove      [STACK_SIZE + 1]Move
 }
 
@@ -77,7 +77,7 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 		}
 		mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()] = bestMove
 	}
-	unsignedBonus := Min(depth*depth, HistoryMax)
+	unsignedBonus := int32(Min(depth*depth, HistoryMax))
 
 	followUp := NullMove
 	if height > 1 {
@@ -85,7 +85,7 @@ func (mv *MoveEvaluator) Update(pos *Position, moves []Move, bestMove Move, dept
 	}
 
 	for _, move := range moves {
-		var signedBonus int
+		var signedBonus int32
 		if move == bestMove {
 			signedBonus = unsignedBonus
 		} else {
@@ -150,9 +150,9 @@ func (mv *MoveEvaluator) EvaluateMoves(pos *Position, moves []EvaledMove, fromTr
 	}
 }
 
-var mvvlvaScores = [None + 1]int{10, 40, 45, 68, 145, 256, 0}
+var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
 
-func mvvlva(move Move) int {
+func mvvlva(move Move) int32 {
 	captureScore := mvvlvaScores[move.CapturedPiece()]
 	if move.IsPromotion() {
 		captureScore += mvvlvaScores[move.PromotedPiece()] - mvvlvaScores[Pawn]
