@@ -17,9 +17,9 @@ const HistoryDivisor = 512
 type MoveHistory struct {
 	KillerMoves      [STACK_SIZE + 1][2]Move
 	CounterMoves     [2][64][64]Move
-	ButterflyHistory [2][64][64]int
-	FollowUpHistory  [King + 1][64][King + 1][64]int
-	CounterHistory   [King + 1][64][King + 1][64]int
+	ButterflyHistory [2][64][64]int32
+	FollowUpHistory  [King + 1][64][King + 1][64]int32
+	CounterHistory   [King + 1][64][King + 1][64]int32
 	CurrentMove      [STACK_SIZE + 1]Move
 }
 
@@ -80,7 +80,7 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 		}
 		mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()] = bestMove
 	}
-	unsignedBonus := Min(depth*depth, HistoryMax)
+	unsignedBonus := int32(Min(depth*depth, HistoryMax))
 
 	followUp := NullMove
 	if height > 1 {
@@ -88,7 +88,7 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 	}
 
 	for _, move := range moves {
-		var signedBonus int
+		var signedBonus int32
 		if move == bestMove {
 			signedBonus = unsignedBonus
 		} else {
@@ -111,7 +111,7 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 	}
 }
 
-const MinGoodCapture = 55001
+const MinGoodCapture = int32(55001)
 
 func (mv *MoveHistory) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
 	var counter Move

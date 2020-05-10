@@ -2,7 +2,7 @@ package backend
 
 type EvaledMove struct {
 	Move
-	Value int
+	Value int32
 }
 
 func addPromotions(move Move, buffer []EvaledMove) {
