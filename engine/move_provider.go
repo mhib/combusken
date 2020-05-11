@@ -69,6 +69,7 @@ func (mp *MoveProvider) InitSingular() {
 	mp.stage = GENERATE_NOISY
 }
 
+// We can save generating noisy after quiescence
 func (mp *MoveProvider) RestoreFromSingular() {
 	mp.stage = GOOD_NOISY
 	mp.noisySize = mp.split

@@ -315,7 +315,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
 
 	for {
-		move := t.stack[height].GetNextMove(pos, &t.MoveHistory, height)
+		move := t.getNextMove(pos, height)
 		if move == NullMove {
 			break
 		}
@@ -448,7 +448,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int)
 	quiets := 0
 	t.stack[height].InitSingular()
 	for {
-		move := t.stack[height].GetNextMove(pos, &t.MoveHistory, height)
+		move := t.getNextMove(pos, height)
 		if move == NullMove || t.stack[height].GetMoveStage() >= BAD_NOISY {
 			break
 		}
