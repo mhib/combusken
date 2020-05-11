@@ -117,8 +117,9 @@ func TestSEE(t *testing.T) {
 	good, bad := 0, 0
 	for i, fen := range testFENs {
 		pos := ParseFen(fen)
-		moves := pos.GenerateQuiet(buffer[:])
-		for _, m := range moves {
+		quietSize := pos.GenerateQuiet(buffer[:])
+		noisySize := pos.GenerateNoisy(buffer[quietSize:])
+		for _, m := range buffer[:quietSize+noisySize] {
 			expected := see(&pos, m.Move)
 			shouldTrue := SeeAbove(&pos, m.Move, expected)
 			shouldFalse := SeeAbove(&pos, m.Move, expected+1)
@@ -144,9 +145,10 @@ var seeBench = "1rr3k1/4ppb1/2q1bnp1/1p2B1Q1/6P1/2p2P2/2P1B2R/2K4R w - - 0 1"
 func BenchmarkSEESlow(b *testing.B) {
 	var buffer [256]EvaledMove
 	pos := ParseFen(seeBench)
-	moves := pos.GenerateQuiet(buffer[:])
+	quietSize := pos.GenerateQuiet(buffer[:])
+	noisySize := pos.GenerateNoisy(buffer[quietSize:])
 	for i := 0; i < b.N; i++ {
-		for _, m := range moves {
+		for _, m := range buffer[:quietSize+noisySize] {
 			see(&pos, m.Move)
 		}
 
@@ -199,9 +201,10 @@ var seeResults = []int{
 func BenchmarkSEEFast(b *testing.B) {
 	var buffer [256]EvaledMove
 	pos := ParseFen(seeBench)
-	moves := pos.GenerateQuiet(buffer[:])
+	quietSize := pos.GenerateQuiet(buffer[:])
+	noisySize := pos.GenerateNoisy(buffer[quietSize:])
 	for i := 0; i < b.N; i++ {
-		for idx, m := range moves {
+		for idx, m := range buffer[:quietSize+noisySize] {
 			SeeAbove(&pos, m.Move, seeResults[idx])
 		}
 	}
