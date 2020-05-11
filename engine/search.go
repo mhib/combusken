@@ -103,7 +103,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		if alpha < val {
 			alpha = val
 		}
-		t.stack[height].InitQs(pos)
+		t.stack[height].InitQs()
 	}
 
 	for {
@@ -265,7 +265,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		rBeta := Min(beta+probCutMargin, ValueWin-1)
 		//Idea from stockfish
 		if !(hashMove != NullMove && int(hashDepth) >= depth-4 && int(hashValue) < rBeta) {
-			t.stack[height].InitQs(pos)
+			t.stack[height].InitQs()
 			probCutCount := 0
 			for probCutCount < 3 {
 

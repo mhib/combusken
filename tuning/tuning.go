@@ -1,4 +1,4 @@
-package evaluation
+package tuning
 
 import (
 	"bufio"
@@ -14,6 +14,8 @@ import (
 	"syscall"
 
 	. "github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/engine"
+	. "github.com/mhib/combusken/evaluation"
 	"github.com/mhib/combusken/transposition"
 	. "github.com/mhib/combusken/utils"
 )
@@ -28,9 +30,9 @@ type thread struct {
 }
 
 type stackEntry struct {
+	engine.MoveProvider
 	position Position
 	pv
-	moves [256]EvaledMove
 }
 
 type pv struct {
@@ -65,55 +67,62 @@ func (t *emptyPKTableType) Set(uint64, Score) {
 func (t *emptyPKTableType) Clear() {
 }
 
+var moveHistory engine.MoveHistory
+
 // Copy of quiescence search to extract quiet position
 func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
+	t.stack[height].pv.clear()
+	pos := &t.stack[height].position
+
+	if height >= 127 {
+		return 0
+	}
+
+	child := &t.stack[height+1].position
+
+	moveCount := 0
+
+	val := Evaluate(pos)
+
+	var evaled []EvaledMove
+	if inCheck {
+		t.stack[height].MoveProvider.InitSingular()
+	} else {
+		if val >= beta {
+			return beta
+		}
+		if alpha < val {
+			alpha = val
+		}
+
+		t.stack[height].MoveProvider.InitQs()
+	}
+
+	for i := range evaled {
+		move := t.stack[height].GetNextMove(pos, &moveHistory, height)
+		if move == NullMove {
+			break
+		}
+		if !pos.MakeMove(move, child) {
+			continue
+		}
+
+		moveCount++
+		childInCheck := child.IsInCheck()
+		val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
+		if val > alpha {
+			alpha = val
+			if val >= beta {
+				return beta
+			}
+			t.stack[height].pv.assign(evaled[i].Move, &t.stack[height+1].pv)
+		}
+	}
+
+	if moveCount == 0 && inCheck {
+		return -Mate + height
+	}
 	return alpha
-	//t.stack[height].pv.clear()
-	//pos := &t.stack[height].position
-
-	//if height >= 127 {
-	//return 0
-	//}
-
-	//child := &t.stack[height+1].position
-
-	//moveCount := 0
-
-	//val := Evaluate(pos)
-
-	//var evaled []EvaledMove
-	//if inCheck {
-	//evaled = pos.GenerateQuiet(t.stack[height].moves[:])
-	//} else {
-	//if val >= beta {
-	//return beta
-	//}
-	//if alpha < val {
-	//alpha = val
-	//}
-	//evaled = pos.GenerateNoisy(t.stack[height].moves[:])
-	//}
-
-	//for i := range evaled {
-	//if (!inCheck && !SeeSign(pos, evaled[i].Move)) || !pos.MakeMove(evaled[i].Move, child) {
-	//continue
-	//}
-	//moveCount++
-	//childInCheck := child.IsInCheck()
-	//val = -t.quiescence(-beta, -alpha, height+1, childInCheck)
-	//if val > alpha {
-	//alpha = val
-	//if val >= beta {
-	//return beta
-	//}
-	//t.stack[height].pv.assign(evaled[i].Move, &t.stack[height+1].pv)
-	//}
-	//}
-
-	//if moveCount == 0 && inCheck {
-	//return -Mate + height
-	//}
-	//return alpha
 }
 
 type tuner struct {
@@ -339,7 +348,7 @@ func (t *tuner) coordinateDescent() bool {
 				for i := int16(1); i <= 64; i *= 2 {
 					score.set(phase, oldValue+i)
 					if idx < releventToPieceSquaresCount {
-						loadScoresToPieceSquares()
+						LoadScoresToPieceSquares()
 					}
 					newError := t.computeError(len(t.entries))
 					newErrorRegularization := t.regularization()
@@ -353,7 +362,7 @@ func (t *tuner) coordinateDescent() bool {
 					} else {
 						score.set(phase, bestValue)
 						if idx < releventToPieceSquaresCount {
-							loadScoresToPieceSquares()
+							LoadScoresToPieceSquares()
 						}
 						break
 					}
@@ -363,7 +372,7 @@ func (t *tuner) coordinateDescent() bool {
 					for i := int16(1); i <= 64; i *= 2 {
 						score.set(phase, oldValue-i)
 						if idx < releventToPieceSquaresCount {
-							loadScoresToPieceSquares()
+							LoadScoresToPieceSquares()
 						}
 						newError := t.computeError(len(t.entries))
 						newErrorRegularization := t.regularization()
@@ -376,7 +385,7 @@ func (t *tuner) coordinateDescent() bool {
 						} else {
 							score.set(phase, bestValue)
 							if idx < releventToPieceSquaresCount {
-								loadScoresToPieceSquares()
+								LoadScoresToPieceSquares()
 							}
 							break
 						}
@@ -400,19 +409,19 @@ func (t *tuner) symmetricDerivative(batchSize, idx, phase, h int) float64 {
 
 	weight.set(phase, oldValue+1)
 	if idx < releventToPieceSquaresCount {
-		loadScoresToPieceSquares()
+		LoadScoresToPieceSquares()
 	}
 	newError1 := t.computeError(batchSize) + t.regularization()
 
 	weight.set(phase, oldValue-1)
 	if idx < releventToPieceSquaresCount {
-		loadScoresToPieceSquares()
+		LoadScoresToPieceSquares()
 	}
 	newError2 := t.computeError(batchSize) + t.regularization()
 
 	weight.set(phase, oldValue)
 	if idx < releventToPieceSquaresCount {
-		loadScoresToPieceSquares()
+		LoadScoresToPieceSquares()
 	}
 
 	return (newError1 - newError2) / (2.0 * float64(h))
@@ -536,7 +545,7 @@ func (t *tuner) loadEvaluationValues() {
 			weight.set(phase, t.bestWeights[idx].get(phase))
 		}
 	}
-	loadScoresToPieceSquares()
+	LoadScoresToPieceSquares()
 }
 
 func copyEvaluationValue(ev EvaluationValue) (EvaluationValue, error) {
@@ -623,100 +632,100 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
-				res = append(res, ScoreValue{&pieceScores[i][y][x]})
+				res = append(res, ScoreValue{&PieceScores[i][y][x]})
 			}
 		}
 	}
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
-			res = append(res, ScoreValue{&pawnScores[y][x]})
+			res = append(res, ScoreValue{&PawnScores[y][x]})
 		}
 	}
 	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
-			res = append(res, ScoreValue{&pawnsConnected[y][x]})
+			res = append(res, ScoreValue{&PawnsConnected[y][x]})
 		}
 	}
 	for y := 0; y < 9; y++ {
-		res = append(res, ScoreValue{&mobilityBonus[0][y]})
+		res = append(res, ScoreValue{&MobilityBonus[0][y]})
 	}
 	for y := 0; y < 14; y++ {
-		res = append(res, ScoreValue{&mobilityBonus[1][y]})
+		res = append(res, ScoreValue{&MobilityBonus[1][y]})
 	}
 	for y := 0; y < 15; y++ {
-		res = append(res, ScoreValue{&mobilityBonus[2][y]})
+		res = append(res, ScoreValue{&MobilityBonus[2][y]})
 	}
 	for y := 0; y < 28; y++ {
-		res = append(res, ScoreValue{&mobilityBonus[3][y]})
+		res = append(res, ScoreValue{&MobilityBonus[3][y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, ScoreValue{&passedFriendlyDistance[y]})
+		res = append(res, ScoreValue{&PassedFriendlyDistance[y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, ScoreValue{&passedEnemyDistance[y]})
+		res = append(res, ScoreValue{&PassedEnemyDistance[y]})
 	}
 	for y := 0; y < 7; y++ {
-		res = append(res, ScoreValue{&passedRank[y]})
+		res = append(res, ScoreValue{&PassedRank[y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, ScoreValue{&passedFile[y]})
+		res = append(res, ScoreValue{&PassedFile[y]})
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, ScoreValue{&passedStacked[y]})
+		res = append(res, ScoreValue{&PassedStacked[y]})
 	}
-	res = append(res, ScoreValue{&isolated})
-	res = append(res, ScoreValue{&doubled})
-	res = append(res, ScoreValue{&backward})
-	res = append(res, ScoreValue{&backwardOpen})
-	res = append(res, ScoreValue{&bishopPair})
-	res = append(res, ScoreValue{&bishopRammedPawns})
-	res = append(res, ScoreValue{&bishopOutpostUndefendedBonus})
-	res = append(res, ScoreValue{&bishopOutpostDefendedBonus})
-	res = append(res, ScoreValue{&knightOutpostUndefendedBonus})
-	res = append(res, ScoreValue{&knightOutpostDefendedBonus})
+	res = append(res, ScoreValue{&Isolated})
+	res = append(res, ScoreValue{&Doubled})
+	res = append(res, ScoreValue{&Backward})
+	res = append(res, ScoreValue{&BackwardOpen})
+	res = append(res, ScoreValue{&BishopPair})
+	res = append(res, ScoreValue{&BishopRammedPawns})
+	res = append(res, ScoreValue{&BishopOutpostUndefendedBonus})
+	res = append(res, ScoreValue{&BishopOutpostDefendedBonus})
+	res = append(res, ScoreValue{&KnightOutpostUndefendedBonus})
+	res = append(res, ScoreValue{&KnightOutpostDefendedBonus})
 	for y := 0; y < 4; y++ {
-		res = append(res, ScoreValue{&distantKnight[y]})
+		res = append(res, ScoreValue{&DistantKnight[y]})
 	}
-	res = append(res, ScoreValue{&minorBehindPawn})
-	res = append(res, ScoreValue{&tempo})
-	res = append(res, ScoreValue{&rookOnFile[0]})
-	res = append(res, ScoreValue{&rookOnFile[1]})
+	res = append(res, ScoreValue{&MinorBehindPawn})
+	res = append(res, ScoreValue{&Tempo})
+	res = append(res, ScoreValue{&RookOnFile[0]})
+	res = append(res, ScoreValue{&RookOnFile[1]})
 	for y := 0; y < 12; y++ {
-		res = append(res, ScoreValue{&kingDefenders[y]})
+		res = append(res, ScoreValue{&KingDefenders[y]})
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
-				res = append(res, ScoreValue{&kingShelter[x][y][z]})
+				res = append(res, ScoreValue{&KingShelter[x][y][z]})
 			}
 		}
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 4; y++ {
 			for z := 0; z < 8; z++ {
-				res = append(res, ScoreValue{&kingStorm[x][y][z]})
+				res = append(res, ScoreValue{&KingStorm[x][y][z]})
 			}
 		}
 	}
 	for x := Knight; x <= Queen; x++ {
-		res = append(res, SingleValue{&kingSafetyAttacksWeights[x]})
+		res = append(res, SingleValue{&KingSafetyAttacksWeights[x]})
 	}
-	res = append(res, SingleValue{&kingSafetyAttackValue})
-	res = append(res, SingleValue{&kingSafetyWeakSquares})
-	res = append(res, SingleValue{&kingSafetyFriendlyPawns})
-	res = append(res, SingleValue{&kingSafetyNoEnemyQueens})
-	res = append(res, SingleValue{&kingSafetySafeQueenCheck})
-	res = append(res, SingleValue{&kingSafetySafeRookCheck})
-	res = append(res, SingleValue{&kingSafetySafeBishopCheck})
-	res = append(res, SingleValue{&kingSafetySafeKnightCheck})
-	res = append(res, SingleValue{&kingSafetyAdjustment})
-	res = append(res, ScoreValue{&hanging})
-	res = append(res, ScoreValue{&threatByKing})
+	res = append(res, SingleValue{&KingSafetyAttackValue})
+	res = append(res, SingleValue{&KingSafetyWeakSquares})
+	res = append(res, SingleValue{&KingSafetyFriendlyPawns})
+	res = append(res, SingleValue{&KingSafetyNoEnemyQueens})
+	res = append(res, SingleValue{&KingSafetySafeQueenCheck})
+	res = append(res, SingleValue{&KingSafetySafeRookCheck})
+	res = append(res, SingleValue{&KingSafetySafeBishopCheck})
+	res = append(res, SingleValue{&KingSafetySafeKnightCheck})
+	res = append(res, SingleValue{&KingSafetyAdjustment})
+	res = append(res, ScoreValue{&Hanging})
+	res = append(res, ScoreValue{&ThreatByKing})
 	for x := Pawn; x <= King; x++ {
-		res = append(res, ScoreValue{&threatByMinor[x]})
+		res = append(res, ScoreValue{&ThreatByMinor[x]})
 	}
 	for x := Pawn; x <= King; x++ {
-		res = append(res, ScoreValue{&threatByRook[x]})
+		res = append(res, ScoreValue{&ThreatByRook[x]})
 	}
 
 	return

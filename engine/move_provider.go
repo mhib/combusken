@@ -48,7 +48,7 @@ func mvvlva(move Move) int32 {
 	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
 }
 
-func (mp *MoveProvider) InitQs(pos *Position) {
+func (mp *MoveProvider) InitQs() {
 	mp.kind = NOISY
 	mp.ttMove = NullMove
 	mp.stage = GENERATE_NOISY
