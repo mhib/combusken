@@ -1,19 +1,20 @@
 package main
 
 import (
-	"github.com/mhib/combusken/engine"
-	"github.com/mhib/combusken/evaluation"
-	"github.com/mhib/combusken/uci"
 	"os"
+
+	"github.com/mhib/combusken/engine"
+	"github.com/mhib/combusken/tuning"
+	"github.com/mhib/combusken/uci"
 )
 
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "tune":
-			evaluation.Tune()
+			tuning.Tune()
 		case "trace-tune":
-			evaluation.TraceTune()
+			tuning.TraceTune()
 		case "bench":
 			engine.Benchmark()
 		}

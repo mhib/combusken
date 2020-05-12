@@ -218,9 +218,10 @@ func (pos *Position) Print() {
 
 func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
 	var buffer [256]EvaledMove
-	var ml = p.GenerateAllMoves(buffer[:])
-	for i := range ml {
-		var mv = ml[i].Move
+	noisySize := p.GenerateNoisy(buffer[:])
+	quietsSize := p.GenerateQuiet(buffer[noisySize:])
+	for i := range buffer[:noisySize+quietsSize] {
+		var mv = buffer[i].Move
 		if strings.EqualFold(mv.String(), lan) {
 			var newPosition = Position{}
 			if p.MakeMove(mv, &newPosition) {
@@ -235,10 +236,11 @@ func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
 
 func (pos *Position) GenerateAllLegalMoves() []EvaledMove {
 	var buffer [256]EvaledMove
-	var moves = pos.GenerateAllMoves(buffer[:])
 	var child Position
+	noisySize := pos.GenerateNoisy(buffer[:])
+	quietsSize := pos.GenerateQuiet(buffer[noisySize:])
 	result := make([]EvaledMove, 0)
-	for _, move := range moves {
+	for _, move := range buffer[:noisySize+quietsSize] {
 		if pos.MakeMove(move.Move, &child) {
 			result = append(result, move)
 		}
@@ -318,7 +320,8 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 	toMask := SquareMask[move.To()]
 
 	if move == NullMove || (we&fromMask) == 0 ||
-		(move.IsCapture() && (move.CapturedPiece() >= King || (move.Type() != EPCapture && pos.Pieces[move.CapturedPiece()]&them&toMask == 0))) {
+		(move.IsCapture() && (move.CapturedPiece() >= King || (move.Type() != EPCapture && pos.Pieces[move.CapturedPiece()]&them&toMask == 0))) ||
+		(!move.IsCapture() && toMask&them != 0) {
 		return false
 	}
 

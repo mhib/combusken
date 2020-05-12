@@ -4,8 +4,9 @@ func Perft(pos *Position, depth int) int {
 	result := 0
 	var child Position
 	var buffer [1000]EvaledMove
-
-	for _, move := range pos.GenerateAllMoves(buffer[:]) {
+	noisySize := pos.GenerateNoisy(buffer[:])
+	quietsSize := pos.GenerateQuiet(buffer[noisySize:])
+	for _, move := range buffer[:noisySize+quietsSize] {
 		if pos.MakeMove(move.Move, &child) {
 			if depth > 1 {
 				result += Perft(&child, depth-1)
@@ -14,5 +15,6 @@ func Perft(pos *Position, depth int) int {
 			}
 		}
 	}
+
 	return result
 }

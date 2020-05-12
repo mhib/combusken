@@ -1,10 +1,7 @@
-package evaluation
+package tuning
 
 import (
 	"fmt"
-	. "github.com/mhib/combusken/backend"
-	"github.com/mhib/combusken/transposition"
-	. "github.com/mhib/combusken/utils"
 	"math"
 	"math/rand"
 	"os"
@@ -13,6 +10,11 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
+	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/evaluation"
+	"github.com/mhib/combusken/transposition"
+	. "github.com/mhib/combusken/utils"
 )
 
 const (
@@ -238,7 +240,7 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	res.eval = float64(Evaluate(&board))
 
 	// Do not care about unwinnable positions
-	if scaleFactor(&board, int16(res.eval)) == SCALE_DRAW {
+	if ScaleFactor(&board, int16(res.eval)) == SCALE_DRAW {
 		return res, false
 	}
 
@@ -252,18 +254,18 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 		}
 	}
 
-	res.phase = (totalPhase - queenPhase*PopCount(board.Pieces[Queen]) -
-		rookPhase*PopCount(board.Pieces[Rook]) -
-		bishopPhase*PopCount(board.Pieces[Bishop]) -
-		knightPhase*PopCount(board.Pieces[Knight]))
+	res.phase = (TotalPhase - QueenPhase*PopCount(board.Pieces[Queen]) -
+		RookPhase*PopCount(board.Pieces[Rook]) -
+		BishopPhase*PopCount(board.Pieces[Bishop]) -
+		KnightPhase*PopCount(board.Pieces[Knight]))
 
 	if res.phase < 0 {
 		res.phase = 0
 	}
 
-	res.factors[MIDDLE] = 1.0 - float64(res.phase)/float64(totalPhase)
-	res.factors[END] = float64(res.phase) / float64(totalPhase)
-	res.phase = (res.phase*256 + (totalPhase / 2)) / totalPhase
+	res.factors[MIDDLE] = 1.0 - float64(res.phase)/float64(TotalPhase)
+	res.factors[END] = float64(res.phase) / float64(TotalPhase)
+	res.phase = (res.phase*256 + (TotalPhase / 2)) / TotalPhase
 
 	res.evalDiff = res.eval - tuner.linearEvaluation(&res)
 
@@ -451,82 +453,82 @@ func loadWeights() []weight {
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
-				tmp = append(tmp, pieceScores[i][y][x])
+				tmp = append(tmp, PieceScores[i][y][x])
 			}
 		}
 	}
 	for y := 1; y < 7; y++ {
 		for x := 0; x < 8; x++ {
-			tmp = append(tmp, pawnScores[y][x])
+			tmp = append(tmp, PawnScores[y][x])
 		}
 	}
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 4; x++ {
-			tmp = append(tmp, pawnsConnected[y][x])
+			tmp = append(tmp, PawnsConnected[y][x])
 		}
 	}
 	for y := 0; y < 9; y++ {
-		tmp = append(tmp, mobilityBonus[0][y])
+		tmp = append(tmp, MobilityBonus[0][y])
 	}
 	for y := 0; y < 14; y++ {
-		tmp = append(tmp, mobilityBonus[1][y])
+		tmp = append(tmp, MobilityBonus[1][y])
 	}
 	for y := 0; y < 15; y++ {
-		tmp = append(tmp, mobilityBonus[2][y])
+		tmp = append(tmp, MobilityBonus[2][y])
 	}
 	for y := 0; y < 28; y++ {
-		tmp = append(tmp, mobilityBonus[3][y])
+		tmp = append(tmp, MobilityBonus[3][y])
 	}
 	for y := 0; y < 8; y++ {
-		tmp = append(tmp, passedFriendlyDistance[y])
+		tmp = append(tmp, PassedFriendlyDistance[y])
 	}
 	for y := 0; y < 8; y++ {
-		tmp = append(tmp, passedEnemyDistance[y])
+		tmp = append(tmp, PassedEnemyDistance[y])
 	}
 	for y := 0; y < 7; y++ {
-		tmp = append(tmp, passedRank[y])
+		tmp = append(tmp, PassedRank[y])
 	}
 	for y := 0; y < 8; y++ {
-		tmp = append(tmp, passedFile[y])
+		tmp = append(tmp, PassedFile[y])
 	}
-	tmp = append(tmp, isolated)
-	tmp = append(tmp, doubled)
-	tmp = append(tmp, backward)
-	tmp = append(tmp, backwardOpen)
-	tmp = append(tmp, bishopPair)
-	tmp = append(tmp, bishopRammedPawns)
-	tmp = append(tmp, bishopOutpostUndefendedBonus)
-	tmp = append(tmp, bishopOutpostDefendedBonus)
-	tmp = append(tmp, knightOutpostUndefendedBonus)
-	tmp = append(tmp, knightOutpostDefendedBonus)
-	tmp = append(tmp, minorBehindPawn)
-	tmp = append(tmp, tempo)
-	tmp = append(tmp, rookOnFile[0])
-	tmp = append(tmp, rookOnFile[1])
+	tmp = append(tmp, Isolated)
+	tmp = append(tmp, Doubled)
+	tmp = append(tmp, Backward)
+	tmp = append(tmp, BackwardOpen)
+	tmp = append(tmp, BishopPair)
+	tmp = append(tmp, BishopRammedPawns)
+	tmp = append(tmp, BishopOutpostUndefendedBonus)
+	tmp = append(tmp, BishopOutpostDefendedBonus)
+	tmp = append(tmp, KnightOutpostUndefendedBonus)
+	tmp = append(tmp, KnightOutpostDefendedBonus)
+	tmp = append(tmp, MinorBehindPawn)
+	tmp = append(tmp, Tempo)
+	tmp = append(tmp, RookOnFile[0])
+	tmp = append(tmp, RookOnFile[1])
 	for y := 0; y < 12; y++ {
-		tmp = append(tmp, kingDefenders[y])
+		tmp = append(tmp, KingDefenders[y])
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
-				tmp = append(tmp, kingShelter[x][y][z])
+				tmp = append(tmp, KingShelter[x][y][z])
 			}
 		}
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 4; y++ {
 			for z := 0; z < 8; z++ {
-				tmp = append(tmp, kingStorm[x][y][z])
+				tmp = append(tmp, KingStorm[x][y][z])
 			}
 		}
 	}
-	tmp = append(tmp, hanging)
-	tmp = append(tmp, threatByKing)
+	tmp = append(tmp, Hanging)
+	tmp = append(tmp, ThreatByKing)
 	for x := Pawn; x <= King; x++ {
-		tmp = append(tmp, threatByMinor[x])
+		tmp = append(tmp, ThreatByMinor[x])
 	}
 	for x := Pawn; x <= King; x++ {
-		tmp = append(tmp, threatByRook[x])
+		tmp = append(tmp, ThreatByRook[x])
 	}
 
 	res := make([]weight, 0, len(tmp))
