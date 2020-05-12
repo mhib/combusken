@@ -40,9 +40,6 @@ const WindowDepth = 6
 const QSDepthChecks = 0
 const QSDepthNoChecks = -1
 
-var SkipSize = []int{1, 1, 1, 2, 2, 2, 1, 3, 2, 2, 1, 3, 3, 2, 2, 1}
-var SkipDepths = []int{1, 2, 2, 4, 4, 3, 2, 5, 4, 3, 2, 6, 5, 4, 3, 2}
-
 var PawnValueMiddle = PawnValue.Middle()
 
 func lossIn(height int) int {
@@ -665,15 +662,11 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 			moves[i], moves[j] = moves[j], moves[i]
 		})
 	}
-	// Depth skipping pattern taken from Ethereal
-	cycle := idx % SMPCycles
+
 	for depth := 1; depth <= MAX_HEIGHT; depth++ {
 		res = t.aspirationWindow(depth, lastValue, moves)
 		resultChan <- res
 		lastValue = res.value
-		if !mainThread && (depth+cycle)%SkipDepths[cycle] == 0 {
-			depth += SkipSize[cycle]
-		}
 	}
 }
 
