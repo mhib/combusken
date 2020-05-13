@@ -91,17 +91,17 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := Evaluate(pos)
+	bestVal := Evaluate(pos)
 
 	if inCheck {
 		t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
 	} else {
 		// Early return if not in check and evaluation exceeded beta
-		if val >= beta {
-			return beta
+		if bestVal >= beta {
+			return bestVal
 		}
-		if alpha < val {
-			alpha = val
+		if alpha < bestVal {
+			alpha = bestVal
 		}
 		t.stack[height].InitQs()
 	}
@@ -121,14 +121,17 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		t.SetCurrentMove(height, move)
 		moveCount++
 		childInCheck := child.IsInCheck()
-		val = -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
-		if val > alpha {
-			alpha = val
+		val := -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
+		if val > bestVal {
+			bestVal = val
 			bestMove = move
-			if val >= beta {
-				break
+			if val > alpha {
+				alpha = val
+				if alpha >= beta {
+					break
+				}
+				t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 			}
-			t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 		}
 	}
 
@@ -145,9 +148,9 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		flag = TransExact
 	}
 
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), ttDepth, bestMove, flag)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(bestVal, height), ttDepth, bestMove, flag)
 
-	return alpha
+	return bestVal
 }
 
 // Currently draws are scored as 0 +/- 1 randomly
@@ -204,10 +207,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				return tmpVal
 			}
 			if hashFlag == TransAlpha && tmpVal <= alpha {
-				return alpha
+				return tmpVal
 			}
 			if hashFlag == TransBeta && tmpVal >= beta {
-				return beta
+				return tmpVal
 			}
 		}
 	}
@@ -254,7 +257,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
 		if tmpVal >= beta {
-			return beta
+			return tmpVal
 		}
 	}
 
@@ -291,7 +294,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 	}
 
-	val := MinInt
+	bestVal := MinInt
 
 	// Internal iterative deepening
 	// https://www.chessprogramming.org/Internal_Iterative_Deepening
@@ -321,7 +324,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		isNoisy := move.IsCaptureOrPromotion()
 
-		if val > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
+		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
 			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
 				continue
 			}
@@ -330,7 +333,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 
-		if val > ValueLoss &&
+		if bestVal > ValueLoss &&
 			depth <= seePruningDepth &&
 			moveCount > 0 &&
 			t.stack[height].GetMoveStage() > GOOD_NOISY &&
@@ -402,11 +405,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 		}
 
-		if tmpVal > val {
-			val = tmpVal
-			if val > alpha {
-				alpha = val
-				bestMove = move
+		if tmpVal > bestVal {
+			bestVal = tmpVal
+			bestMove = move
+			if tmpVal > alpha {
+				alpha = tmpVal
 				if alpha >= beta {
 					break
 				}
@@ -434,8 +437,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), depth, bestMove, flag)
-	return alpha
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(bestVal, height), depth, bestMove, flag)
+	return bestVal
 }
 
 func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int) bool {
@@ -556,6 +559,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	t.stack[0].InvalidateEvaluation()
 	t.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
+	bestVal := MinInt
 
 	for i := range moves {
 		pos.MakeLegalMove(moves[i].Move, child)
@@ -594,13 +598,16 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			}
 		}
 		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck)
-		if val > alpha {
-			alpha = val
+		if val > bestVal {
 			bestMove = moves[i].Move
-			if alpha >= beta {
-				break
+			bestVal = val
+			if val > alpha {
+				alpha = val
+				if alpha >= beta {
+					break
+				}
+				t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 			}
-			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
 	if moveCount == 0 {
@@ -615,7 +622,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	}
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
-	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return result{bestMove, bestVal, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
