@@ -269,7 +269,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			probCutCount := 0
 			for probCutCount < 3 {
 
-				move := t.stack[height].GetNextMove(pos, &t.MoveHistory, height)
+				move := t.getNextMove(pos, height)
 				if move == NullMove {
 					break
 				}
