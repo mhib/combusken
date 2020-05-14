@@ -98,7 +98,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		// Early return if not in check and evaluation exceeded beta
 		if bestVal >= beta {
-			return bestVal
+			return beta
 		}
 		if alpha < bestVal {
 			alpha = bestVal
@@ -148,7 +148,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		flag = TransExact
 	}
 
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(bestVal, height), ttDepth, bestMove, flag)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), ttDepth, bestMove, flag)
 
 	return bestVal
 }
@@ -207,10 +207,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				return tmpVal
 			}
 			if hashFlag == TransAlpha && tmpVal <= alpha {
-				return tmpVal
+				return alpha
 			}
 			if hashFlag == TransBeta && tmpVal >= beta {
-				return tmpVal
+				return beta
 			}
 		}
 	}
@@ -437,8 +437,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(bestVal, height), depth, bestMove, flag)
-	return bestVal
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), depth, bestMove, flag)
+	return alpha
 }
 
 func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int) bool {
@@ -622,7 +622,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	}
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
-	return result{bestMove, bestVal, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
