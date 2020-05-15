@@ -40,6 +40,8 @@ var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
 
 const badNoisyValue = -4096
 
+const sortTreshold = (-16384 * 3) / 2
+
 func mvvlva(move Move) int32 {
 	captureScore := mvvlvaScores[move.CapturedPiece()]
 	if move.IsPromotion() && move.PromotedPiece() == Queen {
@@ -158,13 +160,15 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, height int) 
 		mp.stage++
 		mp.quietsSize = pos.GenerateQuiet(mp.Moves[mp.split:])
 		mh.EvaluateQuiets(pos, mp.Moves[mp.split:mp.split+mp.quietsSize], height)
-		// Insertion sort
-		for i := mp.split + 1; i < mp.split+mp.quietsSize; i++ {
-			j, t := i, mp.Moves[i]
-			for ; j >= mp.split+1 && mp.Moves[j-1].Value > t.Value; j -= 1 {
-				mp.Moves[j] = mp.Moves[j-1]
+		// Partial Insertion sort
+		for i := mp.split + mp.quietsSize - 2; i >= mp.split; i-- {
+			if mp.Moves[i].Value > sortTreshold {
+				j, t := i, mp.Moves[i]
+				for ; j <= mp.split+mp.quietsSize-2 && mp.Moves[j+1].Value < t.Value; j++ {
+					mp.Moves[j] = mp.Moves[j+1]
+				}
+				mp.Moves[j] = t
 			}
-			mp.Moves[j] = t
 		}
 		fallthrough
 	case QUIET:
