@@ -159,15 +159,16 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, height int) 
 	case GENERATE_QUIET:
 		mp.stage++
 		mp.quietsSize = pos.GenerateQuiet(mp.Moves[mp.split:])
-		mh.EvaluateQuiets(pos, mp.Moves[mp.split:mp.split+mp.quietsSize], height)
+		quietMoves := mp.Moves[mp.split : mp.split+mp.quietsSize]
+		mh.EvaluateQuiets(pos, quietMoves, height)
 		// Partial Insertion sort
-		for i := mp.split + mp.quietsSize - 2; i >= mp.split; i-- {
-			if mp.Moves[i].Value > sortTreshold {
-				j, t := i, mp.Moves[i]
-				for ; j <= mp.split+mp.quietsSize-2 && mp.Moves[j+1].Value < t.Value; j++ {
-					mp.Moves[j] = mp.Moves[j+1]
+		for i := len(quietMoves) - 2; i >= 0; i-- {
+			if quietMoves[i].Value > sortTreshold {
+				j, t := i, quietMoves[i]
+				for ; j <= len(quietMoves)-2 && quietMoves[j+1].Value < t.Value; j++ {
+					quietMoves[j] = quietMoves[j+1]
 				}
-				mp.Moves[j] = t
+				quietMoves[j] = t
 			}
 		}
 		fallthrough
