@@ -40,7 +40,7 @@ var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
 
 const badNoisyValue = -4096
 
-const sortTreshold = (-16384 * 3) / 2
+const sortTreshold = (-16384 * 3) / 4
 
 func mvvlva(move Move) int32 {
 	captureScore := mvvlvaScores[move.CapturedPiece()]
