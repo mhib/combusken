@@ -437,7 +437,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), depth, bestMove, flag)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(bestVal, height), depth, bestMove, flag)
 	return alpha
 }
 
