@@ -91,17 +91,19 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := Evaluate(pos)
+	var bestVal int
 
 	if inCheck {
+		bestVal = MinInt
 		t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
 	} else {
+		bestVal = Evaluate(pos)
 		// Early return if not in check and evaluation exceeded beta
-		if val >= beta {
+		if bestVal >= beta {
 			return beta
 		}
-		if alpha < val {
-			alpha = val
+		if alpha < bestVal {
+			alpha = bestVal
 		}
 		t.stack[height].InitQs()
 	}
@@ -121,14 +123,18 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		t.SetCurrentMove(height, move)
 		moveCount++
 		childInCheck := child.IsInCheck()
-		val = -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
-		if val > alpha {
-			alpha = val
+		val := -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
+		if val > bestVal {
+			bestVal = val
 			bestMove = move
-			if val >= beta {
-				break
+			if val > alpha {
+				alpha = val
+				if val >= beta {
+					break
+				}
+				t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 			}
-			t.stack[height].PV.assign(move, &t.stack[height+1].PV)
+
 		}
 	}
 
@@ -181,8 +187,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.contempt(pos, depth)
 	}
 
-	var tmpVal int
-
 	// Node is not pv if it is searched with null window
 	pvNode := alpha != beta-1
 
@@ -196,17 +200,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	alphaOrig := alpha
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
 	hashValue = transposition.ValueFromTrans(hashValue, height)
+	var val int
 	if hashOk {
-		tmpVal = int(hashValue)
+		val := int(hashValue)
 		// Hash pruning
 		if hashDepth >= int16(depth) && (depth == 0 || !pvNode) {
 			if hashFlag == TransExact {
-				return tmpVal
+				return val
 			}
-			if hashFlag == TransAlpha && tmpVal <= alpha {
+			if hashFlag == TransAlpha && val <= alpha {
 				return alpha
 			}
-			if hashFlag == TransBeta && tmpVal >= beta {
+			if hashFlag == TransBeta && val >= beta {
 				return beta
 			}
 		}
@@ -217,18 +222,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		if tbResult := fathom.ProbeWDL(pos, depth); tbResult != fathom.TB_RESULT_FAILED {
 			var ttBound int
 			if tbResult == fathom.TB_LOSS {
-				tmpVal = ValueLoss + height + 1
+				val = ValueLoss + height + 1
 				ttBound = TransAlpha
 			} else if tbResult == fathom.TB_WIN {
-				tmpVal = ValueWin - height - 1
+				val = ValueWin - height - 1
 				ttBound = TransBeta
 			} else {
-				tmpVal = 0
+				val = 0
 				ttBound = TransExact
 			}
-			if ttBound == TransExact || ttBound == TransBeta && tmpVal >= beta || ttBound == TransAlpha && tmpVal <= alpha {
-				transposition.GlobalTransTable.Set(pos.Key, int16(tmpVal), MAX_HEIGHT-1, NullMove, ttBound)
-				return tmpVal
+			if ttBound == TransExact || ttBound == TransBeta && val >= beta || ttBound == TransAlpha && val <= alpha {
+				transposition.GlobalTransTable.Set(pos.Key, int16(val), MAX_HEIGHT-1, NullMove, ttBound)
+				return val
 			}
 		}
 	}
@@ -252,8 +257,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
-		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
-		if tmpVal >= beta {
+		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
+		if val >= beta {
 			return beta
 		}
 	}
@@ -280,18 +285,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				probCutCount++
 				t.SetCurrentMove(height, move)
 				isChildInCheck := child.IsInCheck()
-				tmpVal = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
-				if tmpVal >= rBeta {
-					tmpVal = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				val = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				if val >= rBeta {
+					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
 				}
-				if tmpVal >= rBeta {
-					return tmpVal
+				if val >= rBeta {
+					return val
 				}
 			}
 		}
 	}
 
-	val := MinInt
+	bestVal := MinInt
 
 	// Internal iterative deepening
 	// https://www.chessprogramming.org/Internal_Iterative_Deepening
@@ -321,7 +326,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		isNoisy := move.IsCaptureOrPromotion()
 
-		if val > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
+		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
 			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
 				continue
 			}
@@ -330,7 +335,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 
-		if val > ValueLoss &&
+		if bestVal > ValueLoss &&
 			depth <= seePruningDepth &&
 			moveCount > 0 &&
 			t.stack[height].GetMoveStage() > GOOD_NOISY &&
@@ -388,25 +393,25 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		// Search conditions as in Ethereal
 		// Search with null window and reduced depth if lmr
 		if reduction > 0 {
-			tmpVal = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
 		// Search with null window without reduced depth if
 		// search with lmr null window exceeded alpha or
 		// not in pv (this is the same as normal search as non pv nodes are searched with null window anyway)
 		// pv and not first move
-		if (reduction > 0 && tmpVal > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
-			tmpVal = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
+		if (reduction > 0 && val > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
+			val = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
 		}
 		// If pvNode and first move or search with null window exceeded alpha, search with full window
-		if pvNode && (moveCount == 1 || tmpVal > alpha) {
-			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
+		if pvNode && (moveCount == 1 || val > alpha) {
+			val = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 		}
 
-		if tmpVal > val {
-			val = tmpVal
+		if val > bestVal {
+			bestVal = val
+			bestMove = move
 			if val > alpha {
 				alpha = val
-				bestMove = move
 				if alpha >= beta {
 					break
 				}
@@ -556,6 +561,8 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	t.stack[0].InvalidateEvaluation()
 	t.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
+	bestVal := MinInt
+	var val int
 
 	for i := range moves {
 		pos.MakeLegalMove(moves[i].Move, child)
@@ -580,7 +587,6 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 				reduction = Max(0, Min(depth-2, reduction))
 			}
 		}
-		var val int
 		newDepth := depth - 1
 		if moves[i].IsCastling() {
 			newDepth++
@@ -594,13 +600,16 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			}
 		}
 		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck)
-		if val > alpha {
-			alpha = val
+		if val > bestVal {
+			bestVal = val
 			bestMove = moves[i].Move
-			if alpha >= beta {
-				break
+			if val > alpha {
+				alpha = val
+				if alpha >= beta {
+					break
+				}
+				t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 			}
-			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
 	if moveCount == 0 {
