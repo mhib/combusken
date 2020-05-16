@@ -150,7 +150,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), ttDepth, bestMove, flag)
 
-	return bestVal
+	return alpha
 }
 
 // Currently draws are scored as 0 +/- 1 randomly
