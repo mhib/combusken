@@ -91,17 +91,17 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	bestVal := Evaluate(pos)
+	val := Evaluate(pos)
 
 	if inCheck {
 		t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
 	} else {
 		// Early return if not in check and evaluation exceeded beta
-		if bestVal >= beta {
+		if val >= beta {
 			return beta
 		}
-		if alpha < bestVal {
-			alpha = bestVal
+		if alpha < val {
+			alpha = val
 		}
 		t.stack[height].InitQs()
 	}
@@ -121,17 +121,14 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		t.SetCurrentMove(height, move)
 		moveCount++
 		childInCheck := child.IsInCheck()
-		val := -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
-		if val > bestVal {
-			bestVal = val
+		val = -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
+		if val > alpha {
+			alpha = val
 			bestMove = move
-			if val > alpha {
-				alpha = val
-				if alpha >= beta {
-					break
-				}
-				t.stack[height].PV.assign(move, &t.stack[height+1].PV)
+			if val >= beta {
+				break
 			}
+			t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 		}
 	}
 
@@ -150,7 +147,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), ttDepth, bestMove, flag)
 
-	return bestVal
+	return alpha
 }
 
 // Currently draws are scored as 0 +/- 1 randomly
@@ -257,7 +254,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		tmpVal = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
 		if tmpVal >= beta {
-			return tmpVal
+			return beta
 		}
 	}
 
@@ -294,7 +291,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 	}
 
-	bestVal := MinInt
+	val := MinInt
 
 	// Internal iterative deepening
 	// https://www.chessprogramming.org/Internal_Iterative_Deepening
@@ -324,7 +321,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 		isNoisy := move.IsCaptureOrPromotion()
 
-		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
+		if val > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
 			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
 				continue
 			}
@@ -333,7 +330,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		}
 
-		if bestVal > ValueLoss &&
+		if val > ValueLoss &&
 			depth <= seePruningDepth &&
 			moveCount > 0 &&
 			t.stack[height].GetMoveStage() > GOOD_NOISY &&
@@ -405,11 +402,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			tmpVal = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
 		}
 
-		if tmpVal > bestVal {
-			bestVal = tmpVal
-			bestMove = move
-			if tmpVal > alpha {
-				alpha = tmpVal
+		if tmpVal > val {
+			val = tmpVal
+			if val > alpha {
+				alpha = val
+				bestMove = move
 				if alpha >= beta {
 					break
 				}
@@ -559,7 +556,6 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	t.stack[0].InvalidateEvaluation()
 	t.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
-	bestVal := MinInt
 
 	for i := range moves {
 		pos.MakeLegalMove(moves[i].Move, child)
@@ -598,16 +594,13 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			}
 		}
 		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck)
-		if val > bestVal {
+		if val > alpha {
+			alpha = val
 			bestMove = moves[i].Move
-			bestVal = val
-			if val > alpha {
-				alpha = val
-				if alpha >= beta {
-					break
-				}
-				t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
+			if alpha >= beta {
+				break
 			}
+			t.stack[0].PV.assign(moves[i].Move, &t.stack[1].PV)
 		}
 	}
 	if moveCount == 0 {
