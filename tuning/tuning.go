@@ -99,7 +99,7 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 	}
 
 	for i := range evaled {
-		move := t.stack[height].GetNextMove(pos, &moveHistory, height)
+		move := t.stack[height].GetNextMove(pos, &moveHistory, 128, height)
 		if move == NullMove {
 			break
 		}
