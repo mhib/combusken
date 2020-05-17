@@ -555,6 +555,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
+	alphaOrig := alpha
 	inCheck := pos.IsInCheck()
 	moveCount := 0
 	t.stack[0].PV.clear()
@@ -624,6 +625,15 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	}
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
+	var flag int
+	if alpha == alphaOrig {
+		flag = TransAlpha
+	} else if alpha >= beta {
+		flag = TransBeta
+	} else {
+		flag = TransExact
+	}
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), depth, bestMove, flag)
 	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
