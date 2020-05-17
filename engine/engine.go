@@ -194,8 +194,8 @@ func (t *thread) incNodes() {
 	}
 }
 
-func (t *thread) getNextMove(pos *backend.Position, height int) backend.Move {
-	return t.stack[height].GetNextMove(pos, &t.MoveHistory, height)
+func (t *thread) getNextMove(pos *backend.Position, depth, height int) backend.Move {
+	return t.stack[height].GetNextMove(pos, &t.MoveHistory, depth, height)
 }
 
 func (pv *PV) clear() {
