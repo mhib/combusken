@@ -13,7 +13,7 @@ func SetPath(path string) {
 func Clear() {
 }
 
-func ProbeWDL(pos *backend.Position, depth int) int {
+func ProbeWDL(pos *backend.Position, depth int) int64 {
 	return 0
 }
 

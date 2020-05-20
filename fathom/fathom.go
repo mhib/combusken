@@ -24,8 +24,8 @@ func Clear() {
 	C.tb_free()
 }
 
-func ProbeWDL(pos *backend.Position, depth int) int {
-	return int(C.tb_probe_wdl(
+func ProbeWDL(pos *backend.Position, depth int) int64 {
+	return int64(C.tb_probe_wdl(
 		C.uint64_t(pos.Colours[backend.White]),
 		C.uint64_t(pos.Colours[backend.Black]),
 		C.uint64_t(pos.Pieces[backend.King]),

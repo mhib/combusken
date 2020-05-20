@@ -8,4 +8,4 @@ const (
 	TB_WIN
 )
 
-const TB_RESULT_FAILED = 0xFFFFFFFF
+const TB_RESULT_FAILED = int64(0xFFFFFFFF)
