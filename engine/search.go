@@ -29,6 +29,7 @@ const reverseFutilityPruningMargin = 90
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 const counterMovePruningDepth = 3
+const counterMovePruningVal = -1000
 
 const probCutDepth = 6
 const probCutMargin = 100
@@ -334,7 +335,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation() >= t.stack[height-2].Evaluation()), depth) {
 				continue
 			}
-			if depth <= counterMovePruningDepth && pos.LastMove != NullMove && t.CounterHistoryValue(pos.LastMove, move) < 0 {
+			if depth <= counterMovePruningDepth && pos.LastMove != NullMove && t.CounterHistoryValue(pos.LastMove, move) < counterMovePruningVal {
 				continue
 			}
 		}
