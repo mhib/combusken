@@ -336,11 +336,13 @@ func QueenAttacks(square int, occupancy uint64) uint64 {
 }
 
 func RookAttacks(square int, occupancy uint64) uint64 {
-	return rookMagics[square].attacks(occupancy)
+	magic := &rookMagics[square]
+	return rookAttacks[magic.offset+((magic.blockerMask&occupancy*magic.magicIndex)>>magic.shift)]
 }
 
 func BishopAttacks(square int, occupancy uint64) uint64 {
-	return bishopMagics[square].attacks(occupancy)
+	magic := &bishopMagics[square]
+	return bishopAttacks[magic.offset+((magic.blockerMask&occupancy*magic.magicIndex)>>magic.shift)]
 }
 
 func squareString(square int) (res string) {

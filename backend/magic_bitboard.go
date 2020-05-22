@@ -1,7 +1,5 @@
 package backend
 
-import "unsafe"
-
 const (
 	MAX_ROOK_BITS   = 12
 	MAX_BISHOP_BITS = 9
@@ -10,12 +8,8 @@ const (
 type Magic struct {
 	blockerMask uint64
 	magicIndex  uint64
-	offset      unsafe.Pointer
+	offset      uint64
 	shift       uint64
-}
-
-func (magic Magic) attacks(occupancy uint64) uint64 {
-	return *((*uint64)(unsafe.Pointer(uintptr(magic.offset) + uintptr((magic.blockerMask&occupancy*magic.magicIndex)>>magic.shift)<<3)))
 }
 
 var (
@@ -228,35 +222,35 @@ func initBishopMoveBoard(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64)
 }
 
 func initRookAttacks(blockerMask *[64]uint64, rookBlockerBoard [][]uint64, rookMoveBoard *[64][1 << MAX_ROOK_BITS]uint64) {
-	rookMagics[0].offset = unsafe.Pointer(&rookAttacks[0])
+	rookMagics[0].offset = 0
 	for idx := range rookMagicIdx {
 		magic := &rookMagics[idx]
 		magic.blockerMask = blockerMask[idx]
 		magic.magicIndex = rookMagicIdx[idx]
 		magic.shift = uint64(64 - PopCount(blockerMask[idx]))
 		for innerIdx, el := range rookBlockerBoard[idx] {
-			mult := uintptr(el*magic.magicIndex>>magic.shift) * 8
-			*((*uint64)(unsafe.Pointer(uintptr(magic.offset) + mult))) = rookMoveBoard[idx][innerIdx]
+			mult := el * magic.magicIndex >> magic.shift
+			rookAttacks[magic.offset+mult] = rookMoveBoard[idx][innerIdx]
 		}
 		if idx != H8 {
-			rookMagics[idx+1].offset = unsafe.Pointer(uintptr(magic.offset) + uintptr(8<<PopCount(blockerMask[idx])))
+			rookMagics[idx+1].offset = magic.offset + (1 << uint64(PopCount(blockerMask[idx])))
 		}
 	}
 }
 
 func initBishopAttacks(blockerMask *[64]uint64, bishopBlockerBoard [][]uint64, bishopMoveBoard *[64][1 << MAX_BISHOP_BITS]uint64) {
-	bishopMagics[0].offset = unsafe.Pointer(&bishopAttacks[0])
+	bishopMagics[0].offset = 0
 	for idx := range bishopMagicIdx {
 		magic := &bishopMagics[idx]
 		magic.blockerMask = blockerMask[idx]
 		magic.magicIndex = bishopMagicIdx[idx]
 		magic.shift = uint64(64 - PopCount(blockerMask[idx]))
 		for innerIdx, el := range bishopBlockerBoard[idx] {
-			mult := uintptr(el*magic.magicIndex>>magic.shift) * 8
-			*((*uint64)(unsafe.Pointer(uintptr(magic.offset) + mult))) = bishopMoveBoard[idx][innerIdx]
+			mult := el * magic.magicIndex >> magic.shift
+			bishopAttacks[magic.offset+mult] = bishopMoveBoard[idx][innerIdx]
 		}
 		if idx != H8 {
-			bishopMagics[idx+1].offset = unsafe.Pointer(uintptr(magic.offset) + uintptr(8<<PopCount(blockerMask[idx])))
+			bishopMagics[idx+1].offset = magic.offset + (1 << uint64(PopCount(blockerMask[idx])))
 		}
 	}
 }
