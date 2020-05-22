@@ -142,6 +142,8 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		return lossIn(height)
 	}
 
+	transposition.GlobalTransTable.Prefetch(pos.Key)
+
 	var flag int
 	if alpha == alphaOrig {
 		flag = TransAlpha
@@ -255,6 +257,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Null move pruning
 	if pos.LastMove != NullMove && depth >= 2 && !inCheck && (height < 2 || t.GetPreviousMoveFromCurrentSide(height) != NullMove) && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
 		pos.MakeNullMove(child)
+		transposition.GlobalTransTable.Prefetch(child.Key)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
 		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
@@ -281,6 +284,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				if !pos.MakeMove(move, child) {
 					continue
 				}
+				transposition.GlobalTransTable.Prefetch(child.Key)
 
 				probCutCount++
 				t.SetCurrentMove(height, move)
@@ -427,6 +431,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.contempt(pos, depth)
 	}
 
+	transposition.GlobalTransTable.Prefetch(pos.Key)
+
 	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, height)
 	}
@@ -460,6 +466,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int)
 		if !pos.MakeMove(move, child) {
 			continue
 		}
+		transposition.GlobalTransTable.Prefetch(child.Key)
 		t.SetCurrentMove(height, move)
 		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck())
 		if val > rBeta {
@@ -623,8 +630,10 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, 0)
 	}
+	transposition.GlobalTransTable.Prefetch(pos.Key)
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
+
 	var flag int
 	if alpha == alphaOrig {
 		flag = TransAlpha
