@@ -30,7 +30,7 @@ const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 
 const probCutDepth = 6
-const probCutMargin = 100
+const probCutMargin = 110
 
 const SMPCycles = 16
 
