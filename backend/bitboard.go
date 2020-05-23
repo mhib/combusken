@@ -242,6 +242,10 @@ func MoreThanOne(bb uint64) bool {
 	return bb != 0 && ((bb-1)&bb) != 0
 }
 
+func OnlyOne(bb uint64) bool {
+	return bb != 0 && ((bb-1)&bb) == 0
+}
+
 func NorthWest(set uint64) uint64 {
 	return set << 7
 }

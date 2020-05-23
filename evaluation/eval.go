@@ -1202,10 +1202,18 @@ func Evaluate(pos *Position) int {
 	return -result
 }
 
-const SCALE_NORMAL = 1
+const SCALE_NORMAL = 2
+const SCALE_HARD = 1
 const SCALE_DRAW = 0
 
 func ScaleFactor(pos *Position, endResult int16) int {
+	// OCB without other pieces endgame
+	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
+		OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
+		OnlyOne(pos.Pieces[Bishop]&WHITE_SQUARES) &&
+		(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
+		return SCALE_HARD
+	}
 	if (endResult > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
 		(endResult < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
 		return SCALE_DRAW
