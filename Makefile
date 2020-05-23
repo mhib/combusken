@@ -1,4 +1,4 @@
 EXE = combusken
 
 combusken:
-	go build -o $(EXE) combusken.go
+	go build -gcflags -B -o $(EXE) combusken.go
