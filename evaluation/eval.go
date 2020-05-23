@@ -1190,7 +1190,17 @@ func Evaluate(pos *Position) int {
 		}
 	}
 
-	scale := ScaleFactor(pos, score.End())
+	// Scale Factor inlined
+	scale := SCALE_NORMAL
+	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
+		OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
+		OnlyOne(pos.Pieces[Bishop]&WHITE_SQUARES) &&
+		(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
+		scale = SCALE_HARD
+	} else if (score.End() > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
+		(score.End() < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
+		return SCALE_DRAW
+	}
 
 	// tapering eval
 	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
