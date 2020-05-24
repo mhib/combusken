@@ -741,8 +741,8 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		// Start parallel searching
 		go func(idx int) {
 			defer recoverFromTimeout()
+			defer wg.Done()
 			e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan, idx)
-			wg.Done()
 		}(i)
 	}
 
