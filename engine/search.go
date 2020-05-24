@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"math/rand"
-	"sync"
 	"time"
 
 	. "github.com/mhib/combusken/backend"
@@ -734,23 +733,13 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		return e.singleThreadBestMove(ctx, rootMoves)
 	}
 
-	var wg = &sync.WaitGroup{}
 	resultChan := make(chan result)
 	for i := range e.threads {
-		wg.Add(1)
-		// Start parallel searching
 		go func(idx int) {
 			defer recoverFromTimeout()
-			defer wg.Done()
 			e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan, idx)
 		}(i)
 	}
-
-	// Wait for closing
-	go func() {
-		wg.Wait()
-		close(resultChan)
-	}()
 
 	prevDepth := 0
 	var lastBestMove Move
