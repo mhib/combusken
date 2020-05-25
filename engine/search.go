@@ -379,9 +379,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		} else if inCheck && SeeSign(pos, move) {
 			newDepth++
 		} else if move == hashMove && depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha {
-			if t.isMoveSingular(depth, height, hashMove, int(hashValue)) {
-				newDepth++
+			isSingular, multiCut := t.isMoveSingular(depth, height, hashMove, beta, int(hashValue))
+			if multiCut {
+				return beta
 			}
+			newDepth += BoolToInt(isSingular)
 		}
 
 		// Store move if it is quiet
@@ -442,7 +444,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	return alpha
 }
 
-func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int) bool {
+func (t *thread) isMoveSingular(depth, height int, hashMove Move, beta, hashValue int) (bool, bool) {
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
 	// Store child as we already made a move into it in alphaBeta
@@ -474,7 +476,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int)
 	// restore child
 	*child = oldChild
 	t.stack[height].RestoreFromSingular()
-	return val <= rBeta
+	return val <= rBeta, val > rBeta && rBeta >= beta
 }
 
 func (t *thread) isDraw(height int) bool {
