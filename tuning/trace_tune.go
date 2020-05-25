@@ -13,7 +13,6 @@ import (
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
-	"github.com/mhib/combusken/transposition"
 	. "github.com/mhib/combusken/utils"
 )
 
@@ -154,7 +153,6 @@ func TraceTune() {
 	t.bestWeights = make([]weight, len(t.weights))
 	copy(t.bestWeights, t.weights)
 
-	transposition.GlobalPawnKingTable = &emptyPKTableType{}
 	inputChan := make(chan string)
 	go loadEntries(inputChan)
 	var thread thread

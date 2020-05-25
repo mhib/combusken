@@ -16,7 +16,6 @@ import (
 	. "github.com/mhib/combusken/backend"
 	"github.com/mhib/combusken/engine"
 	. "github.com/mhib/combusken/evaluation"
-	"github.com/mhib/combusken/transposition"
 	. "github.com/mhib/combusken/utils"
 )
 
@@ -52,19 +51,6 @@ func (pv *pv) assign(m Move, child *pv) {
 
 func (pv *pv) Moves() []Move {
 	return pv.items[:pv.size]
-}
-
-type emptyPKTableType struct {
-}
-
-func (t *emptyPKTableType) Get(uint64) (bool, Score) {
-	return false, SCORE_ZERO
-}
-
-func (t *emptyPKTableType) Set(uint64, Score) {
-}
-
-func (t *emptyPKTableType) Clear() {
 }
 
 var moveHistory engine.MoveHistory
@@ -136,8 +122,6 @@ type tuner struct {
 }
 
 func Tune() {
-	transposition.GlobalPawnKingTable = &emptyPKTableType{}
-
 	inputChan := make(chan string)
 	go loadEntries(inputChan)
 	wg := &sync.WaitGroup{}

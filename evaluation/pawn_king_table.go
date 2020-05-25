@@ -1,13 +1,10 @@
-package transposition
+package evaluation
 
-import "unsafe"
-import . "github.com/mhib/combusken/utils"
+import (
+	"unsafe"
 
-type PawnKingTable interface {
-	Get(key uint64) (ok bool, score Score)
-	Set(key uint64, score Score)
-	Clear()
-}
+	. "github.com/mhib/combusken/utils"
+)
 
 var GlobalPawnKingTable PawnKingTable
 
@@ -16,17 +13,17 @@ type PKTableEntry struct {
 	score Score
 }
 
-type PKTable struct {
+type PawnKingTable struct {
 	Entries []PKTableEntry
 	Mask    uint64
 }
 
-func NewPKTable(megabytes int) *PKTable {
+func NewPawnKingTable(megabytes int) PawnKingTable {
 	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(PKTableEntry{})))
-	return &PKTable{make([]PKTableEntry, size), size - 1}
+	return PawnKingTable{make([]PKTableEntry, size), size - 1}
 }
 
-func (t *PKTable) Get(key uint64) (ok bool, score Score) {
+func (t *PawnKingTable) Get(key uint64) (ok bool, score Score) {
 	var element = &t.Entries[key&t.Mask]
 	if element.key != key {
 		return
@@ -36,13 +33,13 @@ func (t *PKTable) Get(key uint64) (ok bool, score Score) {
 	return
 }
 
-func (t *PKTable) Set(key uint64, score Score) {
+func (t *PawnKingTable) Set(key uint64, score Score) {
 	var element = &t.Entries[key&t.Mask]
 	element.key = key
 	element.score = score
 }
 
-func (t *PKTable) Clear() {
+func (t *PawnKingTable) Clear() {
 	for i := range t.Entries {
 		t.Entries[i] = PKTableEntry{}
 	}

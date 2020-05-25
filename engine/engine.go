@@ -167,7 +167,7 @@ func (e *Engine) NewGame() {
 		e.threads[i].MoveHistory = MoveHistory{}
 		e.threads[i].engine = e
 	}
-	transposition.GlobalPawnKingTable = transposition.NewPKTable(e.PawnHash.Val)
+	evaluation.GlobalPawnKingTable = evaluation.NewPawnKingTable(e.PawnHash.Val)
 	fathom.MIN_PROBE_DEPTH = e.SyzygyProbeDepth.Val
 	if e.SyzygyPath.Dirty {
 		fathom.SetPath(e.SyzygyPath.Val)

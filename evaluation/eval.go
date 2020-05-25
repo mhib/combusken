@@ -2,7 +2,6 @@ package evaluation
 
 import (
 	. "github.com/mhib/combusken/backend"
-	"github.com/mhib/combusken/transposition"
 	. "github.com/mhib/combusken/utils"
 )
 
@@ -390,8 +389,10 @@ func IsLateEndGame(pos *Position) bool {
 }
 
 func evaluateKingPawns(pos *Position) Score {
-	if ok, score := transposition.GlobalPawnKingTable.Get(pos.PawnKey); ok {
-		return score
+	if !tuning {
+		if ok, score := GlobalPawnKingTable.Get(pos.PawnKey); ok {
+			return score
+		}
 	}
 	var fromBB uint64
 	var fromId int
@@ -590,7 +591,7 @@ func evaluateKingPawns(pos *Position) Score {
 			T.KingStorm[blocked][FileMirror[file]][theirDist]--
 		}
 	}
-	transposition.GlobalPawnKingTable.Set(pos.PawnKey, score)
+	GlobalPawnKingTable.Set(pos.PawnKey, score)
 	return score
 }
 
