@@ -701,7 +701,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		e.threads[i].nodes = 0
 	}
 
-	rootMoves := pos.GenerateAllLegalMoves()
+	rootMoves := GenerateAllLegalMoves(pos)
 	if len(rootMoves) == 1 {
 		return rootMoves[0].Move
 	}

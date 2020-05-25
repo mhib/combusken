@@ -218,8 +218,8 @@ func (pos *Position) Print() {
 
 func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
 	var buffer [256]EvaledMove
-	noisySize := p.GenerateNoisy(buffer[:])
-	quietsSize := p.GenerateQuiet(buffer[noisySize:])
+	noisySize := GenerateNoisy(p, buffer[:])
+	quietsSize := GenerateQuiet(p, buffer[noisySize:])
 	for i := range buffer[:noisySize+quietsSize] {
 		var mv = buffer[i].Move
 		if strings.EqualFold(mv.String(), lan) {
@@ -232,20 +232,6 @@ func (p *Position) MakeMoveLAN(lan string) (Position, bool) {
 		}
 	}
 	return Position{}, false
-}
-
-func (pos *Position) GenerateAllLegalMoves() []EvaledMove {
-	var buffer [256]EvaledMove
-	var child Position
-	noisySize := pos.GenerateNoisy(buffer[:])
-	quietsSize := pos.GenerateQuiet(buffer[noisySize:])
-	result := make([]EvaledMove, 0)
-	for _, move := range buffer[:noisySize+quietsSize] {
-		if pos.MakeMove(move.Move, &child) {
-			result = append(result, move)
-		}
-	}
-	return result
 }
 
 func (pos *Position) MakeLegalMove(move Move, res *Position) {

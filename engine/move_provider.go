@@ -103,7 +103,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 		fallthrough
 	case GENERATE_NOISY:
 		mp.stage++
-		mp.noisySize = pos.GenerateNoisy(mp.Moves[:])
+		mp.noisySize = GenerateNoisy(pos, mp.Moves[:])
 		mp.split = mp.noisySize
 		evaluateNoisy(mp.Moves[:mp.noisySize])
 		fallthrough
@@ -156,7 +156,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 		fallthrough
 	case GENERATE_QUIET:
 		mp.stage++
-		mp.quietsSize = pos.GenerateQuiet(mp.Moves[mp.split:])
+		mp.quietsSize = GenerateQuiet(pos, mp.Moves[mp.split:])
 		quietMoves := mp.Moves[mp.split : mp.split+mp.quietsSize]
 		mh.EvaluateQuiets(pos, quietMoves, height)
 		sortTreshold := -2000 * int32(depth)

@@ -3,9 +3,10 @@ package engine
 import (
 	"context"
 	"fmt"
-	. "github.com/mhib/combusken/backend"
 	"strings"
 	"testing"
+
+	. "github.com/mhib/combusken/backend"
 )
 
 func TestWAC(t *testing.T) {
@@ -100,7 +101,7 @@ func ParseMoveSAN(pos *Position, san string) Move {
 	if index >= 0 {
 		san = san[:index]
 	}
-	var ml = pos.GenerateAllLegalMoves()
+	var ml = GenerateAllLegalMoves(pos)
 	for _, mv := range ml {
 		if san == moveToSAN(pos, ml, mv.Move) {
 			return mv.Move

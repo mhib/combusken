@@ -18,7 +18,7 @@ var secondRank = [2]int{RANK_7, RANK_2}
 var promotionBB = [2]uint64{RANK_2_BB, RANK_7_BB}
 var epRankBB = [2]uint64{RANK_4_BB, RANK_5_BB}
 
-func (pos *Position) GenerateQuiet(buffer []EvaledMove) (size uint8) {
+func GenerateQuiet(pos *Position, buffer []EvaledMove) (size uint8) {
 	var fromBB, toBB, toMask uint64
 	var fromId, toId int
 	sideToMove := pos.SideToMove
@@ -122,7 +122,7 @@ func (pos *Position) GenerateQuiet(buffer []EvaledMove) (size uint8) {
 	return
 }
 
-func (pos *Position) GenerateNoisy(buffer []EvaledMove) (size uint8) {
+func GenerateNoisy(pos *Position, buffer []EvaledMove) (size uint8) {
 	var fromBB, toBB uint64
 	var fromId, toId, what int
 
@@ -232,4 +232,18 @@ func (pos *Position) GenerateNoisy(buffer []EvaledMove) (size uint8) {
 	// end of Kings
 
 	return
+}
+
+func GenerateAllLegalMoves(pos *Position) []EvaledMove {
+	var buffer [256]EvaledMove
+	var child Position
+	noisySize := GenerateNoisy(pos, buffer[:])
+	quietsSize := GenerateQuiet(pos, buffer[noisySize:])
+	result := make([]EvaledMove, 0)
+	for _, move := range buffer[:noisySize+quietsSize] {
+		if pos.MakeMove(move.Move, &child) {
+			result = append(result, move)
+		}
+	}
+	return result
 }
