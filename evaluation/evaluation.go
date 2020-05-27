@@ -616,8 +616,8 @@ func Evaluate(pos *Position) int {
 	var blackKingAttackersWeight int16
 
 	phase := TotalPhase
-	whiteMobilityArea := ^((pos.Pieces[Pawn] & pos.Colours[White]) | (BlackPawnsAttacks(pos.Pieces[Pawn] & pos.Colours[Black])))
-	blackMobilityArea := ^((pos.Pieces[Pawn] & pos.Colours[Black]) | (WhitePawnsAttacks(pos.Pieces[Pawn] & pos.Colours[White])))
+	whiteMobilityArea := ^(((pos.Pieces[Pawn] | pos.Pieces[King] | pos.Pieces[Queen]) & pos.Colours[White]) | (BlackPawnsAttacks(pos.Pieces[Pawn] & pos.Colours[Black])))
+	blackMobilityArea := ^(((pos.Pieces[Pawn] | pos.Pieces[King] | pos.Pieces[Queen]) & pos.Colours[Black]) | (WhitePawnsAttacks(pos.Pieces[Pawn] & pos.Colours[White])))
 	allOccupation := pos.Colours[White] | pos.Colours[Black]
 
 	whiteKingLocation := BitScan(pos.Pieces[King] & pos.Colours[White])
