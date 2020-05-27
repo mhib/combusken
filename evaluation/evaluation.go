@@ -591,7 +591,9 @@ func evaluateKingPawns(pos *Position) Score {
 			T.KingStorm[blocked][FileMirror[file]][theirDist]--
 		}
 	}
-	GlobalPawnKingTable.Set(pos.PawnKey, score)
+	if !tuning {
+		GlobalPawnKingTable.Set(pos.PawnKey, score)
+	}
 	return score
 }
 
