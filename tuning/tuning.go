@@ -665,6 +665,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&BishopRammedPawns})
 	res = append(res, ScoreValue{&BishopOutpostUndefendedBonus})
 	res = append(res, ScoreValue{&BishopOutpostDefendedBonus})
+	res = append(res, ScoreValue{&LongDiagonalBishop})
 	res = append(res, ScoreValue{&KnightOutpostUndefendedBonus})
 	res = append(res, ScoreValue{&KnightOutpostDefendedBonus})
 	for y := 0; y < 4; y++ {
