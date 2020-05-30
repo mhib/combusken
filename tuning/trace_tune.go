@@ -432,6 +432,13 @@ func loadTrace() (res []int) {
 	}
 
 	res = append(res, T.Hanging)
+	res = append(res, T.ThreatByKing)
+	for i := 0; i <= King; i++ {
+		res = append(res, T.ThreatByMinor[i])
+	}
+	for i := 0; i <= King; i++ {
+		res = append(res, T.ThreatByRook[i])
+	}
 
 	return
 }
