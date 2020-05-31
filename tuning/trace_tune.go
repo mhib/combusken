@@ -364,7 +364,7 @@ func loadTrace() (res []int) {
 			res = append(res, T.PawnScores[y][x])
 		}
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
 			res = append(res, T.PawnsConnected[y][x])
 		}
@@ -467,7 +467,7 @@ func loadWeights() []weight {
 			tmp = append(tmp, PawnScores[y][x])
 		}
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
 			tmp = append(tmp, PawnsConnected[y][x])
 		}

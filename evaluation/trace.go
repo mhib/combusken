@@ -10,7 +10,7 @@ type Trace struct {
 	QueenValue                   int
 	PieceScores                  [King + 1][8][4]int
 	PawnScores                   [7][8]int
-	PawnsConnected               [8][4]int
+	PawnsConnected               [7][4]int
 	MobilityBonus                [4][32]int
 	PassedFriendlyDistance       [8]int
 	PassedEnemyDistance          [8]int
