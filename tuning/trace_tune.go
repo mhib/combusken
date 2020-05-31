@@ -237,8 +237,8 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	T = Trace{}
 	res.eval = float64(Evaluate(&board))
 
-	// Do not care about unwinnable positions
-	if ScaleFactor(&board, int16(res.eval)) == SCALE_DRAW {
+	// Do not care about scaled positions
+	if ScaleFactor(&board, int16(res.eval)) != SCALE_NORMAL {
 		return res, false
 	}
 
@@ -496,6 +496,9 @@ func loadWeights() []weight {
 	for y := 0; y < 8; y++ {
 		tmp = append(tmp, PassedFile[y])
 	}
+	for y := 0; y < 8; y++ {
+		tmp = append(tmp, PassedStacked[y])
+	}
 	tmp = append(tmp, Isolated)
 	tmp = append(tmp, Doubled)
 	tmp = append(tmp, Backward)
@@ -506,6 +509,9 @@ func loadWeights() []weight {
 	tmp = append(tmp, BishopOutpostDefendedBonus)
 	tmp = append(tmp, KnightOutpostUndefendedBonus)
 	tmp = append(tmp, KnightOutpostDefendedBonus)
+	for y := 0; y < 4; y++ {
+		tmp = append(tmp, DistantKnight[y])
+	}
 	tmp = append(tmp, MinorBehindPawn)
 	tmp = append(tmp, Tempo)
 	tmp = append(tmp, RookOnFile[0])
