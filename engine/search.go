@@ -707,9 +707,6 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	}
 
 	rootMoves := GenerateAllLegalMoves(pos)
-	if len(rootMoves) == 1 {
-		return rootMoves[0].Move
-	}
 
 	if fathom.IsDTZProbeable(pos) {
 		if ok, bestMove, wdl, dtz := fathom.ProbeDTZ(pos, rootMoves); ok {
