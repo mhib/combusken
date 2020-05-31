@@ -404,6 +404,7 @@ func loadTrace() (res []int) {
 	res = append(res, T.BishopRammedPawns)
 	res = append(res, T.BishopOutpostUndefendedBonus)
 	res = append(res, T.BishopOutpostDefendedBonus)
+	res = append(res, T.LongDiagonalBishop)
 	res = append(res, T.KnightOutpostUndefendedBonus)
 	res = append(res, T.KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {
@@ -507,6 +508,7 @@ func loadWeights() []weight {
 	tmp = append(tmp, BishopRammedPawns)
 	tmp = append(tmp, BishopOutpostUndefendedBonus)
 	tmp = append(tmp, BishopOutpostDefendedBonus)
+	tmp = append(tmp, LongDiagonalBishop)
 	tmp = append(tmp, KnightOutpostUndefendedBonus)
 	tmp = append(tmp, KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {

@@ -18,7 +18,7 @@ const TotalPhase = PawnPhase*16 + KnightPhase*4 + BishopPhase*4 + RookPhase*4 + 
 
 var PawnValue = S(100, 120)
 var KnightValue = S(508, 435)
-var BishopValue = S(462, 432)
+var BishopValue = S(461, 432)
 var RookValue = S(656, 693)
 var QueenValue = S(1435, 1322)
 
@@ -36,14 +36,14 @@ var PieceScores = [King + 1][8][4]Score{
 		{S(-210, -69), S(-76, -73), S(-127, -30), S(1, -55)},
 	},
 	{ // Bishop
-		{S(-9, -11), S(6, -4), S(14, -10), S(7, -4)},
-		{S(3, -25), S(44, -30), S(27, -17), S(14, -8)},
-		{S(12, -18), S(33, -12), S(33, -1), S(17, 8)},
-		{S(0, -23), S(4, -19), S(12, -4), S(28, -2)},
-		{S(-21, -13), S(1, -15), S(-2, -1), S(25, -1)},
-		{S(-67, -1), S(-16, -13), S(-37, -1), S(-18, -8)},
-		{S(-75, 2), S(20, -9), S(-14, 2), S(2, -14)},
-		{S(-1, -28), S(-36, -19), S(-113, -5), S(-92, -4)},
+		{S(-14, -23), S(13, -8), S(15, -11), S(13, -4)},
+		{S(11, -30), S(35, -40), S(26, -13), S(14, -7)},
+		{S(14, -18), S(35, -11), S(17, -12), S(17, 7)},
+		{S(-1, -25), S(5, -18), S(11, -3), S(22, 2)},
+		{S(-24, -15), S(-1, -17), S(-8, -1), S(18, 5)},
+		{S(-40, -9), S(-16, -15), S(-35, -12), S(-22, -5)},
+		{S(-60, 0), S(-27, -12), S(-12, 5), S(-2, -10)},
+		{S(-35, -34), S(-29, -16), S(-113, 1), S(-91, 1)},
 	},
 	{ // Rook
 		{S(-8, -17), S(-13, -4), S(8, -15), S(12, -15)},
@@ -149,6 +149,8 @@ var BishopRammedPawns = S(-6, -16)
 
 var BishopOutpostUndefendedBonus = S(43, -1)
 var BishopOutpostDefendedBonus = S(80, 6)
+
+var LongDiagonalBishop = S(18, 14)
 
 var KnightOutpostUndefendedBonus = S(33, -16)
 var KnightOutpostDefendedBonus = S(54, 15)
@@ -779,6 +781,12 @@ func Evaluate(pos *Position) int {
 				T.MinorBehindPawn++
 			}
 		}
+		if (LONG_DIAGONALS&SquareMask[fromId]) != 0 && (MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & CENTER)) {
+			score += LongDiagonalBishop
+			if tuning {
+				T.LongDiagonalBishop++
+			}
+		}
 		if SquareMask[fromId]&whiteOutpustRanks != 0 && outpustMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 				score += BishopOutpostDefendedBonus
@@ -844,6 +852,12 @@ func Evaluate(pos *Position) int {
 			score -= MinorBehindPawn
 			if tuning {
 				T.MinorBehindPawn--
+			}
+		}
+		if (LONG_DIAGONALS&SquareMask[fromId]) != 0 && (MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & CENTER)) {
+			score -= LongDiagonalBishop
+			if tuning {
+				T.LongDiagonalBishop--
 			}
 		}
 		if SquareMask[fromId]&blackOutpustRanks != 0 && outpustMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
