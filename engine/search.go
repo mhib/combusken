@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"math/rand"
-	"time"
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
@@ -658,7 +657,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		case <-ctx.Done():
 			return lastBestMove
 		case res := <-resultChan:
-			timeSinceStart := time.Since(e.getStartedAt())
+			timeSinceStart := e.getElapsedTime()
 			e.Update(SearchInfo{newUciScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
@@ -756,7 +755,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				continue
 			}
 			nodes := e.nodes()
-			timeSinceStart := time.Since(e.getStartedAt())
+			timeSinceStart := e.getElapsedTime()
 			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
 				return res.Move

@@ -4,17 +4,25 @@ import "time"
 import . "github.com/mhib/combusken/backend"
 import . "github.com/mhib/combusken/utils"
 
+type timeElapser struct {
+	startedAt time.Time
+}
+
+func (elapser *timeElapser) getElapsedTime() time.Duration {
+	return time.Since(elapser.startedAt)
+}
+
 type timeManager interface {
 	hardTimeout() time.Duration
 	isSoftTimeout(depth, nodes int) bool
 	updateTime(depth, score int)
-	getStartedAt() time.Time
+	getElapsedTime() time.Duration
 }
 
 type depthMoveTimeManager struct {
-	startedAt time.Time
-	duration  int
-	depth     int
+	timeElapser
+	duration int
+	depth    int
 }
 
 func (manager *depthMoveTimeManager) hardTimeout() time.Duration {
@@ -31,19 +39,11 @@ func (manager *depthMoveTimeManager) isSoftTimeout(depth, nodes int) bool {
 func (manager *depthMoveTimeManager) updateTime(int, int) {
 }
 
-func (manager *depthMoveTimeManager) getStartedAt() time.Time {
-	return manager.startedAt
-}
-
 type tournamentTimeManager struct {
-	startedAt time.Time
+	timeElapser
 	hard      time.Duration
 	ideal     time.Duration
 	lastScore int
-}
-
-func (manager *tournamentTimeManager) getStartedAt() time.Time {
-	return manager.startedAt
 }
 
 func (manager *tournamentTimeManager) hardTimeout() time.Duration {
@@ -80,7 +80,7 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 }
 
 func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, sideToMove int) *tournamentTimeManager {
-	res := &tournamentTimeManager{startedAt: startedAt}
+	res := &tournamentTimeManager{timeElapser: timeElapser{startedAt: startedAt}}
 	var limit, inc int
 	if sideToMove == White {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
@@ -107,6 +107,6 @@ func newTimeManager(limits LimitsType, overhead int, sideToMove int) timeManager
 	if limits.WhiteTime > 0 || limits.BlackTime > 0 {
 		return newTournamentTimeManager(startedAt, limits, overhead, sideToMove)
 	} else {
-		return &depthMoveTimeManager{startedAt: startedAt, duration: limits.MoveTime, depth: limits.Depth}
+		return &depthMoveTimeManager{timeElapser{startedAt: startedAt}, limits.MoveTime, limits.Depth}
 	}
 }
