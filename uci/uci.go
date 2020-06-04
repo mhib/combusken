@@ -24,7 +24,7 @@ type UciProtocol struct {
 
 func NewUciProtocol(e Engine) *UciProtocol {
 	e.Update = updateUci
-	var uci = &UciProtocol{
+	uci := &UciProtocol{
 		messages:  make(chan interface{}),
 		engine:    e,
 		positions: []backend.Position{backend.InitialPosition},
@@ -43,7 +43,7 @@ func NewUciProtocol(e Engine) *UciProtocol {
 }
 
 func (uci *UciProtocol) Run() {
-	var name, version, _ = uci.engine.GetInfo()
+	name, version, _ := uci.engine.GetInfo()
 	fmt.Printf("%v %v\n", name, version)
 	go func() {
 		uci.state = uci.idle
@@ -51,9 +51,9 @@ func (uci *UciProtocol) Run() {
 			uci.state(msg)
 		}
 	}()
-	var scanner = bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		var commandLine = scanner.Text()
+		commandLine := scanner.Text()
 		if commandLine == "quit" {
 			uci.stopCommand()
 			break
@@ -65,12 +65,12 @@ func (uci *UciProtocol) Run() {
 func (uci *UciProtocol) idle(msg interface{}) {
 	switch msg := msg.(type) {
 	case string:
-		var fields = strings.Fields(msg)
+		fields := strings.Fields(msg)
 		if len(fields) == 0 {
 			return
 		}
-		var commandName = fields[0]
-		var cmd, ok = uci.commands[commandName]
+		commandName := fields[0]
+		cmd, ok := uci.commands[commandName]
 		if ok {
 			cmd(fields[1:]...)
 		} else {
@@ -84,11 +84,11 @@ func (uci *UciProtocol) idle(msg interface{}) {
 func (uci *UciProtocol) thinking(msg interface{}) {
 	switch msg := msg.(type) {
 	case string:
-		var fields = strings.Fields(msg)
+		fields := strings.Fields(msg)
 		if len(fields) == 0 {
 			return
 		}
-		var commandName = fields[0]
+		commandName := fields[0]
 		if commandName == "stop" {
 			uci.stopCommand()
 		} else {
@@ -105,7 +105,7 @@ func debugUci(s string) {
 }
 
 func (uci *UciProtocol) uciCommand(...string) {
-	var name, version, author = uci.engine.GetInfo()
+	name, version, author := uci.engine.GetInfo()
 	fmt.Printf("id name %s %s\n", name, version)
 	fmt.Printf("id author %s\n", author)
 	for _, option := range uci.engine.GetOptions() {
@@ -120,9 +120,9 @@ func (uci *UciProtocol) isReadyCommand(...string) {
 }
 
 func (uci *UciProtocol) positionCommand(args ...string) {
-	var token = args[0]
 	var fen string
-	var movesIndex = findIndexString(args, "moves")
+	token := args[0]
+	movesIndex := findIndexString(args, "moves")
 	if token == "startpos" {
 		fen = backend.InitialPositionFen
 	} else if token == "fen" {
@@ -135,11 +135,11 @@ func (uci *UciProtocol) positionCommand(args ...string) {
 		debugUci("Wrong position command")
 		return
 	}
-	var p = backend.ParseFen(fen)
-	var positions = []backend.Position{p}
+	p := backend.ParseFen(fen)
+	positions := []backend.Position{p}
 	if movesIndex >= 0 && movesIndex+1 < len(args) {
 		for _, smove := range args[movesIndex+1:] {
-			var newPos, ok = positions[len(positions)-1].MakeMoveLAN(smove)
+			newPos, ok := positions[len(positions)-1].MakeMoveLAN(smove)
 			if !ok {
 				debugUci("Wrong move")
 				return
@@ -160,9 +160,9 @@ func findIndexString(slice []string, value string) int {
 }
 
 func (uci *UciProtocol) goCommand(fields ...string) {
-	var limits = parseLimits(fields)
-	var ctx, cancel = context.WithCancel(context.Background())
-	var searchParams = SearchParams{
+	limits := parseLimits(fields)
+	ctx, cancel := context.WithCancel(context.Background())
+	searchParams := SearchParams{
 		Positions: uci.positions,
 		Limits:    limits,
 	}
@@ -253,9 +253,9 @@ func (uci *UciProtocol) setOptionCommand(fields ...string) {
 		return
 	}
 
-	var valIdx = findIndexString(fields, "value")
-	var name = strings.Join(fields[1:valIdx], " ")
-	var value = fields[valIdx+1]
+	valIdx := findIndexString(fields, "value")
+	name := strings.Join(fields[1:valIdx], " ")
+	value := fields[valIdx+1]
 
 	for _, option := range uci.engine.GetOptions() {
 		if strings.EqualFold(option.GetName(), name) {
