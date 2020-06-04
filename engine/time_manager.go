@@ -106,13 +106,7 @@ func newTimeManager(limits LimitsType, overhead int, sideToMove int) timeManager
 	startedAt := time.Now()
 	if limits.WhiteTime > 0 || limits.BlackTime > 0 {
 		return newTournamentTimeManager(startedAt, limits, overhead, sideToMove)
-	} else if limits.MoveTime > 0 {
-		return &depthMoveTimeManager{startedAt: startedAt, duration: limits.MoveTime}
-	} else if limits.Depth > 0 {
-		return &depthMoveTimeManager{startedAt: startedAt, depth: limits.Depth}
-	} else if limits.Infinite {
-		return &depthMoveTimeManager{startedAt: startedAt}
 	} else {
-		return &depthMoveTimeManager{startedAt: startedAt, duration: 1000}
+		return &depthMoveTimeManager{startedAt: startedAt, duration: limits.MoveTime, depth: limits.Depth}
 	}
 }
