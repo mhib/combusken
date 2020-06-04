@@ -654,9 +654,6 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for y := 0; y < 8; y++ {
 		res = append(res, ScoreValue{&PassedFile[y]})
 	}
-	for y := 0; y < 8; y++ {
-		res = append(res, ScoreValue{&PassedStacked[y]})
-	}
 	res = append(res, ScoreValue{&Isolated})
 	res = append(res, ScoreValue{&Doubled})
 	res = append(res, ScoreValue{&Backward})

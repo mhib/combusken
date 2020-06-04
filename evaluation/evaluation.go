@@ -137,8 +137,6 @@ var PassedFile = [8]Score{S(0, 25), S(-14, 25), S(-21, 16), S(-24, -3),
 	S(-20, -1), S(4, 1), S(-12, 20), S(-13, 17),
 }
 
-var PassedStacked = [8]Score{S(0, 0), S(17, -37), S(-6, -34), S(-32, -34), S(-68, -35), S(1, -16), S(0, 0), S(0, 0)}
-
 var Isolated = S(-12, -11)
 var Doubled = S(-12, -30)
 var Backward = S(5, -2)
@@ -414,24 +412,23 @@ func evaluateKingPawns(pos *Position) Score {
 
 		// Passed bonus
 		if passedMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
-			// Bonus is calculated based on rank, file, distance from friendly and enemy king
-			score +=
-				PassedRank[Rank(fromId)] +
-					PassedFile[File(fromId)] +
-					PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
-					PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
+			// Bonus is calculated based on rank, file
+			score += PassedRank[Rank(fromId)] + PassedFile[File(fromId)]
 
 			if tuning {
 				T.PassedRank[Rank(fromId)]++
 				T.PassedFile[File(fromId)]++
-				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
-				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
 			}
 
-			if pos.Pieces[Pawn]&pos.Colours[White]&forwardFileMask[White][fromId] != 0 {
-				score += PassedStacked[Rank(fromId)]
+			if pos.Pieces[Pawn]&pos.Colours[White]&forwardFileMask[White][fromId] == 0 {
+				// Bonus when not stacked on distance from friendly and enemy king
+				score +=
+					PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
+						PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
+
 				if tuning {
-					T.PassedStacked[Rank(fromId)]++
+					T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
+					T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
 				}
 			}
 		}
@@ -483,23 +480,21 @@ func evaluateKingPawns(pos *Position) Score {
 			T.PawnScores[7-Rank(fromId)][File(fromId)]--
 		}
 		if passedMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
-			score -=
-				PassedRank[7-Rank(fromId)] +
-					PassedFile[File(fromId)] +
-					PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
-					PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
+			score -= PassedRank[7-Rank(fromId)] + PassedFile[File(fromId)]
 			if tuning {
 				T.PassedRank[7-Rank(fromId)]--
 				T.PassedFile[File(fromId)]--
-				T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
-				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
 			}
 
-			if pos.Pieces[Pawn]&pos.Colours[Black]&forwardFileMask[Black][fromId] != 0 {
-				score -= PassedStacked[7-Rank(fromId)]
+			if pos.Pieces[Pawn]&pos.Colours[Black]&forwardFileMask[Black][fromId] == 0 {
+				score -=
+					PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
+						PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
 				if tuning {
-					T.PassedStacked[7-Rank(fromId)]--
+					T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
+					T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
 				}
+
 			}
 		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {

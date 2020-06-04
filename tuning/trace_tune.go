@@ -393,9 +393,6 @@ func loadTrace() (res []int) {
 	for y := 0; y < 8; y++ {
 		res = append(res, T.PassedFile[y])
 	}
-	for y := 0; y < 8; y++ {
-		res = append(res, T.PassedStacked[y])
-	}
 	res = append(res, T.Isolated)
 	res = append(res, T.Doubled)
 	res = append(res, T.Backward)
@@ -496,9 +493,6 @@ func loadWeights() []weight {
 	}
 	for y := 0; y < 8; y++ {
 		tmp = append(tmp, PassedFile[y])
-	}
-	for y := 0; y < 8; y++ {
-		tmp = append(tmp, PassedStacked[y])
 	}
 	tmp = append(tmp, Isolated)
 	tmp = append(tmp, Doubled)
