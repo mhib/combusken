@@ -70,11 +70,13 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, depth int16,
 
 func (t *TranspositionTable) Set(key uint64, value int16, depth int, bestMove backend.Move, flag int) {
 	var element = &t.Entries[key&t.Mask]
-	element.key = key
-	element.value = value
-	element.flag = uint8(flag)
-	element.depth = uint8(depth - NoneDepth)
-	element.bestMove = bestMove
+	if element.key != key || element.depth <= uint8(depth-NoneDepth) {
+		element.key = key
+		element.value = value
+		element.flag = uint8(flag)
+		element.depth = uint8(depth - NoneDepth)
+		element.bestMove = bestMove
+	}
 }
 
 func (t *TranspositionTable) Prefetch(key uint64) {
