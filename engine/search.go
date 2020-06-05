@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"math"
 	"math/rand"
 
 	. "github.com/mhib/combusken/backend"
@@ -810,15 +811,20 @@ func sortMoves(moves []EvaledMove) {
 	}
 }
 
-func lmr(d, m int) int {
-	switch {
-	case d >= 5 && m >= 16:
-		return 3
-	case d >= 4 && m >= 9:
-		return 2
-	case d >= 3 && m >= 4:
-		return 1
-	default:
-		return 0
+var lmrTable [64][64]uint8
+
+func init() {
+	for d := 1; d < 64; d++ {
+		for m := 1; m < 64; m++ {
+			value := math.Round(-0.12 + 0.54851*math.Log(float64(d))*math.Log(float64(m)) - 0.22028*math.Log(float64(d)))
+			if value < 0 {
+				value = 0
+			}
+			lmrTable[d][m] = uint8(value)
+		}
 	}
+}
+
+func lmr(d, m int) int {
+	return int(lmrTable[Min(d, 63)][Min(m, 63)])
 }
