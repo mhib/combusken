@@ -816,7 +816,8 @@ var lmrTable [64][64]uint8
 func init() {
 	for d := 1; d < 64; d++ {
 		for m := 1; m < 64; m++ {
-			value := math.Round(-0.12 + 0.54851*math.Log(float64(d))*math.Log(float64(m)) - 0.22028*math.Log(float64(d)))
+			value := math.Round(0.54851*math.Log(float64(d))*math.Log(float64(m)) - 0.3272*math.Log(float64(d)))
+
 			if value < 0 {
 				value = 0
 			}
