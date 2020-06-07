@@ -187,13 +187,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	// Node is not pv if it is searched with null window
 	pvNode := alpha != beta-1
 
-	// Mate distance pruning
-	alpha = Max(lossIn(height), alpha)
-	beta = Min(winIn(height+1), beta)
-	if alpha >= beta {
-		return alpha
-	}
-
 	alphaOrig := alpha
 	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
 	hashValue = transposition.ValueFromTrans(hashValue, height)
