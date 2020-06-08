@@ -354,8 +354,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 		moveCount++
 		childInCheck := child.IsInCheck()
-		reduction := 0
 
+		reduction := 0
 		// Late Move Reduction
 		// https://www.chessprogramming.org/Late_Move_Reductions
 		if depth >= 3 && !inCheck && moveCount > 1 && !isNoisy && !childInCheck {
@@ -369,21 +369,17 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation() < t.stack[height-2].Evaluation())
 			reduction = Max(0, Min(depth-2, reduction))
 		}
-		newDepth := depth - 1
 
-		// Castling extension
-		if move.IsCastling() {
-			newDepth++
+		extension := BoolToInt(
+			// Castling extension
+			move.IsCastling() ||
+				// Check extension
+				(inCheck && SeeSign(pos, move)) ||
+				// singular extension
+				(move == hashMove && depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha) &&
+					t.isMoveSingular(depth, height, hashMove, int(hashValue)))
 
-			// Check extension
-			// Moves with positive SEE and gives check are searched with increased depth
-		} else if inCheck && SeeSign(pos, move) {
-			newDepth++
-		} else if move == hashMove && depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha {
-			if t.isMoveSingular(depth, height, hashMove, int(hashValue)) {
-				newDepth++
-			}
-		}
+		newDepth := depth - 1 + extension
 
 		// Store move if it is quiet
 		if !isNoisy {
