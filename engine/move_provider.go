@@ -66,7 +66,7 @@ func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, t
 	}
 	mp.killer1 = mh.KillerMoves[height][0]
 	mp.killer2 = mh.KillerMoves[height][1]
-	mp.seeMargin = int16(BoolToInt(losing))
+	mp.seeMargin = int16(BoolToInt(losing)) * 64
 }
 
 func (mp *MoveProvider) InitSingular() {
