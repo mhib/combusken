@@ -3,6 +3,7 @@ package engine
 import (
 	. "github.com/mhib/combusken/backend"
 	"github.com/mhib/combusken/evaluation"
+	. "github.com/mhib/combusken/utils"
 )
 
 const (
@@ -24,6 +25,7 @@ type MoveProvider struct {
 	counter    Move
 	killer1    Move
 	killer2    Move
+	seeMargin  int16
 	kind       uint8
 	stage      uint8
 	split      uint8
@@ -52,9 +54,10 @@ func (mp *MoveProvider) InitQs() {
 	mp.kind = NOISY
 	mp.ttMove = NullMove
 	mp.stage = GENERATE_NOISY
+	mp.seeMargin = 0
 }
 
-func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, ttMove Move) {
+func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, ttMove Move, losing bool) {
 	mp.kind = NORMAL
 	mp.stage = TT_MOVE
 	mp.ttMove = ttMove
@@ -63,10 +66,12 @@ func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, t
 	}
 	mp.killer1 = mh.KillerMoves[height][0]
 	mp.killer2 = mh.KillerMoves[height][1]
+	mp.seeMargin = int16(BoolToInt(losing))
 }
 
 func (mp *MoveProvider) InitSingular() {
 	mp.stage = GENERATE_NOISY
+	mp.seeMargin = 0
 }
 
 // We can save generating noisy after quiescence
@@ -123,7 +128,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 				mp.dropNoisy(bestIdx)
 				continue
 			}
-			if !evaluation.SeeSign(pos, move.Move) {
+			if !evaluation.SeeAbove(pos, move.Move, int(mp.seeMargin)) {
 				mp.Moves[bestIdx].Value = badNoisyValue
 				continue
 			}

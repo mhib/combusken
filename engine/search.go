@@ -40,7 +40,11 @@ const WindowDepth = 6
 const QSDepthChecks = 0
 const QSDepthNoChecks = -1
 
+const losingTreshold = -101
+
 var PawnValueMiddle = PawnValue.Middle()
+
+var PieceValues = [...]int{100, 450, 450, 675, 1300, Mate / 2, 0}
 
 func lossIn(height int) int {
 	return -Mate + height
@@ -92,7 +96,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 	if inCheck {
 		bestVal = MinInt
-		t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
+		t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove, false)
 	} else {
 		bestVal = Evaluate(pos)
 		// Early return if not in check and evaluation exceeded beta
@@ -309,12 +313,18 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		_, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key)
 	}
 
+	losingMaterial := (PopCount(pos.Pieces[Pawn]&pos.Colours[pos.SideToMove])-PopCount(pos.Pieces[Pawn]&pos.Colours[pos.SideToMove^1]))*PieceValues[Pawn]+
+		(PopCount(pos.Pieces[Knight]&pos.Colours[pos.SideToMove])-PopCount(pos.Pieces[Knight]&pos.Colours[pos.SideToMove^1]))*PieceValues[Knight]+
+		(PopCount(pos.Pieces[Bishop]&pos.Colours[pos.SideToMove])-PopCount(pos.Pieces[Bishop]&pos.Colours[pos.SideToMove^1]))*PieceValues[Bishop]+
+		(PopCount(pos.Pieces[Rook]&pos.Colours[pos.SideToMove])-PopCount(pos.Pieces[Rook]&pos.Colours[pos.SideToMove^1]))*PieceValues[Rook]+
+		(PopCount(pos.Pieces[Queen]&pos.Colours[pos.SideToMove])-PopCount(pos.Pieces[Queen]&pos.Colours[pos.SideToMove^1]))*PieceValues[Queen] < losingTreshold
+
 	// Quiet moves are stored in order to reduce their history value at the end of search
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	bestMove := NullMove
 	moveCount := 0
 	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
-	t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
+	t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove, losingMaterial)
 
 	for {
 		move := t.getNextMove(pos, depth, height)
