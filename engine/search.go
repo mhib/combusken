@@ -814,9 +814,9 @@ func sortMoves(moves []EvaledMove) {
 var lmrTable [64][64]uint8
 
 func init() {
-	for d := 1; d < 64; d++ {
+	for d := 2; d < 64; d++ {
 		for m := 1; m < 64; m++ {
-			value := math.Round(0.46059*math.Log(float64(d))*math.Log(float64(m)) - 0.27582)
+			value := math.Round(0.59928*math.Log(float64(d))*math.Log(float64(m)) - 0.61971*math.Log(float64(d)) + 0.30036)
 
 			if value < 0 {
 				value = 0
