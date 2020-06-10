@@ -84,6 +84,11 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 		}
 		mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()] = bestMove
 	}
+
+	// Do not update history when depth is 1 and the first quiet move made a fail-high
+	if len(moves) == 1 && depth == 1 {
+		return
+	}
 	unsignedBonus := int32(Min(depth*depth, HistoryMax))
 
 	followUp := NullMove
@@ -114,8 +119,6 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 		}
 	}
 }
-
-const MinGoodCapture = int32(55001)
 
 func (mv *MoveHistory) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
 	var counter Move
