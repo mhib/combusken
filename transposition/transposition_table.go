@@ -1,7 +1,6 @@
 package transposition
 
 import "github.com/mhib/combusken/backend"
-import "unsafe"
 import . "github.com/mhib/combusken/utils"
 
 const NoneDepth = -6
@@ -48,11 +47,6 @@ func (t *TranspositionTable) Clear() {
 	for i := range t.Entries {
 		t.Entries[i] = transEntry{}
 	}
-}
-
-func NewTransTable(megabytes int) TranspositionTable {
-	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(transEntry{})))
-	return TranspositionTable{make([]transEntry, size), size - 1}
 }
 
 func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, depth int16, move backend.Move, flag uint8) {
