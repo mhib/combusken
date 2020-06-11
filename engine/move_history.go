@@ -85,8 +85,8 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 		mv.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()] = bestMove
 	}
 
-	// Do not update history when depth is 1 and the first quiet move made a fail-high
-	if len(moves) == 1 && depth == 1 {
+	// Do not update history when depth is very low and the first quiet move made a fail-high
+	if len(moves) == 1 && depth < 3 {
 		return
 	}
 	unsignedBonus := int32(Min(depth*depth, HistoryMax))
