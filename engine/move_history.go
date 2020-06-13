@@ -32,6 +32,19 @@ func (mv *MoveHistory) CounterHistoryValue(lastMove Move, move Move) int32 {
 	return mv.CounterHistory[lastMove.MovedPiece()][lastMove.To()][move.MovedPiece()][move.To()]
 }
 
+const invalidValue = 120000
+
+func (mv *MoveHistory) FollowUpHistoryValue(height int, move Move) int32 {
+	if height < 2 {
+		return invalidValue
+	}
+	followUp := mv.CurrentMove[height-2]
+	if followUp == NullMove {
+		return invalidValue
+	}
+	return mv.FollowUpHistory[followUp.MovedPiece()][followUp.To()][move.MovedPiece()][move.To()]
+}
+
 func (mv *MoveHistory) SetCurrentMove(height int, move Move) {
 	mv.CurrentMove[height] = move
 }
