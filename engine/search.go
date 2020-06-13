@@ -29,7 +29,7 @@ const futilityPruningDepth = 8
 const counterMovePruningDepth = 3
 const counterMovePruningVal = -1000
 const followUpMovePruningDepth = 3
-const followUpMovePruningVal = -6000
+const followUpMovePruningVal = -5000
 
 const probCutDepth = 6
 const probCutMargin = 100
