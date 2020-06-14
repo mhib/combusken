@@ -367,9 +367,6 @@ afterPreMovesPruning:
 	marked, owning := false, false
 	if t.engine.Threads.Val > 1 {
 		marked, owning = markPosition(t, pos.Key, depth)
-		if owning {
-			defer unmarkPosition(pos.Key)
-		}
 	}
 
 	// Quiet moves are stored in order to reduce their history value at the end of search
@@ -491,6 +488,10 @@ afterPreMovesPruning:
 
 	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, height)
+	}
+
+	if owning {
+		unmarkPosition(pos.Key)
 	}
 
 	var flag int
@@ -759,6 +760,10 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
 		e.threads[i].nodes = 0
+	}
+
+	if len(e.threads) > 1 {
+		clearBreadCrumbs()
 	}
 
 	rootMoves := GenerateAllLegalMoves(pos)

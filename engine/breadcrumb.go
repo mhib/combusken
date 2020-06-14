@@ -12,6 +12,12 @@ const breadCrumbsSize = 1024
 
 var breadCrumbs [breadCrumbsSize]breadcrumb
 
+func clearBreadCrumbs() {
+	for i := range breadCrumbs {
+		breadCrumbs[i] = breadcrumb{}
+	}
+}
+
 func markPosition(t *thread, zobrist uint64, depth int) (marked, owning bool) {
 	if depth <= 8 {
 		return false, false
