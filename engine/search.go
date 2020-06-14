@@ -366,7 +366,7 @@ afterPreMovesPruning:
 
 	marked, owning := false, false
 	if t.engine.Threads.Val > 1 {
-		marked, owning = markPosition(t, pos.Key, height)
+		marked, owning = markPosition(t, pos.Key, depth)
 		if owning {
 			defer unmarkPosition(pos.Key)
 		}

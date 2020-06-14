@@ -12,8 +12,8 @@ const breadCrumbsSize = 1024
 
 var breadCrumbs [breadCrumbsSize]breadcrumb
 
-func markPosition(t *thread, zobrist uint64, height int) (marked, owning bool) {
-	if height >= 8 {
+func markPosition(t *thread, zobrist uint64, depth int) (marked, owning bool) {
+	if depth <= 8 {
 		return false, false
 	}
 	entry := &breadCrumbs[zobrist&(breadCrumbsSize-1)]
