@@ -367,6 +367,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 			// Increase reduction if not improving
 			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation() < t.stack[height-2].Evaluation())
+
+			reduction += BoolToInt(depth >= 8)
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 
