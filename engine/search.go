@@ -364,6 +364,14 @@ afterPreMovesPruning:
 		_, _, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key)
 	}
 
+	marked, owning := false, false
+	if t.engine.Threads.Val > 1 {
+		marked, owning = markPosition(t, pos.Key, height)
+		if owning {
+			defer unmarkPosition(pos.Key)
+		}
+	}
+
 	// Quiet moves are stored in order to reduce their history value at the end of search
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	bestMove := NullMove
@@ -418,6 +426,7 @@ afterPreMovesPruning:
 
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
+			reduction += BoolToInt(marked)
 			if !isNoisy {
 				reduction += BoolToInt(!pvNode)
 				reduction += BoolToInt(cutNode) * 2
