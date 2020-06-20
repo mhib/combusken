@@ -411,7 +411,6 @@ func loadTrace() (res []int) {
 		res = append(res, T.DistantKnight[y])
 	}
 	res = append(res, T.MinorBehindPawn)
-	res = append(res, T.Tempo)
 	res = append(res, T.RookOnFile[0])
 	res = append(res, T.RookOnFile[1])
 	for y := 0; y < 12; y++ {
@@ -515,7 +514,6 @@ func loadWeights() []weight {
 		tmp = append(tmp, DistantKnight[y])
 	}
 	tmp = append(tmp, MinorBehindPawn)
-	tmp = append(tmp, Tempo)
 	tmp = append(tmp, RookOnFile[0])
 	tmp = append(tmp, RookOnFile[1])
 	for y := 0; y < 12; y++ {

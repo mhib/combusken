@@ -672,7 +672,6 @@ func loadScoresToSlice() (res []EvaluationValue) {
 		res = append(res, ScoreValue{&DistantKnight[y]})
 	}
 	res = append(res, ScoreValue{&MinorBehindPawn})
-	res = append(res, ScoreValue{&Tempo})
 	res = append(res, ScoreValue{&RookOnFile[0]})
 	res = append(res, ScoreValue{&RookOnFile[1]})
 	for y := 0; y < 12; y++ {
@@ -704,6 +703,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, SingleValue{&KingSafetySafeBishopCheck})
 	res = append(res, SingleValue{&KingSafetySafeKnightCheck})
 	res = append(res, SingleValue{&KingSafetyAdjustment})
+	res = append(res, SingleValue{&Tempo})
 	res = append(res, ScoreValue{&Hanging})
 	res = append(res, ScoreValue{&ThreatByKing})
 	for x := Pawn; x <= King; x++ {

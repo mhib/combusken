@@ -241,7 +241,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
 
-	t.stack[height].InvalidateEvaluation()
+	if pos.LastMove != NullMove {
+		t.stack[height].InvalidateEvaluation()
+	} else {
+		t.stack[height].evaluation = -t.stack[height-1].Evaluation() + 2*Tempo
+		t.stack[height].evaluationCalculated = true
+	}
 	t.ResetKillers(height + 1)
 
 	// Reverse futility pruning

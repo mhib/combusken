@@ -159,7 +159,7 @@ var DistantKnight = [4]Score{S(-17, 12), S(-21, 2), S(-25, -5), S(-18, -2)}
 
 var MinorBehindPawn = S(6, 24)
 
-var Tempo = S(35, 34)
+var Tempo int16 = 33
 
 // Rook on semiopen, open file
 var RookOnFile = [2]Score{S(6, 30), S(51, -2)}
@@ -1029,19 +1029,6 @@ func Evaluate(pos *Position) int {
 		}
 	}
 
-	// Tempo bonus
-	if pos.SideToMove == White {
-		score += Tempo
-		if tuning {
-			T.Tempo++
-		}
-	} else {
-		score -= Tempo
-		if tuning {
-			T.Tempo--
-		}
-	}
-
 	if phase < 0 {
 		phase = 0
 	}
@@ -1224,9 +1211,9 @@ func Evaluate(pos *Position) int {
 	result := (int(score.Middle())*(256-phase) + (int(score.End()) * phase * scale / SCALE_NORMAL)) / 256
 
 	if pos.SideToMove == White {
-		return result
+		return result + int(Tempo)
 	}
-	return -result
+	return -result + int(Tempo)
 }
 
 const SCALE_NORMAL = 2
