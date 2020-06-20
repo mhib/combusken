@@ -31,9 +31,10 @@ func ValueToTrans(value int, height int) int16 {
 }
 
 type transEntry struct {
-	key      uint64
+	key      uint32
 	bestMove backend.Move
 	value    int16
+	eval     int16
 	flag     uint8
 	depth    uint8
 }
@@ -49,23 +50,25 @@ func (t *TranspositionTable) Clear() {
 	}
 }
 
-func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, depth int16, move backend.Move, flag uint8) {
+func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, depth int16, move backend.Move, flag uint8) {
 	var element = &t.Entries[key&t.Mask]
-	if element.key != key {
+	if element.key != uint32(key>>32) {
 		return
 	}
 	ok = true
 	value = element.value
+	eval = element.eval
 	depth = int16(element.depth) + NoneDepth
 	move = element.bestMove
 	flag = element.flag
 	return
 }
 
-func (t *TranspositionTable) Set(key uint64, value int16, depth int, bestMove backend.Move, flag int) {
+func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int) {
 	var element = &t.Entries[key&t.Mask]
-	element.key = key
+	element.key = uint32(key >> 32)
 	element.value = value
+	element.eval = eval
 	element.flag = uint8(flag)
 	element.depth = uint8(depth - NoneDepth)
 	element.bestMove = bestMove

@@ -68,22 +68,17 @@ type SearchInfo struct {
 type StackEntry struct {
 	MoveProvider
 	PV
-	quietsSearched       [MAX_MOVES]backend.Move
-	position             backend.Position
-	evaluation           int16
-	evaluationCalculated bool
+	quietsSearched [MAX_MOVES]backend.Move
+	position       backend.Position
+	evaluation     int16
 }
 
-func (se *StackEntry) InvalidateEvaluation() {
-	se.evaluationCalculated = false
+func (t *thread) getEvaluation(height int) int16 {
+	return t.stack[height].evaluation
 }
 
-func (se *StackEntry) Evaluation() int16 {
-	if !se.evaluationCalculated {
-		se.evaluation = int16(evaluation.Evaluate(&se.position))
-		se.evaluationCalculated = true
-	}
-	return se.evaluation
+func (t *thread) setEvaluation(height int, eval int16) {
+	t.stack[height].evaluation = eval
 }
 
 type PV struct {

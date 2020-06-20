@@ -73,8 +73,8 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		ttDepth = QSDepthNoChecks
 	}
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
-	if hashOk && int(hashDepth) >= ttDepth {
+	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
+	if hashOk && hashValue != UnknownValue && int(hashDepth) >= ttDepth {
 		tmpHashValue := int(transposition.ValueFromTrans(hashValue, height))
 		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
 			(hashFlag == TransBeta && tmpHashValue >= beta) {
@@ -89,12 +89,34 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	moveCount := 0
 
 	var bestVal int
+	var eval int16
 
 	if inCheck {
 		bestVal = MinInt
 		t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
+		eval = UnknownValue
 	} else {
-		bestVal = Evaluate(pos)
+		if hashOk && hashEval != UnknownValue {
+			eval = hashEval
+			bestVal = int(eval)
+			if hashValue != UnknownValue {
+				requiredFlag := uint8(TransAlpha)
+				if int(hashValue) > bestVal {
+					requiredFlag = uint8(TransBeta)
+				}
+				if requiredFlag&hashFlag != 0 {
+					bestVal = int(hashValue)
+				}
+			}
+		} else {
+			if pos.LastMove != NullMove {
+				eval = int16(Evaluate(pos))
+			} else {
+				eval = -t.getEvaluation(height-1) + 2*Tempo
+			}
+			bestVal = int(eval)
+			transposition.GlobalTransTable.Set(pos.Key, UnknownValue, eval, transposition.NoneDepth, NullMove, TransNone)
+		}
 		// Early return if not in check and evaluation exceeded beta
 		if bestVal >= beta {
 			return beta
@@ -148,7 +170,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		flag = TransExact
 	}
 
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), ttDepth, bestMove, flag)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), eval, ttDepth, bestMove, flag)
 
 	return alpha
 }
@@ -195,10 +217,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	}
 
 	alphaOrig := alpha
-	hashOk, hashValue, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
+	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
 	hashValue = transposition.ValueFromTrans(hashValue, height)
 	var val int
-	if hashOk {
+	if hashOk && hashValue != UnknownValue {
 		val := int(hashValue)
 		// Hash pruning
 		if hashDepth >= int16(depth) && (depth == 0 || !pvNode) {
@@ -229,7 +251,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				ttBound = TransExact
 			}
 			if ttBound == TransExact || ttBound == TransBeta && val >= beta || ttBound == TransAlpha && val <= alpha {
-				transposition.GlobalTransTable.Set(pos.Key, int16(val), MAX_HEIGHT-1, NullMove, ttBound)
+				transposition.GlobalTransTable.Set(pos.Key, int16(val), UnknownValue, MAX_HEIGHT, NullMove, ttBound)
 				return val
 			}
 		}
@@ -241,24 +263,57 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
 
-	if pos.LastMove != NullMove {
-		t.stack[height].InvalidateEvaluation()
-	} else {
-		t.stack[height].evaluation = -t.stack[height-1].Evaluation() + 2*Tempo
-		t.stack[height].evaluationCalculated = true
-	}
 	t.ResetKillers(height + 1)
+	var improving bool
+	var eval int16
+	if inCheck {
+		improving = false
+		eval = UnknownValue
+		t.setEvaluation(height, eval)
+		goto afterPreMovesPruning
+	} else if hashOk && hashEval != UnknownValue {
+		eval = hashEval
+		if hashValue != UnknownValue {
+			requiredFlag := TransAlpha
+			if hashValue > eval {
+				requiredFlag = TransBeta
+			}
+			if requiredFlag&int(hashFlag) != 0 {
+				eval = hashValue
+			}
+		}
+	} else {
+		if pos.LastMove != NullMove {
+			eval = int16(Evaluate(pos))
+		} else {
+			eval = -t.getEvaluation(height-1) + 2*Tempo
+		}
+		t.setEvaluation(height, eval)
+		transposition.GlobalTransTable.Set(pos.Key, UnknownValue, eval, transposition.NoneDepth, NullMove, TransNone)
+	}
+
+	if height > 1 {
+		if t.getEvaluation(height-2) != UnknownValue {
+			improving = t.getEvaluation(height) > t.getEvaluation(height-2)
+		} else {
+			improving = height <= 3 ||
+				t.getEvaluation(height-4) == UnknownValue ||
+				t.getEvaluation(height) > t.getEvaluation(height-4)
+		}
+	} else {
+		improving = true
+	}
 
 	// Reverse futility pruning
-	if !pvNode && depth < reverseFutilityPruningDepth && int(t.stack[height].Evaluation())-reverseFutilityPruningMargin*depth >= beta && int(t.stack[height].Evaluation()) < ValueWin {
-		return int(t.stack[height].Evaluation())
+	if !pvNode && depth < reverseFutilityPruningDepth && int(eval)-reverseFutilityPruningMargin*depth >= beta && int(eval) < ValueWin {
+		return int(eval)
 	}
 
 	// Null move pruning
-	if !pvNode && pos.LastMove != NullMove && depth >= 2 && !inCheck && (height < 2 || t.GetPreviousMoveFromCurrentSide(height) != NullMove) && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(t.stack[height].Evaluation()) >= beta {
+	if !pvNode && pos.LastMove != NullMove && depth >= 2 && (height < 2 || t.GetPreviousMoveFromCurrentSide(height) != NullMove) && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
-		reduction := depth/4 + 3 + Min(int(t.stack[height].Evaluation())-beta, 384)/128
+		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
 		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
 		if val >= beta {
 			return beta
@@ -298,6 +353,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		}
 	}
 
+afterPreMovesPruning:
 	bestVal := MinInt
 
 	// Internal iterative deepening
@@ -311,7 +367,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			iiDepth = (depth - 5) / 2
 		}
 		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
-		_, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key)
+		_, _, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key)
 	}
 
 	// Quiet moves are stored in order to reduce their history value at the end of search
@@ -329,10 +385,10 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		isNoisy := move.IsCaptureOrPromotion()
 
 		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
-			if depth <= futilityPruningDepth && int(t.stack[height].Evaluation())+int(PawnValueMiddle)*depth <= alpha {
+			if depth <= futilityPruningDepth && int(eval)+int(PawnValueMiddle)*depth <= alpha {
 				continue
 			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(height <= 2 || t.stack[height].Evaluation() >= t.stack[height-2].Evaluation()), depth) {
+			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(improving), depth) {
 				continue
 			}
 			if depth <= counterMovePruningDepth && pos.LastMove != NullMove && t.CounterHistoryValue(pos.LastMove, move) < counterMovePruningVal {
@@ -371,7 +427,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
 
 			// Increase reduction if not improving
-			reduction += BoolToInt(height <= 2 || t.stack[height].Evaluation() < t.stack[height-2].Evaluation())
+			reduction += BoolToInt(!improving)
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 
@@ -440,7 +496,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else {
 		flag = TransExact
 	}
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), depth, bestMove, flag)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, height), t.getEvaluation(height), depth, bestMove, flag)
 	return alpha
 }
 
@@ -559,8 +615,9 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	alphaOrig := alpha
 	inCheck := pos.IsInCheck()
 	moveCount := 0
+	eval := int16(Evaluate(pos))
+	t.setEvaluation(0, eval)
 	t.stack[0].PV.clear()
-	t.stack[0].InvalidateEvaluation()
 	t.ResetKillers(1)
 	quietsSearched := t.stack[0].quietsSearched[:0]
 	bestVal := MinInt
@@ -634,7 +691,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 	} else {
 		flag = TransExact
 	}
-	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), depth, bestMove, flag)
+	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), eval, depth, bestMove, flag)
 	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
@@ -717,7 +774,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	}
 
 	ordMove := NullMove
-	if hashOk, _, _, hashMove, _ := transposition.GlobalTransTable.Get(pos.Key); hashOk {
+	if hashOk, _, _, _, hashMove, _ := transposition.GlobalTransTable.Get(pos.Key); hashOk {
 		ordMove = hashMove
 	}
 	e.threads[0].EvaluateMoves(pos, rootMoves, ordMove, 0, 127)
