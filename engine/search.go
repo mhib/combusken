@@ -99,15 +99,6 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		if hashOk && hashEval != UnknownValue {
 			eval = hashEval
 			bestVal = int(eval)
-			if hashValue != UnknownValue {
-				requiredFlag := uint8(TransAlpha)
-				if int(hashValue) > bestVal {
-					requiredFlag = uint8(TransBeta)
-				}
-				if requiredFlag&hashFlag != 0 {
-					bestVal = int(hashValue)
-				}
-			}
 		} else {
 			if pos.LastMove != NullMove {
 				eval = int16(Evaluate(pos))
@@ -274,15 +265,6 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else if hashOk && hashEval != UnknownValue {
 		eval = hashEval
 		t.setEvaluation(height, hashEval)
-		if hashValue != UnknownValue {
-			requiredFlag := TransAlpha
-			if hashValue > eval {
-				requiredFlag = TransBeta
-			}
-			if requiredFlag&int(hashFlag) != 0 {
-				eval = hashValue
-			}
-		}
 	} else {
 		if pos.LastMove != NullMove {
 			eval = int16(Evaluate(pos))
