@@ -75,10 +75,10 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	}
 	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
 	if hashOk && hashValue != UnknownValue && int(hashDepth) >= ttDepth {
-		tmpHashValue := int(transposition.ValueFromTrans(hashValue, height))
-		if hashFlag == TransExact || (hashFlag == TransAlpha && tmpHashValue <= alpha) ||
-			(hashFlag == TransBeta && tmpHashValue >= beta) {
-			return tmpHashValue
+		hashValue = transposition.ValueFromTrans(hashValue, height)
+		if hashFlag == TransExact || (hashFlag == TransAlpha && int(hashValue) <= alpha) ||
+			(hashFlag == TransBeta && int(hashValue) >= beta) {
+			return int(hashValue)
 		}
 	}
 
@@ -218,9 +218,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	alphaOrig := alpha
 	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag := transposition.GlobalTransTable.Get(pos.Key)
-	hashValue = transposition.ValueFromTrans(hashValue, height)
 	var val int
 	if hashOk && hashValue != UnknownValue {
+		hashValue = transposition.ValueFromTrans(hashValue, height)
 		val := int(hashValue)
 		// Hash pruning
 		if hashDepth >= int16(depth) && (depth == 0 || !pvNode) {
