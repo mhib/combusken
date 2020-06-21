@@ -273,6 +273,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		goto afterPreMovesPruning
 	} else if hashOk && hashEval != UnknownValue {
 		eval = hashEval
+		t.setEvaluation(height, hashEval)
 		if hashValue != UnknownValue {
 			requiredFlag := TransAlpha
 			if hashValue > eval {
