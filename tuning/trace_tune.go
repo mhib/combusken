@@ -439,6 +439,7 @@ func loadTrace() (res []int) {
 	for i := 0; i <= King; i++ {
 		res = append(res, T.ThreatByRook[i])
 	}
+	res = append(res, T.QueenInfiltration)
 
 	return
 }
@@ -541,6 +542,8 @@ func loadWeights() []weight {
 	for x := Pawn; x <= King; x++ {
 		tmp = append(tmp, ThreatByRook[x])
 	}
+
+	tmp = append(tmp, QueenInfiltration)
 
 	res := make([]weight, 0, len(tmp))
 	for _, s := range tmp {

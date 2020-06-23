@@ -127,7 +127,6 @@ var PassedEnemyDistance = [8]Score{
 var Psqt [2][King + 1][64]Score
 
 var PawnsConnectedSquare [2][64]Score
-var pawnsConnectedMask [2][64]uint64
 
 // PassedRank[Rank] contains a bonus according to the rank of a passed pawn
 var PassedRank = [7]Score{S(0, 0), S(-4, -33), S(-6, -16), S(-2, 24), S(21, 74), S(35, 162), S(124, 255)}
@@ -224,6 +223,8 @@ var KingStorm = [2][4][8]Score{
 			S(-6, 2), S(8, -20), S(-3, 1), S(-7, 16)}},
 }
 
+var pawnsConnectedMask [2][64]uint64
+
 var passedMask [2][64]uint64
 
 var outpustMask [2][64]uint64
@@ -258,6 +259,7 @@ var Hanging = S(57, 51)
 var ThreatByKing = S(18, 38)
 var ThreatByMinor = [King + 1]Score{S(0, 0), S(24, 23), S(27, 34), S(64, 22), S(48, 45), S(79, 161)}
 var ThreatByRook = [King + 1]Score{S(0, 0), S(0, 16), S(-1, 30), S(6, 46), S(91, 31), S(51, 41)}
+var QueenInfiltration = S(16, -11)
 
 func LoadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
@@ -992,6 +994,13 @@ func Evaluate(pos *Position) int {
 			T.MobilityBonus[3][mobility]++
 		}
 
+		if Rank(fromId) > RANK_4 && outpustMask[White][fromId]&(pos.Colours[Black]&pos.Pieces[Pawn]) == 0 {
+			score += QueenInfiltration
+			if tuning {
+				T.QueenInfiltration++
+			}
+		}
+
 		whiteAttackedByTwo |= whiteAttacked & attacks
 		whiteAttacked |= attacks
 		whiteAttackedBy[Queen] |= attacks
@@ -1017,6 +1026,13 @@ func Evaluate(pos *Position) int {
 			T.QueenValue--
 			T.PieceScores[Queen][7-Rank(fromId)][FileMirror[File(fromId)]]--
 			T.MobilityBonus[3][mobility]--
+		}
+
+		if Rank(fromId) < RANK_5 && outpustMask[Black][fromId]&(pos.Colours[White]&pos.Pieces[Pawn]) == 0 {
+			score -= QueenInfiltration
+			if tuning {
+				T.QueenInfiltration--
+			}
 		}
 
 		blackAttackedByTwo |= blackAttacked & attacks

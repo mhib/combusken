@@ -712,6 +712,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for x := Pawn; x <= King; x++ {
 		res = append(res, ScoreValue{&ThreatByRook[x]})
 	}
+	res = append(res, ScoreValue{&QueenInfiltration})
 
 	return
 }
