@@ -30,7 +30,7 @@ jobs:
       - name: Test
         run: go test -v ./...
       - name: Build
-        run: go build -o combusken.out combusken.go
+        run: go build -gcflags -B -o combusken.out combusken.go
       - name: Upload
         uses: actions/upload-artifact@v1
         with:
