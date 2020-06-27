@@ -51,6 +51,10 @@ func init() {
 	rookCastleFlags[A8] = BlackQueenSideCastleFlag
 }
 
+func (pos *Position) RepetitionKey() uint64 {
+	return pos.Key ^ zobristFifty[pos.FiftyMove&3]
+}
+
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
 	if squareBB&pos.Pieces[Pawn] != 0 {
 		return Pawn
@@ -113,7 +117,8 @@ func (pos *Position) MakeNullMove(res *Position) {
 	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove ^ 1
 	res.Flags = pos.Flags
-	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^
+		zobristFifty[pos.FiftyMove&3] ^ zobristFifty[(pos.FiftyMove+1)&3]
 	res.PawnKey = pos.PawnKey ^ zobristColor
 
 	res.FiftyMove = pos.FiftyMove + 1
@@ -132,7 +137,8 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove
 	res.Flags = pos.Flags
-	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags] ^
+		zobristFifty[pos.FiftyMove&3]
 	res.PawnKey = pos.PawnKey ^ zobristColor
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
@@ -140,6 +146,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	} else {
 		res.FiftyMove = pos.FiftyMove + 1
 	}
+	res.Key ^= zobristFifty[res.FiftyMove&3]
 
 	res.EpSquare = 0
 
@@ -245,7 +252,8 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove
 	res.Flags = pos.Flags
-	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
+	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags] ^
+		zobristFifty[pos.FiftyMove&3]
 	res.PawnKey = pos.PawnKey ^ zobristColor
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
@@ -253,6 +261,7 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 	} else {
 		res.FiftyMove = pos.FiftyMove + 1
 	}
+	res.Key ^= zobristFifty[res.FiftyMove&3]
 
 	res.EpSquare = 0
 

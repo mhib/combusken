@@ -142,7 +142,7 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 	e.MovesCount = len(positions) - 1
 	moveHistory := make(map[uint64]int)
 	for i := len(positions) - 1; i >= 0; i-- {
-		moveHistory[positions[i].Key]++
+		moveHistory[positions[i].RepetitionKey()]++
 		if positions[i].FiftyMove == 0 {
 			break
 		}
