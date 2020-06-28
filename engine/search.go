@@ -866,7 +866,7 @@ func lmr(d, m int) int {
 	switch {
 	case d >= 7 && m >= 16:
 		return 4
-	case d >= 5 && m >= 12:
+	case d >= 5 && m >= 16:
 		return 3
 	case d >= 4 && m >= 9:
 		return 2
