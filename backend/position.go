@@ -41,14 +41,16 @@ type Position struct {
 
 var InitialPosition Position = ParseFen(InitialPositionFen)
 
-var rookCastleFlags [64]uint8
+var castleFlags [64]uint8
 
 func init() {
 	HashPosition(&InitialPosition)
-	rookCastleFlags[A1] = WhiteQueenSideCastleFlag
-	rookCastleFlags[H1] = WhiteKingSideCastleFlag
-	rookCastleFlags[H8] = BlackKingSideCastleFlag
-	rookCastleFlags[A8] = BlackQueenSideCastleFlag
+	castleFlags[A1] = WhiteQueenSideCastleFlag
+	castleFlags[H1] = WhiteKingSideCastleFlag
+	castleFlags[E1] = WhiteQueenSideCastleFlag | WhiteKingSideCastleFlag
+	castleFlags[H8] = BlackKingSideCastleFlag
+	castleFlags[A8] = BlackQueenSideCastleFlag
+	castleFlags[E8] = BlackQueenSideCastleFlag | BlackKingSideCastleFlag
 }
 
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
@@ -68,21 +70,14 @@ func (pos *Position) TypeOnSquare(squareBB uint64) int {
 	return None
 }
 
-var kingCastleFlags = [2]uint8{BlackKingSideCastleFlag | BlackQueenSideCastleFlag, WhiteKingSideCastleFlag | WhiteQueenSideCastleFlag}
-
 func (p *Position) MovePiece(piece, side, from, to int) {
 	var b = SquareMask[from] ^ SquareMask[to]
 	p.Colours[side] ^= b
 	p.Pieces[piece] ^= b
 	p.Key ^= zobrist[piece][side][from] ^ zobrist[piece][side][to]
-	switch piece {
-	case King:
-		p.Flags |= kingCastleFlags[side]
-		fallthrough
-	case Pawn:
+	p.Flags |= castleFlags[from] | castleFlags[to]
+	if piece == King || piece == Pawn {
 		p.PawnKey ^= zobrist[piece][side][from] ^ zobrist[piece][side][to]
-	case Rook:
-		p.Flags |= rookCastleFlags[from]
 	}
 }
 
@@ -91,14 +86,9 @@ func (p *Position) TogglePiece(piece, side, square int) {
 	p.Colours[side] ^= b
 	p.Pieces[piece] ^= b
 	p.Key ^= zobrist[piece][side][square]
-	switch piece {
-	// Commented out as this function should not be called with King
-	//case King:
-	//fallthrough
-	case Pawn:
+	p.Flags |= castleFlags[square]
+	if piece == Pawn {
 		p.PawnKey ^= zobrist[Pawn][side][square]
-	case Rook:
-		p.Flags |= rookCastleFlags[square]
 	}
 }
 
@@ -264,9 +254,6 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 			res.Key ^= zobristEpSquare[move.To()]
 		case Capture:
 			res.TogglePiece(move.CapturedPiece(), pos.SideToMove^1, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= rookCastleFlags[move.To()]
-			}
 		case KingCastle:
 			if pos.SideToMove == White {
 				res.MovePiece(Rook, White, H1, F1)
@@ -287,9 +274,6 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 		res.TogglePiece(move.PromotedPiece(), pos.SideToMove, move.To())
 		if move.IsCapture() {
 			res.TogglePiece(move.CapturedPiece(), pos.SideToMove^1, move.To())
-			if move.CapturedPiece() == Rook {
-				res.Flags |= rookCastleFlags[move.To()]
-			}
 		}
 	}
 
