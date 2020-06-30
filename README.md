@@ -47,7 +47,7 @@ SEE, Internal Iterative Deepening constants.
 
 + [Stockfish](https://github.com/official-stockfish/Stockfish/) by Tord Romstad, Marco Costalba, Joona Kiiski & Gary Linscott
 
-Some evaluation heuristics.
+Some evaluation heuristics, and pruning constants
 
 + [Zurichess](https://bitbucket.org/zurichess/zurichess/src) by Alexandru Moșoi
 

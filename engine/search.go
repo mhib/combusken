@@ -274,6 +274,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 	} else if hashOk && hashEval != UnknownValue {
 		eval = hashEval
 		t.setEvaluation(height, hashEval)
+		// Idea from stockfish
+		// Use hashValue as better position evaluation
 		if hashValue != UnknownValue {
 			requiredFlag := TransAlpha
 			if hashValue > eval {
