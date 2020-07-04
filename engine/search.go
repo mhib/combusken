@@ -29,8 +29,8 @@ const futilityPruningDepth = 8
 const counterMovePruningDepth = 3
 const counterMovePruningVal = -1000
 
-const probCutDepth = 6
-const probCutMargin = 100
+const probCutDepth = 4
+const probCutMargin = 121
 
 const SMPCycles = 16
 

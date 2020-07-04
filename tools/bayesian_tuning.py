@@ -82,10 +82,10 @@ def optimize_parameter(parameters: List[SearchConstant]):
     res = gp_minimize(
         lambda xs: calculate_elo_diff(parameters, list(map(round, xs))),
         [(value - parameter.range, value + parameter.range) for value, parameter in zip(current_values, parameters)],
-        n_calls=100,
+        n_calls=15,
         n_random_starts=5
     )
     print(res)
 
 if __name__ == '__main__':
-    optimize_parameter([SearchConstant('seePruningDepth', 2), SearchConstant('seeQuietMargin', 20), SearchConstant('seeNoisyMargin', 20)])
+    optimize_parameter([SearchConstant('probCutDepth', 2), SearchConstant('probCutMargin', 50)])
