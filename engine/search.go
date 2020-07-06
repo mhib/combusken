@@ -202,7 +202,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 
 	var pos *Position = &t.stack[height].position
 
-	if height >= MAX_HEIGHT || t.isDraw(height) {
+	if height >= MAX_HEIGHT || (pos.FiftyMove > 3 && alpha < 0 && t.isDraw(height)) {
 		return t.contempt(pos, depth)
 	}
 
