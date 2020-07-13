@@ -243,7 +243,6 @@ var forwardFileMask [2][64]uint64
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
-var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -3, 0, 0, 0}
 var KingSafetyAttackValue int16 = 113
 var KingSafetyWeakSquares int16 = 28
 var KingSafetyFriendlyPawns int16 = 1
@@ -610,12 +609,10 @@ func Evaluate(pos *Position) int {
 	var blackAttacked uint64
 	var whiteKingAttacksCount int16
 	var whiteKingAttackersCount int16
-	var whiteKingAttackersWeight int16
 	var blackAttackedBy [King + 1]uint64
 	var blackAttackedByTwo uint64
 	var blackKingAttacksCount int16
 	var blackKingAttackersCount int16
-	var blackKingAttackersWeight int16
 
 	phase := TotalPhase
 	whiteMobilityArea := ^((pos.Pieces[Pawn] & pos.Colours[White]) | (BlackPawnsAttacks(pos.Pieces[Pawn] & pos.Colours[Black])))
@@ -699,7 +696,6 @@ func Evaluate(pos *Position) int {
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
-			whiteKingAttackersWeight += KingSafetyAttacksWeights[Knight]
 		}
 	}
 
@@ -751,7 +747,6 @@ func Evaluate(pos *Position) int {
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
-			blackKingAttackersWeight += KingSafetyAttacksWeights[Knight]
 		}
 	}
 
@@ -815,7 +810,6 @@ func Evaluate(pos *Position) int {
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
-			whiteKingAttackersWeight += KingSafetyAttacksWeights[Bishop]
 		}
 	}
 
@@ -886,7 +880,6 @@ func Evaluate(pos *Position) int {
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
-			blackKingAttackersWeight += KingSafetyAttacksWeights[Bishop]
 		}
 	}
 
@@ -933,7 +926,6 @@ func Evaluate(pos *Position) int {
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
-			whiteKingAttackersWeight += KingSafetyAttacksWeights[Rook]
 		}
 	}
 
@@ -972,7 +964,6 @@ func Evaluate(pos *Position) int {
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
-			blackKingAttackersWeight += KingSafetyAttacksWeights[Rook]
 		}
 	}
 
@@ -999,7 +990,6 @@ func Evaluate(pos *Position) int {
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
-			whiteKingAttackersWeight += KingSafetyAttacksWeights[Queen]
 		}
 	}
 
@@ -1025,7 +1015,6 @@ func Evaluate(pos *Position) int {
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
-			blackKingAttackersWeight += KingSafetyAttacksWeights[Queen]
 		}
 	}
 
@@ -1060,8 +1049,7 @@ func Evaluate(pos *Position) int {
 		rookChecks := rookThreats & safe & blackAttackedBy[Rook]
 		queenChecks := queenThreats & safe & blackAttackedBy[Queen]
 
-		count := int(blackKingAttackersCount) * int(blackKingAttackersWeight)
-		count += int(KingSafetyAttackValue) * 9 * int(blackKingAttackersCount) / PopCount(whiteKingArea)
+		count := int(KingSafetyAttackValue) * 9 * int(blackKingAttackersCount) / PopCount(whiteKingArea)
 		count += int(KingSafetyWeakSquares) * PopCount(whiteKingArea&weakForWhite)
 		count += int(KingSafetyFriendlyPawns) * PopCount(pos.Colours[White]&pos.Pieces[Pawn]&whiteKingArea & ^weakForWhite)
 		count += int(KingSafetyNoEnemyQueens) * BoolToInt(pos.Colours[Black]&pos.Pieces[Queen] == 0)
@@ -1102,8 +1090,7 @@ func Evaluate(pos *Position) int {
 		rookChecks := rookThreats & safe & whiteAttackedBy[Rook]
 		queenChecks := queenThreats & safe & whiteAttackedBy[Queen]
 
-		count := int(whiteKingAttackersCount) * int(whiteKingAttackersWeight)
-		count += int(KingSafetyAttackValue) * int(whiteKingAttackersCount) * 9 / PopCount(blackKingArea) // Scale value to king area size
+		count := int(KingSafetyAttackValue) * int(whiteKingAttackersCount) * 9 / PopCount(blackKingArea) // Scale value to king area size
 		count += int(KingSafetyWeakSquares) * PopCount(blackKingArea&weakForBlack)
 		count += int(KingSafetyFriendlyPawns) * PopCount(pos.Colours[Black]&pos.Pieces[Pawn]&blackKingArea & ^weakForBlack)
 		count += int(KingSafetyNoEnemyQueens) * BoolToInt(pos.Colours[White]&pos.Pieces[Queen] == 0)
