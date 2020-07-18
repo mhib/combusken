@@ -350,6 +350,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck, !cutNode)
 				}
 				if val >= rBeta {
+					if !(hashOk && int(hashDepth) >= depth-3 && hashValue != UnknownValue) {
+						transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(val, height), t.getEvaluation(height), depth-3, move, TransBeta)
+					}
 					return val
 				}
 			}
