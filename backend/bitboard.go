@@ -65,6 +65,10 @@ func File(id int) int {
 	return id & 7
 }
 
+func FileBB(id int) uint64 {
+	return FILES[File(id)]
+}
+
 func Rank(id int) int {
 	return id >> 3
 }

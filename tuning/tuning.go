@@ -674,6 +674,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&MinorBehindPawn})
 	res = append(res, ScoreValue{&RookOnFile[0]})
 	res = append(res, ScoreValue{&RookOnFile[1]})
+	res = append(res, ScoreValue{&RookOnQueenFile})
 	for y := 0; y < 12; y++ {
 		res = append(res, ScoreValue{&KingDefenders[y]})
 	}

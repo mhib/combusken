@@ -31,6 +31,7 @@ type Trace struct {
 	DistantKnight                [4]int
 	MinorBehindPawn              int
 	RookOnFile                   [2]int
+	RookOnQueenFile              int
 	KingDefenders                [12]int
 	KingShelter                  [2][8][8]int
 	KingStorm                    [2][4][8]int
