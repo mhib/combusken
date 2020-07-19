@@ -616,6 +616,7 @@ func Evaluate(pos *Position) int {
 	var blackKingAttacksCount int16
 	var blackKingAttackersCount int16
 	var blackKingAttackersWeight int16
+	var mobilityByColor [2]Score
 
 	phase := TotalPhase
 	whiteMobilityArea := ^((pos.Pieces[Pawn] & pos.Colours[White]) | (BlackPawnsAttacks(pos.Pieces[Pawn] & pos.Colours[Black])))
@@ -659,6 +660,7 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += Psqt[White][Knight][fromId]
 		score += MobilityBonus[0][mobility]
+		mobilityByColor[White] += MobilityBonus[0][mobility]
 		if tuning {
 			T.KnightValue++
 			T.PieceScores[Knight][Rank(fromId)][FileMirror[File(fromId)]]++
@@ -712,6 +714,7 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= Psqt[Black][Knight][fromId]
 		score -= MobilityBonus[0][mobility]
+		mobilityByColor[Black] += MobilityBonus[0][mobility]
 		if tuning {
 			T.KnightValue--
 			T.PieceScores[Knight][7-Rank(fromId)][FileMirror[File(fromId)]]--
@@ -764,6 +767,7 @@ func Evaluate(pos *Position) int {
 		attacks = BishopAttacks(fromId, allOccupation)
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += MobilityBonus[1][mobility]
+		mobilityByColor[White] += MobilityBonus[1][mobility]
 		score += Psqt[White][Bishop][fromId]
 		if tuning {
 			T.BishopValue++
@@ -837,6 +841,7 @@ func Evaluate(pos *Position) int {
 		attacks = BishopAttacks(fromId, allOccupation)
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= MobilityBonus[1][mobility]
+		mobilityByColor[Black] += MobilityBonus[1][mobility]
 		score -= Psqt[Black][Bishop][fromId]
 		if tuning {
 			T.BishopValue--
@@ -906,6 +911,7 @@ func Evaluate(pos *Position) int {
 		attacks = RookAttacks(fromId, allOccupation)
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += MobilityBonus[2][mobility]
+		mobilityByColor[White] += MobilityBonus[2][mobility]
 		score += Psqt[White][Rook][fromId]
 
 		if tuning {
@@ -945,6 +951,7 @@ func Evaluate(pos *Position) int {
 		attacks = RookAttacks(fromId, allOccupation)
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= MobilityBonus[2][mobility]
+		mobilityByColor[Black] += MobilityBonus[2][mobility]
 		score -= Psqt[Black][Rook][fromId]
 
 		if tuning {
@@ -984,6 +991,7 @@ func Evaluate(pos *Position) int {
 		attacks = QueenAttacks(fromId, allOccupation)
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += MobilityBonus[3][mobility]
+		mobilityByColor[White] += MobilityBonus[3][mobility]
 		score += Psqt[White][Queen][fromId]
 
 		if tuning {
@@ -1011,6 +1019,7 @@ func Evaluate(pos *Position) int {
 		attacks = QueenAttacks(fromId, allOccupation)
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= MobilityBonus[3][mobility]
+		mobilityByColor[Black] += MobilityBonus[3][mobility]
 		score -= Psqt[Black][Queen][fromId]
 
 		if tuning {
@@ -1069,6 +1078,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeRookCheck) * PopCount(rookChecks)
 		count += int(KingSafetySafeBishopCheck) * PopCount(bishopChecks)
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
+		count += int((mobilityByColor[Black] - mobilityByColor[White]).Middle())
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
 			score -= S(int16(count*count/720), int16(count/20))
@@ -1111,6 +1121,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeRookCheck) * PopCount(rookChecks)
 		count += int(KingSafetySafeBishopCheck) * PopCount(bishopChecks)
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
+		count += int((mobilityByColor[White] - mobilityByColor[Black]).Middle())
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
 			score += S(int16(count*count/720), int16(count/20))
