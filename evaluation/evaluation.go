@@ -66,14 +66,14 @@ var PieceScores = [King + 1][8][4]Score{
 		{S(8, -20), S(2, 0), S(17, 6), S(19, 14)},
 	},
 	{ // King
-		{S(187, -17), S(161, 23), S(76, 73), S(83, 58)},
-		{S(173, 23), S(139, 45), S(70, 82), S(35, 95)},
-		{S(82, 48), S(108, 58), S(42, 88), S(39, 94)},
-		{S(14, 48), S(72, 57), S(30, 91), S(-3, 102)},
-		{S(25, 61), S(102, 77), S(63, 97), S(85, 89)},
-		{S(94, 66), S(237, 71), S(221, 86), S(160, 68)},
-		{S(43, 69), S(114, 80), S(107, 100), S(167, 75)},
-		{S(26, 10), S(129, 37), S(112, 73), S(25, 59)},
+		{S(177, -18), S(158, 18), S(73, 66), S(66, 110)},
+		{S(167, 19), S(139, 40), S(65, 77), S(19, 145)},
+		{S(92, 40), S(135, 45), S(74, 73), S(45, 140)},
+		{S(47, 36), S(125, 40), S(64, 78), S(49, 138)},
+		{S(74, 46), S(163, 58), S(86, 87), S(164, 117)},
+		{S(100, 60), S(285, 56), S(273, 69), S(290, 80)},
+		{S(79, 67), S(125, 77), S(141, 93), S(213, 103)},
+		{S(33, 9), S(158, 27), S(109, 71), S(32, 94)},
 	},
 }
 
@@ -223,6 +223,7 @@ var KingStorm = [2][4][8]Score{
 		{S(0, 0), S(0, -21), S(12, -17), S(-8, 0),
 			S(-6, 2), S(8, -20), S(-3, 1), S(-7, 16)}},
 }
+var KingOnPawnlessFlank = S(14, -60)
 
 var passedMask [2][64]uint64
 
@@ -564,6 +565,12 @@ func evaluateKingPawns(pos *Position) Score {
 			T.KingStorm[blocked][FileMirror[file]][theirDist]++
 		}
 	}
+	if KING_FLANK_BB[File(whiteKingLocation)]&pos.Pieces[Pawn] == 0 {
+		score += KingOnPawnlessFlank
+		if tuning {
+			T.KingOnPawnlessFlank++
+		}
+	}
 
 	// Black king storm / shelter
 	for file := Max(File(blackKingLocation)-1, FILE_A); file <= Min(File(blackKingLocation)+1, FILE_H); file++ {
@@ -591,6 +598,12 @@ func evaluateKingPawns(pos *Position) Score {
 		score -= KingStorm[blocked][FileMirror[file]][theirDist]
 		if tuning {
 			T.KingStorm[blocked][FileMirror[file]][theirDist]--
+		}
+	}
+	if KING_FLANK_BB[File(blackKingLocation)]&pos.Pieces[Pawn] == 0 {
+		score -= KingOnPawnlessFlank
+		if tuning {
+			T.KingOnPawnlessFlank--
 		}
 	}
 	if !tuning {

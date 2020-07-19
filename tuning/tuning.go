@@ -691,6 +691,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 			}
 		}
 	}
+	res = append(res, ScoreValue{&KingOnPawnlessFlank})
 	for x := Knight; x <= Queen; x++ {
 		res = append(res, SingleValue{&KingSafetyAttacksWeights[x]})
 	}
