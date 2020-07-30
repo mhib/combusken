@@ -244,15 +244,15 @@ const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
 var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -3, 0, 0, 0}
-var KingSafetyAttackValue int16 = 113
-var KingSafetyWeakSquares int16 = 28
-var KingSafetyFriendlyPawns int16 = 1
-var KingSafetyNoEnemyQueens int16 = -156
-var KingSafetySafeQueenCheck int16 = 66
-var KingSafetySafeRookCheck int16 = 119
-var KingSafetySafeBishopCheck int16 = 93
-var KingSafetySafeKnightCheck int16 = 130
-var KingSafetyAdjustment int16 = -37
+var KingSafetyAttackValue int16 = 106
+var KingSafetyWeakSquares int16 = 30
+var KingSafetyFriendlyPawns int16 = -2
+var KingSafetyNoEnemyQueens int16 = -153
+var KingSafetySafeQueenCheck int16 = 65
+var KingSafetySafeRookCheck int16 = 108
+var KingSafetySafeBishopCheck int16 = 87
+var KingSafetySafeKnightCheck int16 = 124
+var KingSafetyAdjustment int16 = -23
 
 var Hanging = S(57, 51)
 var ThreatByKing = S(18, 38)
@@ -1071,7 +1071,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
-			score -= S(int16(count*count/720), int16(count/20))
+			score -= S(int16(count*count/724), int16(count/50))
 		}
 	}
 
@@ -1113,7 +1113,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
-			score += S(int16(count*count/720), int16(count/20))
+			score += S(int16(count*count/724), int16(count/50))
 		}
 	}
 
