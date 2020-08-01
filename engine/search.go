@@ -196,7 +196,7 @@ func moveCountPruning(improving, depth int) int {
 	return (5+depth*depth)*(1+improving)/2 - 1
 }
 
-func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
+func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 
@@ -317,7 +317,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
-		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false)
+		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false, !cutNode)
 		if val >= beta {
 			return beta
 		}
@@ -347,7 +347,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool) int {
 				isChildInCheck := child.IsInCheck()
 				val = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
 				if val >= rBeta {
-					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck)
+					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck, !cutNode)
 				}
 				if val >= rBeta {
 					return val
@@ -369,7 +369,7 @@ afterPreMovesPruning:
 		} else {
 			iiDepth = (depth - 5) / 2
 		}
-		t.alphaBeta(iiDepth, alpha, beta, height, inCheck)
+		t.alphaBeta(iiDepth, alpha, beta, height, inCheck, cutNode)
 		_, _, _, _, hashMove, _ = transposition.GlobalTransTable.Get(pos.Key)
 	}
 
@@ -425,6 +425,7 @@ afterPreMovesPruning:
 		if depth >= 3 && !inCheck && moveCount > 1 && !isNoisy && !childInCheck {
 			reduction = lmr(depth, moveCount)
 			reduction += BoolToInt(!pvNode)
+			reduction += BoolToInt(cutNode) * 2
 
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
@@ -441,7 +442,7 @@ afterPreMovesPruning:
 				(inCheck && SeeSign(pos, move)) ||
 				// singular extension
 				(move == hashMove && depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha) &&
-					t.isMoveSingular(depth, height, hashMove, int(hashValue)))
+					t.isMoveSingular(depth, height, hashMove, int(hashValue), cutNode))
 
 		newDepth := depth - 1 + extension
 
@@ -453,18 +454,18 @@ afterPreMovesPruning:
 		// Search conditions as in Ethereal
 		// Search with null window and reduced depth if lmr
 		if reduction > 0 {
-			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck)
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck, true)
 		}
 		// Search with null window without reduced depth if
 		// search with lmr null window exceeded alpha or
 		// not in pv (this is the same as normal search as non pv nodes are searched with null window anyway)
 		// pv and not first move
 		if (reduction > 0 && val > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
-			val = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck)
+			val = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck, !cutNode)
 		}
 		// If pvNode and first move or search with null window exceeded alpha, search with full window
 		if pvNode && (moveCount == 1 || val > alpha) {
-			val = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck)
+			val = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck, false)
 		}
 
 		if val > bestVal {
@@ -503,7 +504,7 @@ afterPreMovesPruning:
 	return alpha
 }
 
-func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int) bool {
+func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, cutNode bool) bool {
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
 	// Store child as we already made a move into it in alphaBeta
@@ -521,7 +522,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int)
 			continue
 		}
 		t.SetCurrentMove(height, move)
-		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck())
+		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck(), cutNode)
 		if val > rBeta {
 			break
 		}
@@ -656,12 +657,12 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 			newDepth++
 		}
 		if reduction > 0 {
-			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck)
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck, true)
 			if val <= alpha {
 				continue
 			}
 		}
-		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck)
+		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck, false)
 		if val > bestVal {
 			bestVal = val
 			bestMove = moves[i].Move
