@@ -426,6 +426,7 @@ afterPreMovesPruning:
 			reduction = lmr(depth, moveCount)
 			reduction += BoolToInt(!pvNode)
 			reduction += BoolToInt(cutNode) * 2
+			reduction += BoolToInt(hashMove.IsCaptureOrPromotion())
 
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
