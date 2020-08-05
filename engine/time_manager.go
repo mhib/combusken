@@ -54,6 +54,13 @@ func (manager *tournamentTimeManager) isSoftTimeout(int, int) bool {
 	return time.Since(manager.startedAt) >= manager.ideal
 }
 
+const improvementDivisor = 20
+const firstImprovement = 16
+const secondImprovement = 21
+const thirdImprovement = 61
+const firstDeteriorate = 23
+const secondDeteriorate = 46
+
 func (manager *tournamentTimeManager) updateTime(depth, score int) {
 	lastScore := manager.lastScore
 	manager.lastScore = score
@@ -61,21 +68,21 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 		return
 	}
 
-	if lastScore > score+16 {
-		manager.ideal += manager.ideal / 20
+	if lastScore > score+firstImprovement {
+		manager.ideal += manager.ideal / improvementDivisor
 	}
-	if lastScore > score+21 {
-		manager.ideal += manager.ideal / 20
+	if lastScore > score+secondImprovement {
+		manager.ideal += manager.ideal / improvementDivisor
 	}
-	if lastScore > score+61 {
-		manager.ideal += manager.ideal / 20
+	if lastScore > score+thirdImprovement {
+		manager.ideal += manager.ideal / improvementDivisor
 	}
 
-	if lastScore+23 < score {
-		manager.ideal += manager.ideal / 40
+	if lastScore+firstDeteriorate < score {
+		manager.ideal += manager.ideal / (improvementDivisor * 2)
 	}
-	if lastScore+46 < score {
-		manager.ideal += manager.ideal / 20
+	if lastScore+secondDeteriorate < score {
+		manager.ideal += manager.ideal / improvementDivisor
 	}
 }
 
