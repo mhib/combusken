@@ -326,7 +326,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	// Probcut pruning
 	// If we have a good enough capture and a reduced search returns a value
 	// much above beta, we can (almost) safely prune the previous move.
-	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin {
+	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin && Max(alpha-probCutMargin, ValueLoss+1) <= int(eval) {
 		rBeta := Min(beta+probCutMargin, ValueWin-1)
 		//Idea from stockfish
 		if !(hashMove != NullMove && int(hashDepth) >= depth-4 && int(hashValue) < rBeta) {
