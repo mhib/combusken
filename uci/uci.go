@@ -105,6 +105,7 @@ func debugUci(s string) {
 }
 
 func (uci *UciProtocol) uciCommand(...string) {
+	uci.engine.NewGame()
 	name, version, author := uci.engine.GetInfo()
 	fmt.Printf("id name %s %s\n", name, version)
 	fmt.Printf("id author %s\n", author)
@@ -115,7 +116,6 @@ func (uci *UciProtocol) uciCommand(...string) {
 }
 
 func (uci *UciProtocol) isReadyCommand(...string) {
-	uci.engine.NewGame()
 	fmt.Println("readyok")
 }
 
