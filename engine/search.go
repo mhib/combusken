@@ -422,16 +422,17 @@ afterPreMovesPruning:
 		reduction := 0
 		// Late Move Reduction
 		// https://www.chessprogramming.org/Late_Move_Reductions
-		if depth >= 3 && !inCheck && moveCount > 1 && !isNoisy && !childInCheck {
+		if depth >= 3 && !inCheck && moveCount > 1 && (!isNoisy || cutNode) && !childInCheck {
 			reduction = lmr(depth, moveCount)
-			reduction += BoolToInt(!pvNode)
-			reduction += BoolToInt(cutNode) * 2
 
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
-
-			// Increase reduction if not improving
-			reduction += BoolToInt(!improving)
+			if !isNoisy {
+				reduction += BoolToInt(!pvNode)
+				reduction += BoolToInt(cutNode) * 2
+				// Increase reduction if not improving
+				reduction += BoolToInt(!improving)
+			}
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 
