@@ -183,15 +183,6 @@ func (t *thread) contempt(pos *Position, depth int) int {
 	return 2*(t.nodes&1) - 1
 }
 
-func moveToFirst(moves []EvaledMove, move Move) {
-	for i := 0; i < len(moves); i++ {
-		if moves[i].Move == move {
-			moves[0], moves[i] = moves[i], moves[0]
-			return
-		}
-	}
-}
-
 func moveCountPruning(improving, depth int) int {
 	return (5+depth*depth)*(1+improving)/2 - 1
 }
