@@ -479,6 +479,10 @@ afterPreMovesPruning:
 		}
 	}
 
+	if owning {
+		unmarkPosition(pos.Key)
+	}
+
 	if moveCount == 0 {
 		if inCheck {
 			return lossIn(height)
@@ -488,10 +492,6 @@ afterPreMovesPruning:
 
 	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
 		t.Update(pos, quietsSearched, bestMove, depth, height)
-	}
-
-	if owning {
-		unmarkPosition(pos.Key)
 	}
 
 	var flag int
