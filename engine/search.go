@@ -34,8 +34,9 @@ const probCutMargin = 100
 
 const SMPCycles = 16
 
-const WindowSize = 25
-const WindowDepth = 6
+const WindowSize = 18
+const WindowDepth = 5
+const WindowDeltaInc = 10
 
 const QSDepthChecks = 0
 const QSDepthNoChecks = -1
@@ -599,7 +600,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) resu
 			beta = Min(Mate, beta+delta)
 			searchDepth--
 		}
-		delta += delta/2 + 5
+		delta += delta/2 + WindowDeltaInc
 	}
 }
 
