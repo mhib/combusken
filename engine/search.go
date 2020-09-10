@@ -427,7 +427,7 @@ afterPreMovesPruning:
 
 				// Dance reduction
 				reduction += BoolToInt(!pos.LastMove.IsCaptureOrPromotion() &&
-					child.Colours[child.SideToMove] == t.stack[height-1].position.Colours[child.SideToMove]) * 2
+					child.Colours[child.SideToMove] == t.stack[height-1].position.Colours[child.SideToMove])
 			}
 			reduction = Max(0, Min(depth-2, reduction))
 		}
