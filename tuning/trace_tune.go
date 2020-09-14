@@ -431,6 +431,7 @@ func loadTrace() (res []int) {
 			}
 		}
 	}
+	res = append(res, T.KingOnPawnlessFlank)
 
 	res = append(res, T.Hanging)
 	res = append(res, T.ThreatByKing)
@@ -535,6 +536,7 @@ func loadWeights() []weight {
 			}
 		}
 	}
+	tmp = append(tmp, KingOnPawnlessFlank)
 	tmp = append(tmp, Hanging)
 	tmp = append(tmp, ThreatByKing)
 	for x := Pawn; x <= King; x++ {
