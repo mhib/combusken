@@ -37,6 +37,7 @@ const (
 )
 
 var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
+const sortTresholdConstant = 2470
 
 const badNoisyValue = -4096
 
@@ -159,7 +160,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 		mp.quietsSize = GenerateQuiet(pos, mp.Moves[mp.split:])
 		quietMoves := mp.Moves[mp.split : mp.split+mp.quietsSize]
 		mh.EvaluateQuiets(pos, quietMoves, height)
-		sortTreshold := -2000 * int32(depth)
+		sortTreshold := -sortTresholdConstant * int32(depth)
 		// Partial Insertion sort
 		for i := len(quietMoves) - 2; i >= 0; i-- {
 			if quietMoves[i].Value > sortTreshold {
