@@ -224,7 +224,7 @@ var KingStorm = [2][4][8]Score{
 		{S(0, 0), S(0, -21), S(12, -17), S(-8, 0),
 			S(-6, 2), S(8, -20), S(-3, 1), S(-7, 16)}},
 }
-var KingOnPawnlessFlank = S(14, -60)
+var KingOnPawnlessFlank = S(-14, -60)
 
 var passedMask [2][64]uint64
 
