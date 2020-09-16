@@ -369,7 +369,6 @@ afterPreMovesPruning:
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	bestMove := NullMove
 	moveCount := 0
-	seeMargins := [2]int{seeQuietMargin * depth, seeNoisyMargin * depth * depth}
 	t.stack[height].InitNormal(pos, &t.MoveHistory, height, hashMove)
 
 	for {
@@ -389,14 +388,6 @@ afterPreMovesPruning:
 			if depth <= counterMovePruningDepth && pos.LastMove != NullMove && t.CounterHistoryValue(pos.LastMove, move) < counterMovePruningVal {
 				continue
 			}
-		}
-
-		if bestVal > ValueLoss &&
-			depth <= seePruningDepth &&
-			moveCount > 0 &&
-			t.stack[height].GetMoveStage() > GOOD_NOISY &&
-			!SeeAbove(pos, move, seeMargins[BoolToInt(isNoisy)]) {
-			continue
 		}
 
 		if !pos.MakeMove(move, child) {
@@ -426,6 +417,14 @@ afterPreMovesPruning:
 				reduction += BoolToInt(!improving)
 			}
 			reduction = Max(0, Min(depth-2, reduction))
+		}
+
+		if moveCount > 0 && bestVal > ValueLoss && depth <= seePruningDepth && t.stack[height].GetMoveStage() > GOOD_NOISY && depth <= seePruningDepth {
+			reducedDepth := depth - reduction
+			if (isNoisy && !SeeAbove(pos, move, seeNoisyMargin*reducedDepth*reducedDepth)) ||
+				(!isNoisy && !SeeAbove(pos, move, seeQuietMargin*reducedDepth)) {
+				continue
+			}
 		}
 
 		extension := BoolToInt(
