@@ -32,8 +32,6 @@ const counterMovePruningVal = -1000
 const probCutDepth = 6
 const probCutMargin = 100
 
-const SMPCycles = 16
-
 const WindowSize = 18
 const WindowDepth = 5
 const WindowDeltaInc = 10
