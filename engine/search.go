@@ -572,8 +572,6 @@ type result struct {
 	moves []Move
 }
 
-// https://www.chessprogramming.org/Aspiration_Windows
-// After a lot of tries ELO gain have been accomplished only with relatively large window(50 cp)
 func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) result {
 	var alpha, beta int
 	delta := WindowSize
