@@ -403,7 +403,7 @@ afterPreMovesPruning:
 		reduction := 0
 		// Late Move Reduction
 		// https://www.chessprogramming.org/Late_Move_Reductions
-		if depth >= 3 && !inCheck && moveCount > 1 && (!isNoisy || cutNode) && !childInCheck {
+		if !inCheck && moveCount > 1 && (!isNoisy || cutNode) && !childInCheck {
 			reduction = lmr(depth, moveCount)
 
 			// less reduction for special moves
