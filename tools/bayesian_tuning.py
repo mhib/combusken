@@ -10,6 +10,8 @@ import re
 NUMBER_OF_THREADS = 8
 NUMBER_OF_GAMES = 20
 
+FILE = '../engine/search.go'
+
 class SearchConstant:
     def __init__(self, name, range):
         self.name = name
@@ -29,16 +31,16 @@ def const_pattern(parameter: str):
 def replace_value(parameter: str, value: int):
     pattern = const_pattern(parameter)
     with NamedTemporaryFile(mode='w') as new_file:
-        for _i, line in enumerate(open('../engine/search.go')):
+        for _i, line in enumerate(open(FILE)):
             if pattern.match(line):
                 new_file.write('const ' + parameter + ' = ' + str(value) + '\n')
             else:
                 new_file.write(line)
         new_file.flush()
-        copy(new_file.name, '../engine/search.go')
+        copy(new_file.name, FILE)
 
 def get_current_value(pattern):
-    for _i, line in enumerate(open('../engine/search.go')):
+    for _i, line in enumerate(open(FILE)):
         for match in re.finditer(pattern, line):
             return int(match.group(1))
 
