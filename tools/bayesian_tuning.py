@@ -7,18 +7,22 @@ import subprocess
 import re
 
 
-NUMBER_OF_THREADS = 8
+NUMBER_OF_THREADS = 16
 NUMBER_OF_GAMES = 20
 
-FILE = '../engine/search.go'
+FILE = '../engine/time_manager.go'
 
 class SearchConstant:
-    def __init__(self, name, range):
+    def __init__(self, name, min, max):
         self.name = name
-        self.range = range
+        self.min = min
+        self.max = max
+    
+    def range(self):
+        return (self.min, self.max)
 
 def cute_chess_command(engine_1, engine_2):
-    return "cutechess-cli -repeat -recover -wait 10 -resign movecount=3 score=400 -draw movenumber=40 movecount=8 score=10 -concurrency {} -games {} -engine cmd={} option.Hash=64 -engine cmd={} option.Hash=64 -each proto=uci tc=60+0.6 -openings file=./2moves_v1.pgn format=pgn order=random plies=16".format(
+    return "./cutechess-cli -repeat -recover -wait 10 -resign movecount=3 score=400 -draw movenumber=40 movecount=8 score=10 -concurrency {} -games {} -engine cmd={} option.Hash=64 -engine cmd={} option.Hash=64 -each proto=uci tc=40/60 -openings file=./2moves_v1.pgn format=pgn order=random plies=16".format(
         NUMBER_OF_THREADS,
         NUMBER_OF_GAMES,
         engine_1,
@@ -85,15 +89,15 @@ def build_engine(exe_name):
 def optimize_parameter(parameters: List[SearchConstant]):
     calculate_elo_diff.call_count = 0
     build_engine('combusken')
-    current_values = [get_current_value(const_pattern(x.name)) for x in parameters]
+    # current_values = [get_current_value(const_pattern(x.name)) for x in parameters]
     res = gp_minimize(
         lambda xs: calculate_elo_diff(parameters, list(map(round, xs))),
-        [(value - parameter.range, value + parameter.range) for value, parameter in zip(current_values, parameters)],
-        n_calls=100,
+        [parameter.range() for parameter in parameters],
+        n_calls=50,
         n_random_starts=5,
         acq_func="EI",
     )
     print(res)
 
 if __name__ == '__main__':
-    optimize_parameter([SearchConstant('seePruningDepth', 2), SearchConstant('seeQuietMargin', 20), SearchConstant('seeNoisyMargin', 20)])
+    optimize_parameter([SearchConstant('idealMovesToGoInc', 0, 10), SearchConstant('idealMovesToGoMul', 1, 7), SearchConstant('idealMovesToGoDiv', 3, 8), SearchConstant('hardMovesToGoInc', 0, 20), SearchConstant('hardMovesToGoMul', 1, 8), SearchConstant('hardMovestoGoDiv', 1, 2)])
