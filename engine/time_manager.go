@@ -1,8 +1,11 @@
 package engine
 
-import "time"
-import . "github.com/mhib/combusken/backend"
-import . "github.com/mhib/combusken/utils"
+import (
+	"time"
+
+	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/utils"
+)
 
 type timeElapser struct {
 	startedAt time.Time
@@ -79,6 +82,20 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 	}
 }
 
+const idealMovesToGoInc = 5
+const idealMovesToGoMul = 3
+const idealMovesToGoDiv = 4
+const hardMovesToGoInc = 7
+const hardMovesToGoMul = 4
+const hardMovesToGoDiv = 1
+
+const idealIncMul = 1
+const idealIncDiv = 50
+const hardIncMul = 5
+const hardIncDiv = 50
+
+const implicitMovesToGo = 25
+
 func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, sideToMove int) *tournamentTimeManager {
 	res := &tournamentTimeManager{timeElapser: timeElapser{startedAt: startedAt}}
 	var limit, inc int
@@ -91,11 +108,11 @@ func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, 
 	var ideal, hard int
 
 	if movesToGo > 0 {
-		ideal = (((limit / (movesToGo + 5)) + inc) * 3) / 4
-		hard = ((limit / (movesToGo + 7)) + inc) * 4
+		ideal = (((limit / (movesToGo + idealMovesToGoInc)) + inc) * idealMovesToGoMul) / idealMovesToGoDiv
+		hard = (((limit / (movesToGo + hardMovesToGoInc)) + inc) * hardMovesToGoMul) / hardMovesToGoDiv
 	} else {
-		ideal = (limit + 25*inc) / 50
-		hard = 5 * (limit + 25*inc) / 50
+		ideal = idealIncMul * (limit + implicitMovesToGo*inc) / idealIncDiv
+		hard = hardIncMul * (limit + implicitMovesToGo*inc) / hardIncDiv
 	}
 	res.ideal = time.Duration(Min(ideal, limit-overhead)) * time.Millisecond
 	res.hard = time.Duration(Min(hard, limit-overhead)) * time.Millisecond
