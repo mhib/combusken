@@ -82,11 +82,11 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 	}
 }
 
-const idealMovesToGoInc = 5
-const idealMovesToGoMul = 3
-const idealMovesToGoDiv = 4
-const hardMovesToGoInc = 7
-const hardMovesToGoMul = 4
+const idealMovesToGoInc = 8
+const idealMovesToGoMul = 1
+const idealMovesToGoDiv = 3
+const hardMovesToGoInc = 15
+const hardMovesToGoMul = 3
 const hardMovesToGoDiv = 1
 
 const idealIncMul = 1

@@ -22,7 +22,7 @@ class SearchConstant:
         return (self.min, self.max)
 
 def cute_chess_command(engine_1, engine_2):
-    return "./cutechess-cli -repeat -recover -wait 10 -resign movecount=3 score=400 -draw movenumber=40 movecount=8 score=10 -concurrency {} -games {} -engine cmd={} option.Hash=64 -engine cmd={} option.Hash=64 -each proto=uci tc=40/60 -openings file=./2moves_v1.pgn format=pgn order=random plies=16".format(
+    return "./cutechess-cli -repeat -recover -wait 10 -resign movecount=3 score=400 -draw movenumber=40 movecount=8 score=10 -concurrency {} -games {} -engine cmd={} option.Hash=64 -engine cmd={} option.Hash=64 -each proto=uci tc=40/120 -openings file=./2moves_v1.pgn format=pgn order=random plies=16".format(
         NUMBER_OF_THREADS,
         NUMBER_OF_GAMES,
         engine_1,
@@ -100,4 +100,4 @@ def optimize_parameter(parameters: List[SearchConstant]):
     print(res)
 
 if __name__ == '__main__':
-    optimize_parameter([SearchConstant('idealMovesToGoInc', 0, 10), SearchConstant('idealMovesToGoMul', 1, 7), SearchConstant('idealMovesToGoDiv', 3, 8), SearchConstant('hardMovesToGoInc', 0, 20), SearchConstant('hardMovesToGoMul', 1, 8), SearchConstant('hardMovestoGoDiv', 1, 2)])
+    optimize_parameter([SearchConstant('idealMovesToGoInc', 0, 10), SearchConstant('idealMovesToGoMul', 1, 7), SearchConstant('idealMovesToGoDiv', 3, 8), SearchConstant('hardMovesToGoInc', 0, 20), SearchConstant('hardMovesToGoMul', 1, 8), SearchConstant('hardMovesToGoDiv', 1, 2)])
