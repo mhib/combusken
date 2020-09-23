@@ -417,7 +417,7 @@ afterPreMovesPruning:
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 
-		if moveCount > 0 && bestVal > ValueLoss && depth <= seePruningDepth && t.stack[height].GetMoveStage() > GOOD_NOISY && depth <= seePruningDepth {
+		if bestVal > ValueLoss && depth <= seePruningDepth && t.stack[height].GetMoveStage() > GOOD_NOISY {
 			reducedDepth := depth - reduction
 			if (isNoisy && !SeeAbove(pos, move, seeNoisyMargin*reducedDepth*reducedDepth)) ||
 				(!isNoisy && !SeeAbove(pos, move, seeQuietMargin*reducedDepth)) {
