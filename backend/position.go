@@ -104,7 +104,7 @@ func (pos *Position) MakeNullMove(res *Position) {
 	res.SideToMove = pos.SideToMove ^ 1
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
-	res.PawnKey = pos.PawnKey ^ zobristColor
+	res.PawnKey = pos.PawnKey
 
 	res.FiftyMove = pos.FiftyMove + 1
 	res.LastMove = NullMove
@@ -123,7 +123,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.SideToMove = pos.SideToMove
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
-	res.PawnKey = pos.PawnKey ^ zobristColor
+	res.PawnKey = pos.PawnKey
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0

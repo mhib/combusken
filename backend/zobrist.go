@@ -48,7 +48,6 @@ func HashPosition(pos *Position) {
 	pos.Key ^= zobristFlags[pos.Flags]
 	if pos.SideToMove == White {
 		pos.Key ^= zobristColor
-		pos.PawnKey ^= zobristColor
 	}
 	pos.Key ^= zobristEpSquare[pos.EpSquare]
 }
