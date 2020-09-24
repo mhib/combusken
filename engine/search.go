@@ -555,11 +555,7 @@ func (t *thread) isDraw(height int) bool {
 	}
 
 	// Check for repetition in already played positions
-	if _, found := t.engine.RepeatedPositions[pos.Key]; found {
-		return true
-	}
-
-	return false
+	return t.engine.RepeatedPosition.MayInclude(pos.Key) && t.engine.RepeatedPosition.Includes(pos.Key)
 }
 
 type result struct {

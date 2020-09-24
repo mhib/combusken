@@ -20,16 +20,16 @@ const MAX_MOVES = 256
 var errTimeout = errors.New("Search timeout")
 
 type Engine struct {
-	Hash              IntOption
-	Threads           IntOption
-	MoveOverhead      IntOption
-	PawnHash          IntOption
-	SyzygyPath        StringOption
-	SyzygyProbeDepth  IntOption
-	done              <-chan struct{}
-	RepeatedPositions map[uint64]interface{}
-	MovesCount        int
-	Update            func(SearchInfo)
+	Hash             IntOption
+	Threads          IntOption
+	MoveOverhead     IntOption
+	PawnHash         IntOption
+	SyzygyPath       StringOption
+	SyzygyProbeDepth IntOption
+	done             <-chan struct{}
+	RepeatedPosition IntegerSet
+	MovesCount       int
+	Update           func(SearchInfo)
 	timeManager
 	threads []thread
 }
@@ -147,12 +147,13 @@ func (e *Engine) fillMoveHistory(positions []backend.Position) {
 			break
 		}
 	}
-	e.RepeatedPositions = make(map[uint64]interface{})
+	repeatedPositions := make([]uint64, 0)
 	for key, count := range moveHistory {
 		if count >= 2 {
-			e.RepeatedPositions[key] = struct{}{}
+			repeatedPositions = append(repeatedPositions, key)
 		}
 	}
+	e.RepeatedPosition = IntegerSetFromSlice(repeatedPositions)
 }
 
 func (e *Engine) NewGame() {
