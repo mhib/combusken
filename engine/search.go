@@ -425,6 +425,17 @@ afterPreMovesPruning:
 			}
 		}
 
+		// Store move if it is quiet
+		if !isNoisy {
+			quietsSearched = append(quietsSearched, move)
+		}
+
+		// Search conditions similar to Ethereal
+		// Search with null window and reduced depth if lmr
+		if reduction > 0 {
+			val = -t.alphaBeta(depth-1-reduction, -(alpha + 1), -alpha, height+1, childInCheck, true)
+		}
+
 		extension := BoolToInt(
 			// Castling extension
 			move.IsCastling() ||
@@ -436,16 +447,6 @@ afterPreMovesPruning:
 
 		newDepth := depth - 1 + extension
 
-		// Store move if it is quiet
-		if !isNoisy {
-			quietsSearched = append(quietsSearched, move)
-		}
-
-		// Search conditions as in Ethereal
-		// Search with null window and reduced depth if lmr
-		if reduction > 0 {
-			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck, true)
-		}
 		// Search with null window without reduced depth if
 		// search with lmr null window exceeded alpha or
 		// not in pv (this is the same as normal search as non pv nodes are searched with null window anyway)
