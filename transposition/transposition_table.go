@@ -1,7 +1,9 @@
 package transposition
 
-import "github.com/mhib/combusken/backend"
-import . "github.com/mhib/combusken/utils"
+import (
+	"github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/utils"
+)
 
 const NoneDepth = -6
 
@@ -14,7 +16,6 @@ func ValueFromTrans(value int16, height int) int16 {
 	if value <= -Mate+500 {
 		return value + int16(height)
 	}
-
 	return value
 }
 
@@ -25,9 +26,21 @@ func ValueToTrans(value int, height int) int16 {
 	if value <= -Mate+500 {
 		return int16(value - height)
 	}
-
 	return int16(value)
+}
 
+type flagPv uint8
+
+func newFlagPv(flag int, pvNode bool) flagPv {
+	return flagPv(uint8(flag) | (uint8(BoolToInt(pvNode)) << 2))
+}
+
+func (f flagPv) getFlag() uint8 {
+	return uint8(f) & 3
+}
+
+func (f flagPv) isPvNode() bool {
+	return uint8(f)>>2 != 0
 }
 
 type transEntry struct {
@@ -35,7 +48,7 @@ type transEntry struct {
 	bestMove backend.Move
 	value    int16
 	eval     int16
-	flag     uint8
+	flagPv   flagPv
 	depth    uint8
 }
 
@@ -50,7 +63,7 @@ func (t *TranspositionTable) Clear() {
 	}
 }
 
-func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, depth int16, move backend.Move, flag uint8) {
+func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, depth int16, move backend.Move, flag uint8, pvNode bool) {
 	var element = &t.Entries[key&t.Mask]
 	if element.key != uint32(key>>32) {
 		return
@@ -60,16 +73,17 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, 
 	eval = element.eval
 	depth = int16(element.depth) + NoneDepth
 	move = element.bestMove
-	flag = element.flag
+	flag = element.flagPv.getFlag()
+	pvNode = element.flagPv.isPvNode()
 	return
 }
 
-func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int) {
+func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int, pvNode bool) {
 	var element = &t.Entries[key&t.Mask]
 	element.key = uint32(key >> 32)
 	element.value = value
 	element.eval = eval
-	element.flag = uint8(flag)
+	element.flagPv = newFlagPv(flag, pvNode)
 	element.depth = uint8(depth - NoneDepth)
 	element.bestMove = bestMove
 }
