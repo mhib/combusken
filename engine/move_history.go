@@ -10,9 +10,9 @@ import (
 const MinSpecialMoveValue = 53000
 const MaxBadCapture = -100000 + 4096 // 4096 represents max mvvlva value
 
-const HistoryMax = 400
-const HistoryMultiplier = 32
-const HistoryDivisor = 512
+const HistoryMax = 416
+const HistoryMultiplier = 35
+const HistoryDivisor = 706
 
 type MoveHistory struct {
 	KillerMoves      [STACK_SIZE + 1][2]Move
