@@ -410,7 +410,7 @@ afterPreMovesPruning:
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
 			if !isNoisy {
 				reduction += BoolToInt(!pvNode)
-				reduction += BoolToInt(cutNode) * 2
+				reduction += BoolToInt(cutNode)
 				// Increase reduction if not improving
 				reduction += BoolToInt(!improving)
 			}
