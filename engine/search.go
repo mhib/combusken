@@ -24,7 +24,6 @@ const seeNoisyMargin = -28
 const reverseFutilityPruningDepth = 6
 const reverseFutilityPruningMargin = 90
 
-const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
 const counterMovePruningDepth = 3
 const counterMovePruningVal = -1000
@@ -180,10 +179,6 @@ func (t *thread) contempt(pos *Position, depth int) int {
 		return 0
 	}
 	return 2*(t.nodes&1) - 1
-}
-
-func moveCountPruning(improving, depth int) int {
-	return (5+depth*depth)*(1+improving)/2 - 1
 }
 
 func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode bool) int {
@@ -378,9 +373,6 @@ afterPreMovesPruning:
 
 		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
 			if depth <= futilityPruningDepth && int(eval)+int(PawnValueMiddle)*depth <= alpha {
-				continue
-			}
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(improving), depth) {
 				continue
 			}
 			if depth <= counterMovePruningDepth && pos.LastMove != NullMove && t.CounterHistoryValue(pos.LastMove, move) < counterMovePruningVal {
@@ -630,9 +622,6 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		childInCheck := child.IsInCheck()
 		if !inCheck && moveCount > 1 && moves[i].Value < MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
 			!childInCheck {
-			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(1, depth) {
-				continue
-			}
 			if depth >= 3 {
 				reduction = lmr(depth, moveCount) - 1
 				reduction = Max(0, Min(depth-2, reduction))
