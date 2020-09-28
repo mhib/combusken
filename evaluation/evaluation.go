@@ -155,6 +155,9 @@ var LongDiagonalBishop = S(18, 14)
 var KnightOutpostUndefendedBonus = S(33, -16)
 var KnightOutpostDefendedBonus = S(54, 15)
 
+var PotentialKnightOutpostUndefendedBonus = S(16, 0)
+var PotentialKnightOutpostDefendedBonus = S(27, 7)
+
 var DistantKnight = [4]Score{S(-17, 12), S(-21, 2), S(-25, -5), S(-18, -2)}
 
 var MinorBehindPawn = S(6, 24)
@@ -689,6 +692,7 @@ func Evaluate(pos *Position) int {
 				T.MinorBehindPawn++
 			}
 		}
+		alreadyInOutpust := false
 		if SquareMask[fromId]&whiteOutpustRanks != 0 && outpustMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 				score += KnightOutpostDefendedBonus
@@ -701,6 +705,7 @@ func Evaluate(pos *Position) int {
 					T.KnightOutpostUndefendedBonus++
 				}
 			}
+			alreadyInOutpust = true
 		}
 
 		kingDistance := Min(int(distanceBetween[fromId][whiteKingLocation]), int(distanceBetween[fromId][blackKingLocation]))
@@ -714,6 +719,19 @@ func Evaluate(pos *Position) int {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
 			whiteKingAttackersWeight += KingSafetyAttacksWeights[Knight]
+		}
+		if !alreadyInOutpust {
+			for toBB := attacks & whiteMobilityArea & whiteOutpustRanks; toBB != 0; toBB &= (toBB - 1) {
+				toId := BitScan(toBB)
+				if outpustMask[White][toId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+					if PawnAttacks[Black][toId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
+						score += PotentialKnightOutpostDefendedBonus
+					} else {
+						score += PotentialKnightOutpostUndefendedBonus
+					}
+					break
+				}
+			}
 		}
 	}
 
@@ -742,6 +760,7 @@ func Evaluate(pos *Position) int {
 				T.MinorBehindPawn--
 			}
 		}
+		alreadyInOutpust := false
 		if SquareMask[fromId]&blackOutpustRanks != 0 && outpustMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 				score -= KnightOutpostDefendedBonus
@@ -754,6 +773,7 @@ func Evaluate(pos *Position) int {
 					T.KnightOutpostUndefendedBonus--
 				}
 			}
+			alreadyInOutpust = true
 		}
 		kingDistance := Min(int(distanceBetween[fromId][whiteKingLocation]), int(distanceBetween[fromId][blackKingLocation]))
 		if kingDistance >= 4 {
@@ -766,6 +786,19 @@ func Evaluate(pos *Position) int {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
 			blackKingAttackersWeight += KingSafetyAttacksWeights[Knight]
+		}
+		if !alreadyInOutpust {
+			for toBB := attacks & blackMobilityArea & blackOutpustRanks; toBB != 0; toBB &= (toBB - 1) {
+				toId := BitScan(toBB)
+				if outpustMask[Black][toId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+					if PawnAttacks[White][toId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
+						score -= PotentialKnightOutpostDefendedBonus
+					} else {
+						score -= PotentialKnightOutpostUndefendedBonus
+					}
+					break
+				}
+			}
 		}
 	}
 
