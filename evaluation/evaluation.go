@@ -726,8 +726,14 @@ func Evaluate(pos *Position) int {
 				if outpustMask[White][toId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 					if PawnAttacks[Black][toId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 						score += PotentialKnightOutpostDefendedBonus
+						if tuning {
+							T.PotentialKnightOutpostDefendedBonus++
+						}
 					} else {
 						score += PotentialKnightOutpostUndefendedBonus
+						if tuning {
+							T.PotentialKnightOutpostUndefendedBonus++
+						}
 					}
 					break
 				}
@@ -793,8 +799,14 @@ func Evaluate(pos *Position) int {
 				if outpustMask[Black][toId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 					if PawnAttacks[White][toId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 						score -= PotentialKnightOutpostDefendedBonus
+						if tuning {
+							T.PotentialKnightOutpostDefendedBonus--
+						}
 					} else {
 						score -= PotentialKnightOutpostUndefendedBonus
+						if tuning {
+							T.PotentialKnightOutpostUndefendedBonus--
+						}
 					}
 					break
 				}

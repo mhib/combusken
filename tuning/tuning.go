@@ -668,6 +668,8 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&LongDiagonalBishop})
 	res = append(res, ScoreValue{&KnightOutpostUndefendedBonus})
 	res = append(res, ScoreValue{&KnightOutpostDefendedBonus})
+	res = append(res, ScoreValue{&PotentialKnightOutpostUndefendedBonus})
+	res = append(res, ScoreValue{&PotentialKnightOutpostDefendedBonus})
 	for y := 0; y < 4; y++ {
 		res = append(res, ScoreValue{&DistantKnight[y]})
 	}
