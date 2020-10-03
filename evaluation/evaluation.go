@@ -26,14 +26,14 @@ var QueenValue = S(1435, 1322)
 var PieceScores = [King + 1][8][4]Score{
 	{},
 	{ // knight
-		{S(-59, -40), S(-10, -54), S(-40, -35), S(-13, -24)},
-		{S(-18, -56), S(-25, -37), S(-10, -31), S(-3, -21)},
-		{S(-9, -39), S(0, -31), S(0, -22), S(3, -3)},
-		{S(-16, -28), S(14, -25), S(11, -1), S(4, 4)},
-		{S(-2, -32), S(3, -21), S(14, 2), S(19, 3)},
-		{S(-37, -51), S(22, -43), S(-52, -7), S(28, -6)},
-		{S(-76, -49), S(-42, -27), S(54, -53), S(-2, -21)},
-		{S(-210, -69), S(-76, -73), S(-127, -30), S(1, -55)},
+		{S(-54, -39), S(-10, -54), S(-39, -37), S(-14, -24)},
+		{S(-19, -56), S(-25, -38), S(-11, -33), S(-5, -22)},
+		{S(-10, -46), S(0, -36), S(0, -23), S(1, -6)},
+		{S(-15, -27), S(6, -26), S(5, -3), S(0, 4)},
+		{S(-11, -31), S(1, -19), S(-2, 6), S(19, 7)},
+		{S(-35, -51), S(12, -40), S(-12, 1), S(0, 2)},
+		{S(-86, -56), S(-72, -23), S(38, -53), S(-4, -22)},
+		{S(-206, -68), S(-78, -74), S(-92, -36), S(0, -57)},
 	},
 	{ // Bishop
 		{S(-14, -23), S(13, -8), S(15, -11), S(13, -4)},
@@ -99,8 +99,8 @@ var PawnsConnected = [7][4]Score{
 }
 
 var MobilityBonus = [...][32]Score{
-	{S(-42, -117), S(-31, -67), S(-21, -39), S(-18, -19), S(-5, -19), S(5, -9), // Knights
-		S(14, -11), S(26, -15), S(35, -26)},
+	{S(-41, -133), S(-31, -66), S(-21, -39), S(-19, -29), S(-5, -19), S(4, -10), // Knights
+		S(12, -13), S(24, -17), S(35, -26)},
 	{S(-27, -73), S(-8, -59), S(9, -27), S(18, -9), S(28, 1), S(38, 6), // Bishops
 		S(44, 10), S(47, 12), S(49, 17), S(52, 16), S(66, 0), S(91, 2),
 		S(50, 23), S(66, 8)},
@@ -153,12 +153,12 @@ var BishopOutpostDefendedBonus = S(80, 6)
 var LongDiagonalBishop = S(18, 14)
 
 var KnightOutpostUndefendedBonus = S(33, -16)
-var KnightOutpostDefendedBonus = S(54, 15)
+var KnightOutpostDefendedBonus = S(59, 12)
 
-var PotentialKnightOutpostUndefendedBonus = S(16, 0)
-var PotentialKnightOutpostDefendedBonus = S(27, 7)
+var PotentialKnightOutpostUndefendedBonus = S(6, 2)
+var PotentialKnightOutpostDefendedBonus = S(19, 11)
 
-var DistantKnight = [4]Score{S(-17, 12), S(-21, 2), S(-25, -5), S(-18, -2)}
+var DistantKnight = [4]Score{S(-19, 12), S(-21, 2), S(-21, 13), S(-83, -4)}
 
 var MinorBehindPawn = S(6, 24)
 
