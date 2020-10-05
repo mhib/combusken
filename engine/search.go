@@ -183,7 +183,7 @@ func (t *thread) contempt(pos *Position, depth int) int {
 }
 
 func moveCountPruning(improving, depth int) int {
-	return (5+depth*depth)*(1+improving)/2 - 1
+	return (2+depth*depth)*(1+improving)/2 - 1
 }
 
 func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode bool) int {
