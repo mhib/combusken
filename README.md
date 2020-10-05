@@ -38,7 +38,8 @@ Also some miscellaneous things like LMP weights, or EPD parsing.
 
 + [Ethereal](https://github.com/AndyGrant/Ethereal) by Andrew Grant, Alayan & Laldon
 
-Combusken's search procedure is heavily inspired by Ethereal's, some parts of evaluation(for example king safety) were taken directly from it.
+Combusken's search procedure is influenced by Ethereal's; some parts of evaluation(for example king safety) were taken directly from it.
+
 Andrew Grant's [OpenBench](https://github.com/AndyGrant/OpenBench) is used for testing.
 
 + [Laser](https://github.com/jeffreyan11/laser-chess-engine/) by Jeffrey An
@@ -47,7 +48,8 @@ SEE, Internal Iterative Deepening constants.
 
 + [Stockfish](https://github.com/official-stockfish/Stockfish/) by Tord Romstad, Marco Costalba, Joona Kiiski & Gary Linscott
 
-Some evaluation heuristics, and pruning constants
+Influences in the search procedure.
+Some ideas in evaluation.
 
 + [Zurichess](https://bitbucket.org/zurichess/zurichess/src) by Alexandru Moșoi
 
