@@ -410,8 +410,8 @@ afterPreMovesPruning:
 
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
-			reduction += BoolToInt(!hashPv)
 			if !isNoisy {
+				reduction += BoolToInt(!hashPv)
 				reduction += BoolToInt(cutNode) * 2
 				// Increase reduction if not improving
 				reduction += BoolToInt(!improving)
