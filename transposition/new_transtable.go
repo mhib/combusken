@@ -2,10 +2,13 @@
 
 package transposition
 
-import "unsafe"
-import . "github.com/mhib/combusken/utils"
+import (
+	"unsafe"
+
+	. "github.com/mhib/combusken/utils"
+)
 
 func NewTransTable(megabytes int) TranspositionTable {
-	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(transEntry{})))
-	return TranspositionTable{make([]transEntry, size), size - 1}
+	size := NearestPowerOfTwo(1024 * 1024 * megabytes / int(unsafe.Sizeof(transBucket{})))
+	return TranspositionTable{make([]transBucket, size), size - 1, uint8(0)}
 }
