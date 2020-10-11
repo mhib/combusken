@@ -743,6 +743,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, 
 }
 
 func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
+	transposition.GlobalTransTable.IncrementAge()
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
 		e.threads[i].nodes = 0
