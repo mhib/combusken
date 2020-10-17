@@ -88,6 +88,10 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, 
 	return
 }
 
+const ageMultiplier = 1
+const depthMultiplier = 2
+const treshold = 2
+
 func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int) {
 	var bucket = &t.Entries[key&t.Mask]
 	matchKey := uint32(key >> 32)
@@ -98,9 +102,9 @@ func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int,
 		element = &bucket[1]
 	} else {
 		element = &bucket[0]
-		firstScore := (int(element.ageFlag.Age()) - int(t.Age)) + (int(element.depth)-depth)*2
-		secondScore := (int(bucket[1].ageFlag.Age()) - int(t.Age)) + (int(bucket[1].depth)-depth)*2
-		if firstScore > 2 && secondScore > 2 {
+		firstScore := (int(element.ageFlag.Age())-int(t.Age))*ageMultiplier + (int(element.depth)-depth)*depthMultiplier
+		secondScore := (int(bucket[1].ageFlag.Age())-int(t.Age))*ageMultiplier + (int(bucket[1].depth)-depth)*depthMultiplier
+		if firstScore > treshold && secondScore > treshold {
 			return
 		}
 		if secondScore < firstScore {
