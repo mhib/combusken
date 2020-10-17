@@ -88,8 +88,8 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, 
 	return
 }
 
-const ageMultiplier = 1
-const depthMultiplier = 2
+const ageMultiplier = 4
+const depthMultiplier = 25
 const treshold = 2
 
 func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int) {
