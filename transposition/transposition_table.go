@@ -102,12 +102,12 @@ func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int,
 		element = &bucket[1]
 	} else {
 		element = &bucket[0]
-		firstScore := (int(element.ageFlag.Age())-int(t.Age))*ageMultiplier + (int(element.depth)-depth)*depthMultiplier
-		secondScore := (int(bucket[1].ageFlag.Age())-int(t.Age))*ageMultiplier + (int(bucket[1].depth)-depth)*depthMultiplier
-		if firstScore > treshold && secondScore > treshold {
+		firstScore := (int(t.Age)-int(element.ageFlag.Age()))*ageMultiplier + (depth-int(element.depth))*depthMultiplier
+		secondScore := (int(t.Age)-int(bucket[1].ageFlag.Age()))*ageMultiplier + (depth-int(bucket[1].depth))*depthMultiplier
+		if firstScore < -treshold && secondScore < -treshold {
 			return
 		}
-		if secondScore < firstScore {
+		if secondScore > firstScore {
 			element = &bucket[1]
 		}
 	}
