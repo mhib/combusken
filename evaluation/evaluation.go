@@ -1075,7 +1075,7 @@ func Evaluate(pos *Position) int {
 	// Weak squares are attacked by the enemy, defended no more
 	// than once and only defended by our Queens or our King
 	weakForWhite := blackAttacked & ^whiteAttackedByTwo & (^whiteAttacked | whiteAttackedBy[Queen] | whiteAttackedBy[King])
-	if int(blackKingAttackersCount) > 1-PopCount(pos.Colours[Black]&pos.Pieces[Queen]) {
+	{
 		safe := ^pos.Colours[Black] & (^whiteAttacked | (weakForWhite & blackAttackedByTwo))
 
 		knightThreats := KnightAttacks[whiteKingLocation]
@@ -1117,7 +1117,7 @@ func Evaluate(pos *Position) int {
 	// Weak squares are attacked by the enemy, defended no more
 	// than once and only defended by our Queens or our King
 	weakForBlack := whiteAttacked & ^blackAttackedByTwo & (^blackAttacked | blackAttackedBy[Queen] | blackAttackedBy[King])
-	if int(whiteKingAttackersCount) > 1-PopCount(pos.Colours[White]&pos.Pieces[Queen]) {
+	{
 		safe := ^pos.Colours[White] & (^blackAttacked | (weakForBlack & whiteAttackedByTwo))
 
 		knightThreats := KnightAttacks[blackKingLocation]
