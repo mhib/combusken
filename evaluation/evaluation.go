@@ -245,16 +245,18 @@ var forwardFileMask [2][64]uint64
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
-var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -3, 0, 0, 0}
-var KingSafetyAttackValue int16 = 98
+var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -1, -2, 4, 0}
+var KingSafetyAttackValue int16 = 95
 var KingSafetyWeakSquares int16 = 24
 var KingSafetyFriendlyPawns int16 = -2
-var KingSafetyNoEnemyQueens int16 = -111
-var KingSafetySafeQueenCheck int16 = 67
-var KingSafetySafeRookCheck int16 = 113
+var KingSafetyNoEnemyQueens int16 = -75
+var KingSafetySafeQueenCheck int16 = 69
+var KingSafetySafeRookCheck int16 = 114
 var KingSafetySafeBishopCheck int16 = 83
 var KingSafetySafeKnightCheck int16 = 123
-var KingSafetyAdjustment int16 = -7
+var KingSafetyAdjustment int16 = -5
+var KingSafetyMiddleDivisor int16 = 720
+var KingSafetyEndDivisor int16 = 56
 
 var Hanging = S(57, 51)
 var ThreatByKing = S(18, 38)
@@ -1099,7 +1101,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
-			score -= S(int16(count*count/720), int16(count/20))
+			score -= S(int16((count*count)/int(KingSafetyMiddleDivisor)), int16(count/int(KingSafetyEndDivisor)))
 		}
 	}
 
@@ -1141,7 +1143,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
-			score += S(int16(count*count/720), int16(count/20))
+			score += S(int16((count*count)/int(KingSafetyMiddleDivisor)), int16(count/int(KingSafetyEndDivisor)))
 		}
 	}
 
