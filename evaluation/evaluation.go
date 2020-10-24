@@ -255,6 +255,8 @@ var KingSafetySafeRookCheck int16 = 63
 var KingSafetySafeBishopCheck int16 = 51
 var KingSafetySafeKnightCheck int16 = 97
 var KingSafetyAdjustment int16 = -6
+var KingSafetyMiddleDivisor int16 = 720
+var KingSafetyEndDivisor int16 = 20
 
 var Hanging = S(57, 51)
 var ThreatByKing = S(18, 38)
@@ -1075,7 +1077,7 @@ func Evaluate(pos *Position) int {
 	// Weak squares are attacked by the enemy, defended no more
 	// than once and only defended by our Queens or our King
 	weakForWhite := blackAttacked & ^whiteAttackedByTwo & (^whiteAttacked | whiteAttackedBy[Queen] | whiteAttackedBy[King])
-	if int(blackKingAttackersCount) > 1-PopCount(pos.Colours[Black]&pos.Pieces[Queen]) {
+	{
 		safe := ^pos.Colours[Black] & (^whiteAttacked | (weakForWhite & blackAttackedByTwo))
 
 		knightThreats := KnightAttacks[whiteKingLocation]
@@ -1099,7 +1101,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
-			score -= S(int16(count*count/720), int16(count/20))
+			score -= S(int16((count*count)/int(KingSafetyMiddleDivisor)), int16(count/int(KingSafetyEndDivisor)))
 		}
 	}
 
@@ -1117,7 +1119,7 @@ func Evaluate(pos *Position) int {
 	// Weak squares are attacked by the enemy, defended no more
 	// than once and only defended by our Queens or our King
 	weakForBlack := whiteAttacked & ^blackAttackedByTwo & (^blackAttacked | blackAttackedBy[Queen] | blackAttackedBy[King])
-	if int(whiteKingAttackersCount) > 1-PopCount(pos.Colours[White]&pos.Pieces[Queen]) {
+	{
 		safe := ^pos.Colours[White] & (^blackAttacked | (weakForBlack & whiteAttackedByTwo))
 
 		knightThreats := KnightAttacks[blackKingLocation]
@@ -1141,7 +1143,7 @@ func Evaluate(pos *Position) int {
 		count += int(KingSafetySafeKnightCheck) * PopCount(knightChecks)
 		count += int(KingSafetyAdjustment)
 		if count > 0 {
-			score += S(int16(count*count/720), int16(count/20))
+			score += S(int16((count*count)/int(KingSafetyMiddleDivisor)), int16(count/int(KingSafetyEndDivisor)))
 		}
 	}
 
