@@ -148,10 +148,12 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 			bestMove = move
 			if val > alpha {
 				alpha = val
+				if pvNode {
+					t.stack[height].PV.assign(move, &t.stack[height+1].PV)
+				}
 				if val >= beta {
 					break
 				}
-				t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 			}
 
 		}
@@ -465,10 +467,12 @@ afterPreMovesPruning:
 			bestMove = move
 			if val > alpha {
 				alpha = val
+				if pvNode {
+					t.stack[height].PV.assign(move, &t.stack[height+1].PV)
+				}
 				if alpha >= beta {
 					break
 				}
-				t.stack[height].PV.assign(move, &t.stack[height+1].PV)
 			}
 		}
 	}
