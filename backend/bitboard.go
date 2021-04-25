@@ -80,6 +80,10 @@ func Rank(id int) int {
 	return id >> 3
 }
 
+func Colour(id int) int {
+	return (File(id) ^ Rank(id)) & 1
+}
+
 const (
 	A1 = iota
 	B1

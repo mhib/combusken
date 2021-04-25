@@ -1,10 +1,11 @@
 package backend
 
 import (
-	"github.com/mhib/combusken/utils"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/mhib/combusken/utils"
 )
 
 const InitialPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -65,7 +66,8 @@ func ParseFen(input string) Position {
 }
 
 func insertPiece(pos *Position, piece rune, bit uint64) {
-	pos.Colours[utils.BoolToInt(unicode.IsUpper(piece))] |= bit
+	colour := utils.BoolToInt(unicode.IsUpper(piece))
+	pos.Colours[colour] |= bit
 	switch byte(unicode.ToLower(piece)) {
 	case 'p':
 		pos.Pieces[Pawn] |= bit
@@ -75,6 +77,7 @@ func insertPiece(pos *Position, piece rune, bit uint64) {
 		pos.Pieces[Knight] |= bit
 	case 'b':
 		pos.Pieces[Bishop] |= bit
+		pos.BishopFlag |= BishopFlags[colour][Colour(BitScan(bit))]
 	case 'q':
 		pos.Pieces[Queen] |= bit
 	case 'k':

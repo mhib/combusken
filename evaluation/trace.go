@@ -8,8 +8,8 @@ type Trace struct {
 	BishopValue                  int
 	RookValue                    int
 	QueenValue                   int
+	PawnScores                   [16][7][8]int
 	PieceScores                  [King + 1][8][4]int
-	PawnScores                   [7][8]int
 	PawnsConnected               [7][4]int
 	MobilityBonus                [4][32]int
 	PassedFriendlyDistance       [8]int
@@ -40,4 +40,5 @@ type Trace struct {
 	ThreatByKing                 int
 	ThreatByMinor                [King + 1]int
 	ThreatByRook                 [King + 1]int
+	Scale                        int
 }

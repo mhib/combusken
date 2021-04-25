@@ -35,6 +35,7 @@ type traceEntry struct {
 	factors      [2]float64
 	coefficients []coefficient
 	evalDiff     float64
+	whiteMove    bool
 }
 
 type weight [2]float64
@@ -174,6 +175,7 @@ func TraceTune() {
 	}()
 
 	iteration := 0
+	iterationsSinceImprovement := 0
 	t.bestError = 1e10
 	for !t.done {
 		rand.Shuffle(len(t.entries), func(i, j int) {
@@ -195,8 +197,12 @@ func TraceTune() {
 			copy(t.bestWeights, t.weights)
 			fmt.Printf("Iteration %d error: %.17g regularization: %.17g\n", iteration, t.bestError, t.regularization())
 			printWeights(t.bestWeights)
+			iterationsSinceImprovement = 0
 		} else {
-			break
+			iterationsSinceImprovement++
+			if iterationsSinceImprovement > 50 {
+				break
+			}
 		}
 
 		iteration++
@@ -206,12 +212,13 @@ func TraceTune() {
 const regularizationWeight = 0.2e-7
 
 func (t *traceTuner) regularization() float64 {
-	sum := 0.0
-	for _, weight := range t.weights {
-		sum += math.Abs(weight[0])
-		sum += math.Abs(weight[1])
-	}
-	return sum * regularizationWeight
+	return 0.0
+	// sum := 0.0
+	// for _, weight := range t.weights {
+	// 	sum += math.Abs(weight[0])
+	// 	sum += math.Abs(weight[1])
+	// }
+	// return sum * regularizationWeight
 }
 
 func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
@@ -238,13 +245,15 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	res.eval = float64(Evaluate(&board))
 
 	// Do not care about scaled positions
-	if ScaleFactor(&board, int16(res.eval)) != SCALE_NORMAL {
+	if T.Scale != SCALE_NORMAL {
 		return res, false
 	}
 
 	if board.SideToMove == Black {
 		res.eval *= -1
 	}
+
+	res.whiteMove = board.SideToMove == White
 
 	for idx, val := range loadTrace() {
 		if val != 0 {
@@ -265,6 +274,7 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	res.factors[END] = float64(res.phase) / float64(TotalPhase)
 	res.phase = (res.phase*256 + (TotalPhase / 2)) / TotalPhase
 
+	// We currently do not trace tune king safety so we just treat it as a constant for the position
 	res.evalDiff = res.eval - tuner.linearEvaluation(&res)
 
 	return res, true
@@ -306,11 +316,11 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 		}
 	}
 
-	for idx := range res {
-		for i := MIDDLE; i <= END; i++ {
-			res[idx][i] += sign(t.weights[idx][i]) * regularizationWeight
-		}
-	}
+	// for idx := range res {
+	// 	for i := MIDDLE; i <= END; i++ {
+	// 		res[idx][i] += sign(t.weights[idx][i]) * regularizationWeight
+	// 	}
+	// }
 	return res
 }
 
@@ -325,20 +335,20 @@ func sign(x float64) float64 {
 }
 
 func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
-	var middle, end float64
+	var middle, end int
 	for _, coeff := range entry.coefficients {
-		middle += t.weights[coeff.idx][MIDDLE] * float64(coeff.value)
-		end += t.weights[coeff.idx][END] * float64(coeff.value)
+		middle += int(math.Round(t.weights[coeff.idx][MIDDLE])) * coeff.value
+		end += int(math.Round(t.weights[coeff.idx][END])) * coeff.value
 	}
-	return (middle*(256.0-float64(entry.phase)) + end*float64(entry.phase)) / 256.0
+	phased := (middle*(256-entry.phase) + end*entry.phase) / 256
+	if entry.whiteMove {
+		return float64(phased + int(Tempo))
+	} else {
+		return float64(phased - int(Tempo))
+	}
+
 }
 
-// Optimization taken from Ethereal
-// d/dx (y - sigmoid(k, x))^2 = C * (y - sigmoid(k, x)) * sigmoid(k, x) * (1 - sigmoid(k, x))
-// where C is a negative contant
-// https://www.wolframalpha.com/input/?i=d%2Fdx+%28y-+%281%2F%281+%2B+10%5E%28-400kx%29%29%29%29%5E2
-// https://www.wolframalpha.com/input/?i=%281%2F%281+%2B+10%5E%28-400kx%29%29%29+*+%281+-+1%2F%281+%2B+10%5E%28-400kx%29%29+%29
-// https://www.wolframalpha.com/input/?i=%28d%2Fdx+%28y-+%281%2F%281+%2B+10%5E%28-400kx%29%29%29%29%5E2%29+%2F+%28%281%2F%281+%2B+10%5E%28-400kx%29%29%29+*+%281+-+1%2F%281+%2B+10%5E%28-400kx%29%29+%29+*+%28y+-+1%2F%281+%2B+10%5E%28-400kx%29%29%29%29
 func (t *traceTuner) singleLinearDerivative(entry *traceEntry) float64 {
 	sigma := sigmoid(t.k, entry.evalDiff+t.linearEvaluation(entry))
 	sigmaPrim := sigma * (1 - sigma)
@@ -352,16 +362,18 @@ func loadTrace() (res []int) {
 	res = append(res, T.RookValue)
 	res = append(res, T.QueenValue)
 
+	for flag := 0; flag <= 15; flag++ {
+		for y := 1; y < 7; y++ {
+			for x := 0; x < 8; x++ {
+				res = append(res, T.PawnScores[flag][y][x])
+			}
+		}
+	}
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
 				res = append(res, T.PieceScores[i][y][x])
 			}
-		}
-	}
-	for y := 1; y < 7; y++ {
-		for x := 0; x < 8; x++ {
-			res = append(res, T.PawnScores[y][x])
 		}
 	}
 	for y := 0; y < 7; y++ {
@@ -435,10 +447,10 @@ func loadTrace() (res []int) {
 
 	res = append(res, T.Hanging)
 	res = append(res, T.ThreatByKing)
-	for i := 0; i <= King; i++ {
+	for i := Pawn; i <= King; i++ {
 		res = append(res, T.ThreatByMinor[i])
 	}
-	for i := 0; i <= King; i++ {
+	for i := Pawn; i <= King; i++ {
 		res = append(res, T.ThreatByRook[i])
 	}
 
@@ -457,16 +469,18 @@ func loadWeights() []weight {
 	tmp = append(tmp, RookValue)
 	tmp = append(tmp, QueenValue)
 
+	for flag := 0; flag <= 15; flag++ {
+		for y := 1; y < 7; y++ {
+			for x := 0; x < 8; x++ {
+				tmp = append(tmp, PawnScores[flag][y][x])
+			}
+		}
+	}
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
 				tmp = append(tmp, PieceScores[i][y][x])
 			}
-		}
-	}
-	for y := 1; y < 7; y++ {
-		for x := 0; x < 8; x++ {
-			tmp = append(tmp, PawnScores[y][x])
 		}
 	}
 	for y := 0; y < 7; y++ {
@@ -550,8 +564,6 @@ func loadWeights() []weight {
 	for _, s := range tmp {
 		res = append(res, scoreToWeight(s))
 	}
-
-	fmt.Println(res)
 
 	return res
 }

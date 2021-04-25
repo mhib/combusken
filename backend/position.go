@@ -27,6 +27,22 @@ const (
 	BlackQueenSideCastleFlag
 )
 
+const (
+	BlackBlackSquareBishopFlag = 1 << iota
+	BlackWhiteSquareBishopFlag
+	WhiteBlackSquareBishopFlag
+	WhiteWhiteSquareBishopFlag
+)
+
+var BishopFlags [2][2]BishopFlag = [2][2]BishopFlag{{BlackBlackSquareBishopFlag, BlackWhiteSquareBishopFlag}, {WhiteBlackSquareBishopFlag, WhiteWhiteSquareBishopFlag}}
+var bishopFlagTranslation [16]BishopFlag
+
+type BishopFlag uint8
+
+func (f BishopFlag) BlackPerspective() BishopFlag {
+	return bishopFlagTranslation[f]
+}
+
 type Position struct {
 	Colours    [White + 1]uint64
 	Pieces     [King + 1]uint64
@@ -37,6 +53,7 @@ type Position struct {
 	FiftyMove  int
 	LastMove   Move
 	Flags      uint8
+	BishopFlag
 }
 
 var InitialPosition Position = ParseFen(InitialPositionFen)
@@ -44,13 +61,28 @@ var InitialPosition Position = ParseFen(InitialPositionFen)
 var castleFlags [64]uint8
 
 func init() {
-	HashPosition(&InitialPosition)
 	castleFlags[A1] = WhiteQueenSideCastleFlag
 	castleFlags[H1] = WhiteKingSideCastleFlag
 	castleFlags[E1] = WhiteQueenSideCastleFlag | WhiteKingSideCastleFlag
 	castleFlags[H8] = BlackKingSideCastleFlag
 	castleFlags[A8] = BlackQueenSideCastleFlag
 	castleFlags[E8] = BlackQueenSideCastleFlag | BlackKingSideCastleFlag
+	for flag := uint8(0); flag < 16; flag++ {
+		var res BishopFlag
+		if flag&WhiteWhiteSquareBishopFlag != 0 {
+			res |= BlackBlackSquareBishopFlag
+		}
+		if flag&WhiteBlackSquareBishopFlag != 0 {
+			res |= BlackWhiteSquareBishopFlag
+		}
+		if flag&BlackWhiteSquareBishopFlag != 0 {
+			res |= WhiteBlackSquareBishopFlag
+		}
+		if flag&BlackBlackSquareBishopFlag != 0 {
+			res |= WhiteWhiteSquareBishopFlag
+		}
+		bishopFlagTranslation[flag] = res
+	}
 }
 
 func (pos *Position) TypeOnSquare(squareBB uint64) int {
@@ -89,6 +121,9 @@ func (p *Position) TogglePiece(piece, side, square int) {
 	p.Flags |= castleFlags[square]
 	if piece == Pawn {
 		p.PawnKey ^= zobrist[Pawn][side][square]
+	} else if piece == Bishop {
+		// It does not correctly handle positions with multiple bishops with same colour, but it should not matter much
+		p.BishopFlag ^= BishopFlags[side][Colour(square)]
 	}
 }
 
@@ -105,6 +140,7 @@ func (pos *Position) MakeNullMove(res *Position) {
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
 	res.PawnKey = pos.PawnKey
+	res.BishopFlag = pos.BishopFlag
 
 	res.FiftyMove = pos.FiftyMove + 1
 	res.LastMove = NullMove
@@ -124,6 +160,7 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
 	res.PawnKey = pos.PawnKey
+	res.BishopFlag = pos.BishopFlag
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0
@@ -237,6 +274,7 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 	res.Flags = pos.Flags
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare] ^ zobristFlags[pos.Flags]
 	res.PawnKey = pos.PawnKey ^ zobristColor
+	res.BishopFlag = pos.BishopFlag
 
 	if move.MovedPiece() == Pawn || move.IsCapture() {
 		res.FiftyMove = 0

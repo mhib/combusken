@@ -613,16 +613,18 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&RookValue})
 	res = append(res, ScoreValue{&QueenValue})
 
+	for flag := 0; flag <= 15; flag++ {
+		for y := 1; y < 7; y++ {
+			for x := 0; x < 8; x++ {
+				res = append(res, ScoreValue{&PawnScores[flag][y][x]})
+			}
+		}
+	}
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
 				res = append(res, ScoreValue{&PieceScores[i][y][x]})
 			}
-		}
-	}
-	for y := 1; y < 7; y++ {
-		for x := 0; x < 8; x++ {
-			res = append(res, ScoreValue{&PawnScores[y][x]})
 		}
 	}
 	for y := 0; y < 7; y++ {
