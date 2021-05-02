@@ -383,16 +383,16 @@ var forwardFileMask [2][64]uint64
 const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
 const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
-var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -7, -4, 7, 0}
+var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -7, -4, 5, 0}
 var KingSafetyAttackValue int16 = 122
-var KingSafetyWeakSquares int16 = 43
-var KingSafetyFriendlyPawns int16 = -33
-var KingSafetyNoEnemyQueens int16 = -160
-var KingSafetySafeQueenCheck int16 = 92
-var KingSafetySafeRookCheck int16 = 76
-var KingSafetySafeBishopCheck int16 = 60
-var KingSafetySafeKnightCheck int16 = 113
-var KingSafetyAdjustment int16 = -14
+var KingSafetyWeakSquares int16 = 44
+var KingSafetyFriendlyPawns int16 = -34
+var KingSafetyNoEnemyQueens int16 = -176
+var KingSafetySafeQueenCheck int16 = 89
+var KingSafetySafeRookCheck int16 = 74
+var KingSafetySafeBishopCheck int16 = 53
+var KingSafetySafeKnightCheck int16 = 111
+var KingSafetyAdjustment int16 = -10
 
 var Hanging = S(34, 13)
 var ThreatByKing = S(-9, 33)
