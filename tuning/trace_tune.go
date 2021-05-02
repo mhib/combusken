@@ -369,10 +369,18 @@ func loadTrace() (res []int) {
 			}
 		}
 	}
-	for i := Knight; i <= King; i++ {
+	for i := Knight; i <= Queen; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
 				res = append(res, T.PieceScores[i][y][x])
+			}
+		}
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				res = append(res, T.KingScores[flag][y][x])
 			}
 		}
 	}
@@ -476,10 +484,18 @@ func loadWeights() []weight {
 			}
 		}
 	}
-	for i := Knight; i <= King; i++ {
+	for i := Knight; i <= Queen; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 4; x++ {
 				tmp = append(tmp, PieceScores[i][y][x])
+			}
+		}
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				tmp = append(tmp, KingScores[flag][y][x])
 			}
 		}
 	}
