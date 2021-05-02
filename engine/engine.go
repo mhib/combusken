@@ -37,8 +37,9 @@ type Engine struct {
 type thread struct {
 	engine *Engine
 	MoveHistory
-	nodes int
-	stack [STACK_SIZE]StackEntry
+	nodes  int
+	tbhits int
+	stack  [STACK_SIZE]StackEntry
 }
 
 type UciScore struct {
@@ -62,6 +63,7 @@ type SearchInfo struct {
 	Nodes    int
 	Nps      int
 	Duration int
+	Tbhits   int
 	Moves    []backend.Move
 }
 
@@ -174,6 +176,13 @@ func (e *Engine) NewGame() {
 func (e *Engine) nodes() (sum int) {
 	for i := range e.threads {
 		sum += e.threads[i].nodes
+	}
+	return
+}
+
+func (e *Engine) tbhits() (sum int) {
+	for i := range e.threads {
+		sum += e.threads[i].tbhits
 	}
 	return
 }

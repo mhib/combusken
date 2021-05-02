@@ -233,6 +233,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	// Probe tablebase
 	if fathom.IsWDLProbeable(pos, depth) {
 		if tbResult := fathom.ProbeWDL(pos, depth); tbResult != fathom.TB_RESULT_FAILED {
+			t.tbhits++
 			var ttBound int
 			if tbResult == fathom.TB_LOSS {
 				val = ValueLoss + height + 1
@@ -711,7 +712,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 			return lastBestMove
 		case res := <-resultChan:
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newUciScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), res.moves})
+			e.Update(SearchInfo{newUciScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}
@@ -752,6 +753,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
 		e.threads[i].nodes = 0
+		e.threads[i].tbhits = 0
 	}
 
 	rootMoves := GenerateAllLegalMoves(pos)
@@ -766,7 +768,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			} else {
 				score = 0
 			}
-			e.Update(SearchInfo{newUciScore(score), MAX_HEIGHT - 1, 0, 1, 0, []Move{bestMove}})
+			e.Update(SearchInfo{newUciScore(score), MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
 			return bestMove
 		}
 	}
@@ -804,8 +806,9 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				continue
 			}
 			nodes := e.nodes()
+			tbhits := e.tbhits()
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), res.moves})
+			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
 				return res.Move
 			}

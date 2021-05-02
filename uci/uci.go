@@ -1,16 +1,16 @@
 // Based on Counter's implementation
 package uci
 
-import . "github.com/mhib/combusken/engine"
-import "github.com/mhib/combusken/backend"
-import "fmt"
-import "context"
-
 import (
 	"bufio"
+	"context"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/engine"
 )
 
 type UciProtocol struct {
@@ -245,6 +245,7 @@ func updateUci(s SearchInfo) {
 	}
 	sb.WriteString(fmt.Sprintf("nps %d ", s.Nps))
 	sb.WriteString(fmt.Sprintf("time %d ", s.Duration))
+	sb.WriteString(fmt.Sprintf("tbhits %d ", s.Tbhits))
 
 	sb.WriteString("pv ")
 	for _, move := range s.Moves {
