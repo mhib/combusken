@@ -3,7 +3,7 @@ RESULT = 'Score(82, 150), Score(420, 537), Score(393, 528), Score(570, 864), Sco
 REGEXP = /S\((-?\d+, -?\d+)\)/
 REGEXP_IN = /Score\((-?\d+, -?\d+)\)/
 
-EVAL_PATH = File.join(__dir__, '..', 'evaluation', 'evaluation.go')
+EVAL_PATH = File.join(__dir__, '..', 'evaluation', 'weights.go')
 
 values = RESULT.scan(REGEXP_IN).flatten
 
