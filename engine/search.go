@@ -26,8 +26,11 @@ const reverseFutilityPruningMargin = 90
 
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
-const counterMovePruningDepth = 3
-const counterMovePruningVal = -1000
+
+const counterMovePruningDepth = 2
+const counterMovePruningVal = -785
+const secondCounterMovePruningDepth = 8
+const secondCounterMovePruningVal = -7340
 
 const probCutDepth = 6
 const probCutMargin = 100
@@ -379,8 +382,14 @@ afterPreMovesPruning:
 			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(improving), depth) {
 				continue
 			}
-			if depth <= counterMovePruningDepth && pos.LastMove != NullMove && t.CounterHistoryValue(pos.LastMove, move) < counterMovePruningVal {
-				continue
+			if pos.LastMove != NullMove {
+				if depth <= counterMovePruningDepth {
+					if t.CounterHistoryValue(pos.LastMove, move) < counterMovePruningVal {
+						continue
+					}
+				} else if depth <= secondCounterMovePruningDepth && t.CounterHistoryValue(pos.LastMove, move) < int32(depth*secondCounterMovePruningVal) {
+					continue
+				}
 			}
 		}
 
