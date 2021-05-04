@@ -354,18 +354,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 afterPreMovesPruning:
 	bestVal := MinInt
 
-	// Internal iterative deepening
-	// https://www.chessprogramming.org/Internal_Iterative_Deepening
-	// Values taken from Laser
-	if hashMove == NullMove && !inCheck && ((pvNode && depth >= 6) || (!pvNode && depth >= 8)) {
-		var iiDepth int
-		if pvNode {
-			iiDepth = depth - depth/4 - 1
-		} else {
-			iiDepth = (depth - 5) / 2
-		}
-		t.alphaBeta(iiDepth, alpha, beta, height, inCheck, cutNode)
-		_, _, _, _, hashMove, _, _ = transposition.GlobalTransTable.Get(pos.Key)
+	// IID alternative by Ed Schroeder
+	if pvNode && depth >= 3 && hashMove == NullMove {
+		depth--
 	}
 
 	// Quiet moves are stored in order to reduce their history value at the end of search
