@@ -18,7 +18,9 @@ const TotalPhase = PawnPhase*16 + KnightPhase*4 + BishopPhase*4 + RookPhase*4 + 
 
 var PawnPsqt [16][2][64]Score    // BishopFlag, colour, Square
 var Psqt [2][Queen + 1][64]Score // One row for every colour purposefelly left empty
-var KingPsqt [16][2][64]Score    // BishopFlag, colour, Square
+var KingPsqt [2][64]Score
+
+var bishopExistanceTranslations [16][2][2]BishopFlag // Flag, piece colour, square colour
 
 var PawnsConnectedSquare [2][64]Score
 var pawnsConnectedMask [2][64]uint64
@@ -83,17 +85,69 @@ func LoadScoresToPieceSquares() {
 		}
 	}
 
-	for bishopFlag := 0; bishopFlag <= 15; bishopFlag++ {
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				KingPsqt[bishopFlag][White][y*8+x] = KingScores[bishopFlag][y][x]
-				KingPsqt[bishopFlag][Black][(7-y)*8+x] = KingScores[BishopFlag(bishopFlag).BlackPerspective()][y][x]
-			}
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			KingPsqt[White][y*8+x] = KingScores[y][x]
+			KingPsqt[Black][(7-y)*8+x] = KingScores[y][x]
 		}
 	}
 }
 
 func init() {
+	for flag := 0; flag <= 15; flag++ {
+		bishopExistanceTranslations[flag][Black][Black] = BishopFlag(flag)
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		var currentFlag uint16
+		if flag&BlackBlackSquareBishopFlag != 0 {
+			currentFlag |= BlackWhiteSquareBishopFlag
+		}
+		if flag&BlackWhiteSquareBishopFlag != 0 {
+			currentFlag |= BlackBlackSquareBishopFlag
+		}
+		if flag&WhiteBlackSquareBishopFlag != 0 {
+			currentFlag |= WhiteWhiteSquareBishopFlag
+		}
+		if flag&WhiteWhiteSquareBishopFlag != 0 {
+			currentFlag |= WhiteBlackSquareBishopFlag
+		}
+		bishopExistanceTranslations[flag][Black][White] = BishopFlag(currentFlag)
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		var currentFlag uint16
+		if flag&BlackBlackSquareBishopFlag != 0 {
+			currentFlag |= WhiteBlackSquareBishopFlag
+		}
+		if flag&BlackWhiteSquareBishopFlag != 0 {
+			currentFlag |= WhiteWhiteSquareBishopFlag
+		}
+		if flag&WhiteBlackSquareBishopFlag != 0 {
+			currentFlag |= BlackBlackSquareBishopFlag
+		}
+		if flag&WhiteWhiteSquareBishopFlag != 0 {
+			currentFlag |= BlackWhiteSquareBishopFlag
+		}
+		bishopExistanceTranslations[flag][White][Black] = BishopFlag(currentFlag)
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		var currentFlag uint16
+		if flag&BlackBlackSquareBishopFlag != 0 {
+			currentFlag |= WhiteWhiteSquareBishopFlag
+		}
+		if flag&BlackWhiteSquareBishopFlag != 0 {
+			currentFlag |= WhiteBlackSquareBishopFlag
+		}
+		if flag&WhiteBlackSquareBishopFlag != 0 {
+			currentFlag |= BlackWhiteSquareBishopFlag
+		}
+		if flag&WhiteWhiteSquareBishopFlag != 0 {
+			currentFlag |= BlackBlackSquareBishopFlag
+		}
+		bishopExistanceTranslations[flag][White][White] = BishopFlag(currentFlag)
+	}
 	LoadScoresToPieceSquares()
 
 	// Pawn is passed if no pawn of opposite color can stop it from promoting
@@ -863,11 +917,13 @@ func Evaluate(pos *Position) int {
 	whiteKingDefenders := PopCount(
 		(pos.Pieces[Pawn] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[White] & whiteKingAreaMask[whiteKingLocation],
 	)
-	score += KingPsqt[pos.BishopFlag][White][whiteKingLocation]
+	score += KingPsqt[White][whiteKingLocation]
 	score += KingDefenders[whiteKingDefenders]
+	score += KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(whiteKingLocation)]]
 	if tuning {
-		T.KingScores[pos.BishopFlag][Rank(whiteKingLocation)][File(whiteKingLocation)]++
+		T.KingScores[Rank(whiteKingLocation)][File(whiteKingLocation)]++
 		T.KingDefenders[whiteKingDefenders]++
+		T.KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(whiteKingLocation)]]++
 	}
 
 	// Weak squares are attacked by the enemy, defended no more
@@ -905,11 +961,13 @@ func Evaluate(pos *Position) int {
 	blackKingDefenders := PopCount(
 		(pos.Pieces[Pawn] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[Black] & blackKingAreaMask[blackKingLocation],
 	)
-	score -= KingPsqt[pos.BishopFlag][Black][blackKingLocation]
+	score -= KingPsqt[Black][blackKingLocation]
 	score -= KingDefenders[blackKingDefenders]
+	score -= KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(blackKingLocation)]]
 	if tuning {
-		T.KingScores[pos.BishopFlag.BlackPerspective()][7-Rank(blackKingLocation)][File(blackKingLocation)]--
+		T.KingScores[7-Rank(blackKingLocation)][File(blackKingLocation)]--
 		T.KingDefenders[blackKingDefenders]--
+		T.KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(blackKingLocation)]]--
 	}
 
 	// Weak squares are attacked by the enemy, defended no more

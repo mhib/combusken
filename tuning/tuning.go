@@ -627,11 +627,9 @@ func loadScoresToSlice() (res []EvaluationValue) {
 			}
 		}
 	}
-	for flag := 0; flag <= 15; flag++ {
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				res = append(res, ScoreValue{&KingScores[flag][y][x]})
-			}
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			res = append(res, ScoreValue{&KingScores[y][x]})
 		}
 	}
 	for y := 0; y < 7; y++ {
@@ -722,6 +720,10 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	}
 	for x := Pawn; x <= King; x++ {
 		res = append(res, ScoreValue{&ThreatByRook[x]})
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		res = append(res, ScoreValue{&KingBishopExistence[flag]})
 	}
 
 	return

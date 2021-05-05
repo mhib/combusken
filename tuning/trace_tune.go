@@ -377,11 +377,9 @@ func loadTrace() (res []int) {
 		}
 	}
 
-	for flag := 0; flag <= 15; flag++ {
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				res = append(res, T.KingScores[flag][y][x])
-			}
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			res = append(res, T.KingScores[y][x])
 		}
 	}
 	for y := 0; y < 7; y++ {
@@ -462,6 +460,10 @@ func loadTrace() (res []int) {
 		res = append(res, T.ThreatByRook[i])
 	}
 
+	for flag := 0; flag <= 15; flag++ {
+		res = append(res, T.KingBishopExistence[flag])
+	}
+
 	return
 }
 
@@ -492,11 +494,9 @@ func loadWeights() []weight {
 		}
 	}
 
-	for flag := 0; flag <= 15; flag++ {
-		for y := 0; y < 8; y++ {
-			for x := 0; x < 8; x++ {
-				tmp = append(tmp, KingScores[flag][y][x])
-			}
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			tmp = append(tmp, KingScores[y][x])
 		}
 	}
 	for y := 0; y < 7; y++ {
@@ -574,6 +574,10 @@ func loadWeights() []weight {
 	}
 	for x := Pawn; x <= King; x++ {
 		tmp = append(tmp, ThreatByRook[x])
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		tmp = append(tmp, KingBishopExistence[flag])
 	}
 
 	res := make([]weight, 0, len(tmp))
