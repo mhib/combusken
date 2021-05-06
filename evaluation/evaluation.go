@@ -773,11 +773,13 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += MobilityBonus[2][mobility]
 		score += Psqt[White][Rook][fromId]
+		score += RookBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(fromId)]]
 
 		if tuning {
 			T.RookValue++
 			T.PieceScores[Rook][Rank(fromId)][FileMirror[File(fromId)]]++
 			T.MobilityBonus[2][mobility]++
+			T.RookBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(fromId)]]++
 		}
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
@@ -819,11 +821,13 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= MobilityBonus[2][mobility]
 		score -= Psqt[Black][Rook][fromId]
+		score -= RookBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(fromId)]]
 
 		if tuning {
 			T.RookValue--
 			T.PieceScores[Rook][7-Rank(fromId)][FileMirror[File(fromId)]]--
 			T.MobilityBonus[2][mobility]--
+			T.RookBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(fromId)]]--
 		}
 
 		blackAttackedByTwo |= blackAttacked & attacks
@@ -865,11 +869,13 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += MobilityBonus[3][mobility]
 		score += Psqt[White][Queen][fromId]
+		score += QueenBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(fromId)]]
 
 		if tuning {
 			T.QueenValue++
 			T.PieceScores[Queen][Rank(fromId)][FileMirror[File(fromId)]]++
 			T.MobilityBonus[3][mobility]++
+			T.QueenBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(fromId)]]++
 		}
 
 		whiteAttackedByTwo |= whiteAttacked & attacks
@@ -892,11 +898,13 @@ func Evaluate(pos *Position) int {
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= MobilityBonus[3][mobility]
 		score -= Psqt[Black][Queen][fromId]
+		score -= QueenBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(fromId)]]
 
 		if tuning {
 			T.QueenValue--
 			T.PieceScores[Queen][7-Rank(fromId)][FileMirror[File(fromId)]]--
 			T.MobilityBonus[3][mobility]--
+			T.QueenBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(fromId)]]--
 		}
 
 		blackAttackedByTwo |= blackAttacked & attacks

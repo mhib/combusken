@@ -461,6 +461,13 @@ func loadTrace() (res []int) {
 	}
 
 	for flag := 0; flag <= 15; flag++ {
+		res = append(res, T.RookBishopExistence[flag])
+	}
+	for flag := 0; flag <= 15; flag++ {
+		res = append(res, T.QueenBishopExistence[flag])
+	}
+
+	for flag := 0; flag <= 15; flag++ {
 		res = append(res, T.KingBishopExistence[flag])
 	}
 
@@ -574,6 +581,14 @@ func loadWeights() []weight {
 	}
 	for x := Pawn; x <= King; x++ {
 		tmp = append(tmp, ThreatByRook[x])
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		tmp = append(tmp, RookBishopExistence[flag])
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		tmp = append(tmp, QueenBishopExistence[flag])
 	}
 
 	for flag := 0; flag <= 15; flag++ {

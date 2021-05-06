@@ -723,6 +723,14 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	}
 
 	for flag := 0; flag <= 15; flag++ {
+		res = append(res, ScoreValue{&RookBishopExistence[flag]})
+	}
+
+	for flag := 0; flag <= 15; flag++ {
+		res = append(res, ScoreValue{&QueenBishopExistence[flag]})
+	}
+
+	for flag := 0; flag <= 15; flag++ {
 		res = append(res, ScoreValue{&KingBishopExistence[flag]})
 	}
 
