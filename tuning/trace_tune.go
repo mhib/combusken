@@ -35,6 +35,7 @@ type traceEntry struct {
 	factors      [2]float64
 	coefficients []coefficient
 	evalDiff     float64
+	scale        int
 	whiteMove    bool
 }
 
@@ -43,6 +44,7 @@ type weight [2]float64
 type traceTuner struct {
 	k                       float64
 	weights                 []weight
+	adagrad                 []weight
 	bestWeights             []weight
 	entries                 []traceEntry
 	bestError               float64
@@ -149,8 +151,9 @@ func (t *traceTuner) calculateOptimalK() {
 }
 
 func TraceTune() {
-	t := &traceTuner{done: false, batchSize: 16384 * 2}
+	t := &traceTuner{done: false}
 	t.weights = loadWeights()
+	t.adagrad = make([]weight, len(t.weights))
 	t.bestWeights = make([]weight, len(t.weights))
 	copy(t.bestWeights, t.weights)
 
@@ -164,6 +167,7 @@ func TraceTune() {
 	}
 	fmt.Println("Number of entries:")
 	fmt.Println(len(t.entries))
+	t.batchSize = len(t.entries)
 	t.calculateOptimalK()
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -187,7 +191,8 @@ func TraceTune() {
 			gradient := t.calculateGradient(batch)
 			for idx := range t.weights {
 				for i := MIDDLE; i <= END; i++ {
-					t.weights[idx][i] -= (learningRate / float64(t.batchSize)) * gradient[idx][i]
+					t.adagrad[idx][i] += math.Pow(t.k*gradient[idx][i]/float64(t.batchSize), 2)
+					t.weights[idx][i] -= (t.k / float64(t.batchSize)) * gradient[idx][i] * (learningRate / math.Sqrt(1e-8+t.adagrad[idx][i]))
 				}
 			}
 		}
@@ -244,11 +249,7 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	T = Trace{}
 	res.eval = float64(Evaluate(&board))
 
-	// Do not care about scaled positions
-	if T.Scale != SCALE_NORMAL {
-		return res, false
-	}
-
+	res.scale = T.Scale
 	if board.SideToMove == Black {
 		res.eval *= -1
 	}
@@ -296,9 +297,8 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 				entry := entries[y]
 				derivative := t.singleLinearDerivative(&entry)
 				for _, coef := range entry.coefficients {
-					for i := MIDDLE; i <= END; i++ {
-						localRes[coef.idx][i] += derivative * entry.factors[i] * float64(coef.value)
-					}
+					localRes[coef.idx][MIDDLE] += derivative * entry.factors[MIDDLE] * float64(coef.value)
+					localRes[coef.idx][END] += derivative * entry.factors[END] * float64(coef.value) * (float64(entry.scale) / float64(SCALE_NORMAL))
 				}
 			}
 			resultChan <- localRes
@@ -340,7 +340,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
 		middle += int(math.Round(t.weights[coeff.idx][MIDDLE])) * coeff.value
 		end += int(math.Round(t.weights[coeff.idx][END])) * coeff.value
 	}
-	phased := (middle*(256-entry.phase) + end*entry.phase) / 256
+	phased := (middle*(256-entry.phase) + (end*entry.phase*entry.scale)/SCALE_NORMAL) / 256
 	if entry.whiteMove {
 		return float64(phased + int(Tempo))
 	} else {
