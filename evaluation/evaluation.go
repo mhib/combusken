@@ -478,15 +478,19 @@ func Evaluate(pos *Position) int {
 	blackKingArea := blackKingAreaMask[blackKingLocation]
 
 	// white pawns
-	attacks = WhitePawnsAttacks(pos.Pieces[Pawn] & pos.Colours[White])
+	whitePawns := pos.Pieces[Pawn] & pos.Colours[White]
+	attacks = WhitePawnsAttacks(whitePawns)
 	whiteAttackedByTwo |= whiteAttacked & attacks
+	whiteAttackedByTwo |= WhitePawnsDoubleAttacks(whitePawns)
 	whiteAttacked |= attacks
 	whiteAttackedBy[Pawn] |= attacks
 	whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 
 	// black pawns
-	attacks = BlackPawnsAttacks(pos.Pieces[Pawn] & pos.Colours[Black])
+	blackPawns := pos.Pieces[Pawn] & pos.Colours[Black]
+	attacks = BlackPawnsAttacks(blackPawns)
 	blackAttackedByTwo |= blackAttacked & attacks
+	blackAttackedByTwo |= BlackPawnsDoubleAttacks(blackPawns)
 	blackAttacked |= attacks
 	blackAttackedBy[Pawn] |= attacks
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))

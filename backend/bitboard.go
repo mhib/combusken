@@ -59,7 +59,7 @@ const (
 
 	QUEEN_SIDE_BB   uint64 = FILE_A_BB | FILE_B_BB | FILE_C_BB | FILE_D_BB
 	KING_SIDE_BB    uint64 = FILE_E_BB | FILE_F_BB | FILE_G_BB | FILE_H_BB
-	CENTER_FILES_BB uint64 = FILE_C | FILE_D | FILE_E | FILE_F
+	CENTER_FILES_BB uint64 = FILE_C_BB | FILE_D_BB | FILE_E_BB | FILE_F_BB
 )
 
 var RANKS = [...]uint64{RANK_1_BB, RANK_2_BB, RANK_3_BB, RANK_4_BB, RANK_5_BB, RANK_6_BB, RANK_7_BB, RANK_8_BB}
@@ -339,12 +339,22 @@ func WhitePawnsAttacks(set uint64) uint64 {
 		NorthEast(set & ^FILE_H_BB)
 }
 
+func WhitePawnsDoubleAttacks(set uint64) uint64 {
+	return NorthWest(set & ^FILE_A_BB) &
+		NorthEast(set & ^FILE_H_BB)
+}
+
 func WhitePawnsMoves(set uint64, occupancy uint64) uint64 {
 	return (North(set) | ((North(North(set)) & RANK_4_BB) & ^North(occupancy&RANK_3_BB))) & ^occupancy
 }
 
 func BlackPawnsAttacks(set uint64) uint64 {
 	return SouthWest(set & ^FILE_A_BB) |
+		SouthEast(set & ^FILE_H_BB)
+}
+
+func BlackPawnsDoubleAttacks(set uint64) uint64 {
+	return SouthWest(set & ^FILE_A_BB) &
 		SouthEast(set & ^FILE_H_BB)
 }
 
