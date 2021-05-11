@@ -21,7 +21,7 @@ const (
 	END
 )
 
-const learningRate = 10.0
+const learningRate = 1.0
 
 type coefficient struct {
 	value int
@@ -369,19 +369,14 @@ func loadTrace() (res []int) {
 			}
 		}
 	}
-	for i := Knight; i <= Queen; i++ {
+	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
-			for x := 0; x < 4; x++ {
+			for x := 0; x < 8; x++ {
 				res = append(res, T.PieceScores[i][y][x])
 			}
 		}
 	}
 
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
-			res = append(res, T.KingScores[y][x])
-		}
-	}
 	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
 			res = append(res, T.PawnsConnected[y][x])
@@ -411,7 +406,7 @@ func loadTrace() (res []int) {
 	for y := 0; y < 8; y++ {
 		res = append(res, T.PassedFile[y])
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 7; y++ {
 		res = append(res, T.PassedStacked[y])
 	}
 	res = append(res, T.Isolated)
@@ -493,19 +488,14 @@ func loadWeights() []weight {
 			}
 		}
 	}
-	for i := Knight; i <= Queen; i++ {
+	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
-			for x := 0; x < 4; x++ {
+			for x := 0; x < 8; x++ {
 				tmp = append(tmp, PieceScores[i][y][x])
 			}
 		}
 	}
 
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
-			tmp = append(tmp, KingScores[y][x])
-		}
-	}
 	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
 			tmp = append(tmp, PawnsConnected[y][x])
@@ -535,7 +525,7 @@ func loadWeights() []weight {
 	for y := 0; y < 8; y++ {
 		tmp = append(tmp, PassedFile[y])
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 7; y++ {
 		tmp = append(tmp, PassedStacked[y])
 	}
 	tmp = append(tmp, Isolated)

@@ -16,9 +16,8 @@ const RookPhase = 2
 const QueenPhase = 4
 const TotalPhase = PawnPhase*16 + KnightPhase*4 + BishopPhase*4 + RookPhase*4 + QueenPhase*2
 
-var PawnPsqt [16][2][64]Score    // BishopFlag, colour, Square
-var Psqt [2][Queen + 1][64]Score // One row for every colour purposefelly left empty
-var KingPsqt [2][64]Score
+var PawnPsqt [16][2][64]Score   // BishopFlag, colour, Square
+var Psqt [2][King + 1][64]Score // One row for every colour purposefelly left empty
 
 var bishopExistanceTranslations [16][2][2]BishopFlag // Flag, piece colour, square colour
 
@@ -46,33 +45,29 @@ const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
 
 func LoadScoresToPieceSquares() {
 	for x := 0; x < 4; x++ {
+		for y := 0; y < 7; y++ {
+			PawnsConnectedSquare[White][y*8+x] = PawnsConnected[y][x]
+			PawnsConnectedSquare[White][y*8+(7-x)] = PawnsConnected[y][x]
+			PawnsConnectedSquare[Black][(7-y)*8+x] = PawnsConnected[y][x]
+			PawnsConnectedSquare[Black][(7-y)*8+(7-x)] = PawnsConnected[y][x]
+		}
+	}
+	for x := 0; x < 8; x++ {
 		for y := 0; y < 8; y++ {
 			Psqt[White][Knight][y*8+x] = PieceScores[Knight][y][x] + KnightValue
-			Psqt[White][Knight][y*8+(7-x)] = PieceScores[Knight][y][x] + KnightValue
 			Psqt[Black][Knight][(7-y)*8+x] = PieceScores[Knight][y][x] + KnightValue
-			Psqt[Black][Knight][(7-y)*8+(7-x)] = PieceScores[Knight][y][x] + KnightValue
 
 			Psqt[White][Bishop][y*8+x] = PieceScores[Bishop][y][x] + BishopValue
-			Psqt[White][Bishop][y*8+(7-x)] = PieceScores[Bishop][y][x] + BishopValue
 			Psqt[Black][Bishop][(7-y)*8+x] = PieceScores[Bishop][y][x] + BishopValue
-			Psqt[Black][Bishop][(7-y)*8+(7-x)] = PieceScores[Bishop][y][x] + BishopValue
 
 			Psqt[White][Rook][y*8+x] = PieceScores[Rook][y][x] + RookValue
-			Psqt[White][Rook][y*8+(7-x)] = PieceScores[Rook][y][x] + RookValue
 			Psqt[Black][Rook][(7-y)*8+x] = PieceScores[Rook][y][x] + RookValue
-			Psqt[Black][Rook][(7-y)*8+(7-x)] = PieceScores[Rook][y][x] + RookValue
 
 			Psqt[White][Queen][y*8+x] = PieceScores[Queen][y][x] + QueenValue
-			Psqt[White][Queen][y*8+(7-x)] = PieceScores[Queen][y][x] + QueenValue
 			Psqt[Black][Queen][(7-y)*8+x] = PieceScores[Queen][y][x] + QueenValue
-			Psqt[Black][Queen][(7-y)*8+(7-x)] = PieceScores[Queen][y][x] + QueenValue
 
-			if y != 7 {
-				PawnsConnectedSquare[White][y*8+x] = PawnsConnected[y][x]
-				PawnsConnectedSquare[White][y*8+(7-x)] = PawnsConnected[y][x]
-				PawnsConnectedSquare[Black][(7-y)*8+x] = PawnsConnected[y][x]
-				PawnsConnectedSquare[Black][(7-y)*8+(7-x)] = PawnsConnected[y][x]
-			}
+			Psqt[White][King][y*8+x] = PieceScores[King][y][x]
+			Psqt[Black][King][(7-y)*8+x] = PieceScores[King][y][x]
 		}
 	}
 
@@ -82,13 +77,6 @@ func LoadScoresToPieceSquares() {
 				PawnPsqt[bishopFlag][White][y*8+x] = PawnScores[bishopFlag][y][x] + PawnValue
 				PawnPsqt[bishopFlag][Black][(7-y)*8+x] = PawnScores[BishopFlag(bishopFlag).BlackPerspective()][y][x] + PawnValue
 			}
-		}
-	}
-
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
-			KingPsqt[White][y*8+x] = KingScores[y][x]
-			KingPsqt[Black][(7-y)*8+x] = KingScores[y][x]
 		}
 	}
 }
@@ -531,7 +519,7 @@ func Evaluate(pos *Position) int {
 		score += MobilityBonus[0][mobility]
 		if tuning {
 			T.KnightValue++
-			T.PieceScores[Knight][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.PieceScores[Knight][Rank(fromId)][File(fromId)]++
 			T.MobilityBonus[0][mobility]++
 		}
 
@@ -584,7 +572,7 @@ func Evaluate(pos *Position) int {
 		score -= MobilityBonus[0][mobility]
 		if tuning {
 			T.KnightValue--
-			T.PieceScores[Knight][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.PieceScores[Knight][7-Rank(fromId)][File(fromId)]--
 			T.MobilityBonus[0][mobility]--
 		}
 
@@ -637,7 +625,7 @@ func Evaluate(pos *Position) int {
 		score += Psqt[White][Bishop][fromId]
 		if tuning {
 			T.BishopValue++
-			T.PieceScores[Bishop][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.PieceScores[Bishop][Rank(fromId)][File(fromId)]++
 			T.MobilityBonus[1][mobility]++
 		}
 
@@ -710,7 +698,7 @@ func Evaluate(pos *Position) int {
 		score -= Psqt[Black][Bishop][fromId]
 		if tuning {
 			T.BishopValue--
-			T.PieceScores[Bishop][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.PieceScores[Bishop][7-Rank(fromId)][File(fromId)]--
 			T.MobilityBonus[1][mobility]--
 		}
 
@@ -781,7 +769,7 @@ func Evaluate(pos *Position) int {
 
 		if tuning {
 			T.RookValue++
-			T.PieceScores[Rook][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.PieceScores[Rook][Rank(fromId)][File(fromId)]++
 			T.MobilityBonus[2][mobility]++
 			T.RookBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(fromId)]]++
 		}
@@ -829,7 +817,7 @@ func Evaluate(pos *Position) int {
 
 		if tuning {
 			T.RookValue--
-			T.PieceScores[Rook][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.PieceScores[Rook][7-Rank(fromId)][File(fromId)]--
 			T.MobilityBonus[2][mobility]--
 			T.RookBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(fromId)]]--
 		}
@@ -877,7 +865,7 @@ func Evaluate(pos *Position) int {
 
 		if tuning {
 			T.QueenValue++
-			T.PieceScores[Queen][Rank(fromId)][FileMirror[File(fromId)]]++
+			T.PieceScores[Queen][Rank(fromId)][File(fromId)]++
 			T.MobilityBonus[3][mobility]++
 			T.QueenBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(fromId)]]++
 		}
@@ -906,7 +894,7 @@ func Evaluate(pos *Position) int {
 
 		if tuning {
 			T.QueenValue--
-			T.PieceScores[Queen][7-Rank(fromId)][FileMirror[File(fromId)]]--
+			T.PieceScores[Queen][7-Rank(fromId)][File(fromId)]--
 			T.MobilityBonus[3][mobility]--
 			T.QueenBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(fromId)]]--
 		}
@@ -929,11 +917,11 @@ func Evaluate(pos *Position) int {
 	whiteKingDefenders := PopCount(
 		(pos.Pieces[Pawn] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[White] & whiteKingAreaMask[whiteKingLocation],
 	)
-	score += KingPsqt[White][whiteKingLocation]
+	score += Psqt[White][King][whiteKingLocation]
 	score += KingDefenders[whiteKingDefenders]
 	score += KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(whiteKingLocation)]]
 	if tuning {
-		T.KingScores[Rank(whiteKingLocation)][File(whiteKingLocation)]++
+		T.PieceScores[King][Rank(whiteKingLocation)][File(whiteKingLocation)]++
 		T.KingDefenders[whiteKingDefenders]++
 		T.KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][White][Colour(whiteKingLocation)]]++
 	}
@@ -973,11 +961,11 @@ func Evaluate(pos *Position) int {
 	blackKingDefenders := PopCount(
 		(pos.Pieces[Pawn] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[Black] & blackKingAreaMask[blackKingLocation],
 	)
-	score -= KingPsqt[Black][blackKingLocation]
+	score -= Psqt[Black][King][blackKingLocation]
 	score -= KingDefenders[blackKingDefenders]
 	score -= KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(blackKingLocation)]]
 	if tuning {
-		T.KingScores[7-Rank(blackKingLocation)][File(blackKingLocation)]--
+		T.PieceScores[King][7-Rank(blackKingLocation)][File(blackKingLocation)]--
 		T.KingDefenders[blackKingDefenders]--
 		T.KingBishopExistence[bishopExistanceTranslations[pos.BishopFlag][Black][Colour(blackKingLocation)]]--
 	}

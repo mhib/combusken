@@ -620,16 +620,11 @@ func loadScoresToSlice() (res []EvaluationValue) {
 			}
 		}
 	}
-	for i := Knight; i <= Queen; i++ {
+	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
-			for x := 0; x < 4; x++ {
+			for x := 0; x < 8; x++ {
 				res = append(res, ScoreValue{&PieceScores[i][y][x]})
 			}
-		}
-	}
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
-			res = append(res, ScoreValue{&KingScores[y][x]})
 		}
 	}
 	for y := 0; y < 7; y++ {
@@ -661,7 +656,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for y := 0; y < 8; y++ {
 		res = append(res, ScoreValue{&PassedFile[y]})
 	}
-	for y := 0; y < 8; y++ {
+	for y := 0; y < 7; y++ {
 		res = append(res, ScoreValue{&PassedStacked[y]})
 	}
 	res = append(res, ScoreValue{&Isolated})

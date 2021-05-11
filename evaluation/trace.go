@@ -9,15 +9,14 @@ type Trace struct {
 	RookValue                    int
 	QueenValue                   int
 	PawnScores                   [16][7][8]int
-	PieceScores                  [Queen + 1][8][4]int
-	KingScores                   [8][8]int
+	PieceScores                  [King + 1][8][8]int
 	PawnsConnected               [7][4]int
 	MobilityBonus                [4][32]int
 	PassedFriendlyDistance       [8]int
 	PassedEnemyDistance          [8]int
 	PassedRank                   [7]int
 	PassedFile                   [8]int
-	PassedStacked                [8]int
+	PassedStacked                [7]int
 	Isolated                     int
 	Doubled                      int
 	Backward                     int
