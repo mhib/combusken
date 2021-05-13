@@ -650,8 +650,13 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for y := 0; y < 8; y++ {
 		res = append(res, ScoreValue{&PassedEnemyDistance[y]})
 	}
-	for y := 0; y < 7; y++ {
-		res = append(res, ScoreValue{&PassedRank[y]})
+
+	for a := 0; a < 2; a++ {
+		for b := 0; b < 2; b++ {
+			for y := 0; y < 7; y++ {
+				res = append(res, ScoreValue{&PassedRank[a][b][y]})
+			}
+		}
 	}
 	for y := 0; y < 8; y++ {
 		res = append(res, ScoreValue{&PassedFile[y]})

@@ -237,30 +237,6 @@ func evaluateKingPawns(pos *Position) Score {
 	for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		// Passed bonus
-		if passedMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
-			// Bonus is calculated based on rank, file, distance from friendly and enemy king
-			score +=
-				PassedRank[Rank(fromId)] +
-					PassedFile[File(fromId)] +
-					PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
-					PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
-
-			if tuning {
-				T.PassedRank[Rank(fromId)]++
-				T.PassedFile[File(fromId)]++
-				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
-				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
-			}
-
-			if pos.Pieces[Pawn]&pos.Colours[White]&forwardFileMask[White][fromId] != 0 {
-				score += PassedStacked[Rank(fromId)]
-				if tuning {
-					T.PassedStacked[Rank(fromId)]++
-				}
-			}
-		}
-
 		// Isolated pawn penalty
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			score += Isolated
@@ -301,26 +277,6 @@ func evaluateKingPawns(pos *Position) Score {
 	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		if passedMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
-			score -=
-				PassedRank[7-Rank(fromId)] +
-					PassedFile[File(fromId)] +
-					PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
-					PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
-			if tuning {
-				T.PassedRank[7-Rank(fromId)]--
-				T.PassedFile[File(fromId)]--
-				T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
-				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
-			}
-
-			if pos.Pieces[Pawn]&pos.Colours[Black]&forwardFileMask[Black][fromId] != 0 {
-				score -= PassedStacked[7-Rank(fromId)]
-				if tuning {
-					T.PassedStacked[7-Rank(fromId)]--
-				}
-			}
-		}
 		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			score -= Isolated
 			if tuning {
@@ -484,29 +440,6 @@ func Evaluate(pos *Position) int {
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 
 	score := evaluateKingPawns(pos)
-
-	// white pawns
-	for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-
-		score += PawnPsqt[pos.BishopFlag][White][fromId]
-		if tuning {
-			T.PawnValue++
-			T.PawnScores[pos.BishopFlag][Rank(fromId)][File(fromId)]++
-		}
-	}
-
-	// black pawns
-	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
-		fromId = BitScan(fromBB)
-
-		score -= PawnPsqt[pos.BishopFlag][Black][fromId]
-
-		if tuning {
-			T.PawnValue--
-			T.PawnScores[pos.BishopFlag.BlackPerspective()][7-Rank(fromId)][File(fromId)]--
-		}
-	}
 
 	// white knights
 	for fromBB = pos.Pieces[Knight] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
@@ -906,6 +839,80 @@ func Evaluate(pos *Position) int {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 			blackKingAttackersCount++
 			blackKingAttackersWeight += KingSafetyAttacksWeights[Queen]
+		}
+	}
+
+	// white pawns
+	for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+
+		score += PawnPsqt[pos.BishopFlag][White][fromId]
+		if tuning {
+			T.PawnValue++
+			T.PawnScores[pos.BishopFlag][Rank(fromId)][File(fromId)]++
+		}
+
+		// Passed bonus
+		if passedMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+			// Bonus is calculated based on ability to push, rank, file, distance from friendly and enemy king
+			advance := North(SquareMask[fromId])
+			canPush := BoolToInt(allOccupation&advance == 0)
+			safePush := BoolToInt(blackAttacked&advance == 0)
+			score +=
+				PassedRank[canPush][safePush][Rank(fromId)] +
+					PassedFile[File(fromId)] +
+					PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
+					PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
+
+			if tuning {
+				T.PassedRank[canPush][safePush][Rank(fromId)]++
+				T.PassedFile[File(fromId)]++
+				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
+				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
+			}
+
+			if pos.Pieces[Pawn]&pos.Colours[White]&forwardFileMask[White][fromId] != 0 {
+				score += PassedStacked[Rank(fromId)]
+				if tuning {
+					T.PassedStacked[Rank(fromId)]++
+				}
+			}
+		}
+	}
+
+	// black pawns
+	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
+		fromId = BitScan(fromBB)
+
+		score -= PawnPsqt[pos.BishopFlag][Black][fromId]
+
+		if tuning {
+			T.PawnValue--
+			T.PawnScores[pos.BishopFlag.BlackPerspective()][7-Rank(fromId)][File(fromId)]--
+		}
+
+		if passedMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+			advance := South(SquareMask[fromId])
+			canPush := BoolToInt(allOccupation&advance == 0)
+			safePush := BoolToInt(whiteAttacked&advance == 0)
+			score -=
+				PassedRank[canPush][safePush][7-Rank(fromId)] +
+					PassedFile[File(fromId)] +
+					PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
+					PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
+			if tuning {
+				T.PassedRank[canPush][safePush][7-Rank(fromId)]--
+				T.PassedFile[File(fromId)]--
+				T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
+				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
+			}
+
+			if pos.Pieces[Pawn]&pos.Colours[Black]&forwardFileMask[Black][fromId] != 0 {
+				score -= PassedStacked[7-Rank(fromId)]
+				if tuning {
+					T.PassedStacked[7-Rank(fromId)]--
+				}
+			}
 		}
 	}
 

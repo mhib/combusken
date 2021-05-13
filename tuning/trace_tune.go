@@ -400,8 +400,12 @@ func loadTrace() (res []int) {
 	for y := 0; y < 8; y++ {
 		res = append(res, T.PassedEnemyDistance[y])
 	}
-	for y := 0; y < 7; y++ {
-		res = append(res, T.PassedRank[y])
+	for a := 0; a < 2; a++ {
+		for b := 0; b < 2; b++ {
+			for y := 0; y < 7; y++ {
+				res = append(res, T.PassedRank[a][b][y])
+			}
+		}
 	}
 	for y := 0; y < 8; y++ {
 		res = append(res, T.PassedFile[y])
@@ -519,8 +523,12 @@ func loadWeights() []weight {
 	for y := 0; y < 8; y++ {
 		tmp = append(tmp, PassedEnemyDistance[y])
 	}
-	for y := 0; y < 7; y++ {
-		tmp = append(tmp, PassedRank[y])
+	for a := 0; a < 2; a++ {
+		for b := 0; b < 2; b++ {
+			for y := 0; y < 7; y++ {
+				tmp = append(tmp, PassedRank[a][b][y])
+			}
+		}
 	}
 	for y := 0; y < 8; y++ {
 		tmp = append(tmp, PassedFile[y])
