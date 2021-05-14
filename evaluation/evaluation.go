@@ -858,14 +858,15 @@ func Evaluate(pos *Position) int {
 			advance := North(SquareMask[fromId])
 			canPush := BoolToInt(allOccupation&advance == 0)
 			safePush := BoolToInt(blackAttacked&advance == 0)
+			pushDefended := BoolToInt(whiteAttacked&advance != 0)
 			score +=
-				PassedRank[canPush][safePush][Rank(fromId)] +
+				PassedRank[canPush][safePush][pushDefended][Rank(fromId)] +
 					PassedFile[File(fromId)] +
 					PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
 					PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
 
 			if tuning {
-				T.PassedRank[canPush][safePush][Rank(fromId)]++
+				T.PassedRank[canPush][safePush][pushDefended][Rank(fromId)]++
 				T.PassedFile[File(fromId)]++
 				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
 				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
@@ -895,13 +896,14 @@ func Evaluate(pos *Position) int {
 			advance := South(SquareMask[fromId])
 			canPush := BoolToInt(allOccupation&advance == 0)
 			safePush := BoolToInt(whiteAttacked&advance == 0)
+			pushDefended := BoolToInt(blackAttacked&advance != 0)
 			score -=
-				PassedRank[canPush][safePush][7-Rank(fromId)] +
+				PassedRank[canPush][safePush][pushDefended][7-Rank(fromId)] +
 					PassedFile[File(fromId)] +
 					PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
 					PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
 			if tuning {
-				T.PassedRank[canPush][safePush][7-Rank(fromId)]--
+				T.PassedRank[canPush][safePush][pushDefended][7-Rank(fromId)]--
 				T.PassedFile[File(fromId)]--
 				T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
 				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--

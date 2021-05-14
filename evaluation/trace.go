@@ -14,7 +14,7 @@ type Trace struct {
 	MobilityBonus                [4][32]int
 	PassedFriendlyDistance       [8]int
 	PassedEnemyDistance          [8]int
-	PassedRank                   [2][2][7]int
+	PassedRank                   [2][2][2][7]int
 	PassedFile                   [8]int
 	PassedStacked                [7]int
 	Isolated                     int

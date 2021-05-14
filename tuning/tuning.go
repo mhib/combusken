@@ -653,8 +653,10 @@ func loadScoresToSlice() (res []EvaluationValue) {
 
 	for a := 0; a < 2; a++ {
 		for b := 0; b < 2; b++ {
-			for y := 0; y < 7; y++ {
-				res = append(res, ScoreValue{&PassedRank[a][b][y]})
+			for c := 0; c < 2; c++ {
+				for y := 0; y < 7; y++ {
+					res = append(res, ScoreValue{&PassedRank[a][b][c][y]})
+				}
 			}
 		}
 	}
