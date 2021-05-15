@@ -854,28 +854,59 @@ func Evaluate(pos *Position) int {
 
 		// Passed bonus
 		if passedMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+			rookOrQueenBehind := forwardFileMask[Black][fromId]&
+				// Try to not to count situation when a stacked pawn is between current pawn and a major piece
+				(^pos.Pieces[Pawn])&
+				(pos.Pieces[Rook]|pos.Pieces[Queen])&
+				pos.Colours[White] != 0
+
 			// Bonus is calculated based on ability to push, rank, file, distance from friendly and enemy king
 			advance := North(SquareMask[fromId])
-			canPush := BoolToInt(allOccupation&advance == 0)
-			safePush := BoolToInt(blackAttacked&advance == 0)
-			pushDefended := BoolToInt(whiteAttacked&advance != 0)
+			canAdvance := BoolToInt(allOccupation&advance == 0)
+			safeAdvance := BoolToInt(blackAttacked&advance == 0)
+			advanceDefended := BoolToInt(rookOrQueenBehind || (whiteAttacked&advance) != 0)
 			score +=
-				PassedRank[canPush][safePush][pushDefended][Rank(fromId)] +
+				PassedRank[canAdvance][safeAdvance][advanceDefended][Rank(fromId)] +
 					PassedFile[File(fromId)] +
 					PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]] +
 					PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]
 
 			if tuning {
-				T.PassedRank[canPush][safePush][pushDefended][Rank(fromId)]++
+				T.PassedRank[canAdvance][safeAdvance][advanceDefended][Rank(fromId)]++
 				T.PassedFile[File(fromId)]++
 				T.PassedFriendlyDistance[distanceBetween[whiteKingLocation][fromId]]++
 				T.PassedEnemyDistance[distanceBetween[blackKingLocation][fromId]]++
 			}
 
-			if pos.Pieces[Pawn]&pos.Colours[White]&forwardFileMask[White][fromId] != 0 {
+			push := forwardFileMask[White][fromId]
+
+			stacked := pos.Pieces[Pawn]&pos.Colours[White]&push != 0
+
+			if stacked {
 				score += PassedStacked[Rank(fromId)]
 				if tuning {
 					T.PassedStacked[Rank(fromId)]++
+				}
+			}
+			// Rank seventh's push == advance so it is already calculated
+			if !stacked && Rank(fromId) != RANK_7 {
+				if push&(blackAttacked|pos.Pieces[Black]) == 0 {
+					if rookOrQueenBehind || (push&whiteAttacked) == push {
+						score += PassedPushUncontestedDefended[Rank(fromId)]
+						if tuning {
+							T.PassedPushUncontestedDefended[Rank(fromId)]++
+						}
+					} else {
+						score += PassedUncontested[Rank(fromId)]
+						if tuning {
+							T.PassedUncontested[Rank(fromId)]++
+						}
+					}
+				} else if rookOrQueenBehind || (push&whiteAttacked) == push {
+					score += PassedPushDefended[Rank(fromId)]
+					if tuning {
+						T.PassedPushDefended[Rank(fromId)]++
+					}
 				}
 			}
 		}
@@ -893,26 +924,55 @@ func Evaluate(pos *Position) int {
 		}
 
 		if passedMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+			rookOrQueenBehind := forwardFileMask[White][fromId]&
+				// Try to not to count situation when a stacked pawn is between current pawn and a major piece
+				(^pos.Pieces[Pawn])&
+				(pos.Pieces[Rook]|pos.Pieces[Queen])&
+				pos.Colours[Black] != 0
+
 			advance := South(SquareMask[fromId])
-			canPush := BoolToInt(allOccupation&advance == 0)
-			safePush := BoolToInt(whiteAttacked&advance == 0)
-			pushDefended := BoolToInt(blackAttacked&advance != 0)
+			canAdvance := BoolToInt(allOccupation&advance == 0)
+			safeAdvance := BoolToInt(whiteAttacked&advance == 0)
+			advanceDefended := BoolToInt(rookOrQueenBehind || (blackAttacked&advance) != 0)
 			score -=
-				PassedRank[canPush][safePush][pushDefended][7-Rank(fromId)] +
+				PassedRank[canAdvance][safeAdvance][advanceDefended][7-Rank(fromId)] +
 					PassedFile[File(fromId)] +
 					PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]] +
 					PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]
 			if tuning {
-				T.PassedRank[canPush][safePush][pushDefended][7-Rank(fromId)]--
+				T.PassedRank[canAdvance][safeAdvance][advanceDefended][7-Rank(fromId)]--
 				T.PassedFile[File(fromId)]--
 				T.PassedFriendlyDistance[distanceBetween[blackKingLocation][fromId]]--
 				T.PassedEnemyDistance[distanceBetween[whiteKingLocation][fromId]]--
 			}
 
-			if pos.Pieces[Pawn]&pos.Colours[Black]&forwardFileMask[Black][fromId] != 0 {
+			push := forwardFileMask[Black][fromId]
+			stacked := pos.Pieces[Pawn]&pos.Colours[Black]&push != 0
+			if stacked {
 				score -= PassedStacked[7-Rank(fromId)]
 				if tuning {
 					T.PassedStacked[7-Rank(fromId)]--
+				}
+			}
+
+			if !stacked && Rank(fromId) != RANK_2 {
+				if push&(whiteAttacked|pos.Pieces[White]) == 0 {
+					if rookOrQueenBehind || (push&blackAttacked) == push {
+						score -= PassedPushUncontestedDefended[7-Rank(fromId)]
+						if tuning {
+							T.PassedPushUncontestedDefended[7-Rank(fromId)]--
+						}
+					} else {
+						score -= PassedUncontested[7-Rank(fromId)]
+						if tuning {
+							T.PassedUncontested[7-Rank(fromId)]--
+						}
+					}
+				} else if rookOrQueenBehind || (push&blackAttacked) == push {
+					score -= PassedPushDefended[7-Rank(fromId)]
+					if tuning {
+						T.PassedPushDefended[7-Rank(fromId)]--
+					}
 				}
 			}
 		}

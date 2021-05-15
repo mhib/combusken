@@ -666,6 +666,15 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for y := 0; y < 7; y++ {
 		res = append(res, ScoreValue{&PassedStacked[y]})
 	}
+	for y := 0; y < 6; y++ {
+		res = append(res, ScoreValue{&PassedUncontested[y]})
+	}
+	for y := 0; y < 6; y++ {
+		res = append(res, ScoreValue{&PassedPushDefended[y]})
+	}
+	for y := 0; y < 6; y++ {
+		res = append(res, ScoreValue{&PassedPushUncontestedDefended[y]})
+	}
 	res = append(res, ScoreValue{&Isolated})
 	res = append(res, ScoreValue{&Doubled})
 	res = append(res, ScoreValue{&Backward})

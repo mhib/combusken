@@ -21,7 +21,7 @@ const (
 	END
 )
 
-const learningRate = 1.0
+const learningRate = 1.5
 
 type coefficient struct {
 	value int
@@ -167,7 +167,7 @@ func TraceTune() {
 	}
 	fmt.Println("Number of entries:")
 	fmt.Println(len(t.entries))
-	t.batchSize = len(t.entries)
+	t.batchSize = len(t.entries) / 32
 	t.calculateOptimalK()
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -415,6 +415,15 @@ func loadTrace() (res []int) {
 	for y := 0; y < 7; y++ {
 		res = append(res, T.PassedStacked[y])
 	}
+	for y := 0; y < 6; y++ {
+		res = append(res, T.PassedUncontested[y])
+	}
+	for y := 0; y < 6; y++ {
+		res = append(res, T.PassedPushDefended[y])
+	}
+	for y := 0; y < 6; y++ {
+		res = append(res, T.PassedPushUncontestedDefended[y])
+	}
 	res = append(res, T.Isolated)
 	res = append(res, T.Doubled)
 	res = append(res, T.Backward)
@@ -539,6 +548,15 @@ func loadWeights() []weight {
 	}
 	for y := 0; y < 7; y++ {
 		tmp = append(tmp, PassedStacked[y])
+	}
+	for y := 0; y < 6; y++ {
+		tmp = append(tmp, PassedUncontested[y])
+	}
+	for y := 0; y < 6; y++ {
+		tmp = append(tmp, PassedPushDefended[y])
+	}
+	for y := 0; y < 6; y++ {
+		tmp = append(tmp, PassedPushUncontestedDefended[y])
 	}
 	tmp = append(tmp, Isolated)
 	tmp = append(tmp, Doubled)
