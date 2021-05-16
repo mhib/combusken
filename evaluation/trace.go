@@ -29,6 +29,7 @@ type Trace struct {
 	BishopOutpostUndefendedBonus  int
 	BishopOutpostDefendedBonus    int
 	LongDiagonalBishop            int
+	DistantBishop                 [4]int
 	KnightOutpostUndefendedBonus  int
 	KnightOutpostDefendedBonus    int
 	DistantKnight                 [4]int

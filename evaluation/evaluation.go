@@ -603,6 +603,14 @@ func Evaluate(pos *Position) int {
 		if tuning {
 			T.BishopRammedPawns += int(rammedCount)
 		}
+
+		kingDistance := Min(int(distanceBetween[fromId][whiteKingLocation]), int(distanceBetween[fromId][blackKingLocation]))
+		if kingDistance >= 4 {
+			score += DistantBishop[kingDistance-4]
+			if tuning {
+				T.DistantBishop[kingDistance-4]++
+			}
+		}
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
@@ -673,6 +681,14 @@ func Evaluate(pos *Position) int {
 		score -= BishopRammedPawns * rammedCount
 		if tuning {
 			T.BishopRammedPawns -= int(rammedCount)
+		}
+
+		kingDistance := Min(int(distanceBetween[fromId][whiteKingLocation]), int(distanceBetween[fromId][blackKingLocation]))
+		if kingDistance >= 4 {
+			score -= DistantBishop[kingDistance-4]
+			if tuning {
+				T.DistantBishop[kingDistance-4]--
+			}
 		}
 		if attacks&whiteKingArea != 0 {
 			blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))

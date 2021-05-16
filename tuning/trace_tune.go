@@ -21,7 +21,7 @@ const (
 	END
 )
 
-const learningRate = 1.5
+const learningRate = 1.0
 
 type coefficient struct {
 	value int
@@ -167,7 +167,7 @@ func TraceTune() {
 	}
 	fmt.Println("Number of entries:")
 	fmt.Println(len(t.entries))
-	t.batchSize = len(t.entries) / 32
+	t.batchSize = len(t.entries) / 256
 	t.calculateOptimalK()
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -433,6 +433,9 @@ func loadTrace() (res []int) {
 	res = append(res, T.BishopOutpostUndefendedBonus)
 	res = append(res, T.BishopOutpostDefendedBonus)
 	res = append(res, T.LongDiagonalBishop)
+	for y := 0; y < 4; y++ {
+		res = append(res, T.DistantBishop[y])
+	}
 	res = append(res, T.KnightOutpostUndefendedBonus)
 	res = append(res, T.KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {
@@ -567,6 +570,9 @@ func loadWeights() []weight {
 	tmp = append(tmp, BishopOutpostUndefendedBonus)
 	tmp = append(tmp, BishopOutpostDefendedBonus)
 	tmp = append(tmp, LongDiagonalBishop)
+	for y := 0; y < 4; y++ {
+		tmp = append(tmp, DistantBishop[y])
+	}
 	tmp = append(tmp, KnightOutpostUndefendedBonus)
 	tmp = append(tmp, KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {
