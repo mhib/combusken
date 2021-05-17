@@ -569,14 +569,19 @@ func (t *thread) isDraw(height int) bool {
 	return false
 }
 
-type result struct {
+type searchResult struct {
 	Move
 	value int
 	depth int
 	moves []Move
 }
 
-func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) result {
+type aspirationWindowResult struct {
+	searchResult
+	requestedDepth int
+}
+
+func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) aspirationWindowResult {
 	var alpha, beta int
 	delta := WindowSize
 	searchDepth := depth
@@ -591,7 +596,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) resu
 	for {
 		res := t.depSearch(Max(1, searchDepth), alpha, beta, moves)
 		if res.value > alpha && res.value < beta {
-			return res
+			return aspirationWindowResult{res, depth}
 		}
 		if res.value <= alpha {
 			beta = (alpha + beta) / 2
@@ -607,7 +612,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) resu
 }
 
 // depSearch is special case of alphaBeta function for root node
-func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
+func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchResult {
 	var pos *Position = &t.stack[0].position
 	var child *Position = &t.stack[1].position
 	var bestMove Move = NullMove
@@ -691,19 +696,19 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) result {
 		flag = TransExact
 	}
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), eval, depth, bestMove, flag, true)
-	return result{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return searchResult{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
 func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
 	var lastBestMove Move
 	thread := e.threads[0]
-	var res result
+	var res searchResult
 	lastValue := -Mate
 	for i := 1; ; i++ {
-		resultChan := make(chan result, 1)
+		resultChan := make(chan searchResult, 1)
 		go func(depth int) {
 			defer recoverFromTimeout()
-			res = thread.aspirationWindow(depth, lastValue, rootMoves)
+			res = thread.aspirationWindow(depth, lastValue, rootMoves).searchResult
 			resultChan <- res
 			lastValue = res.value
 		}(i)
@@ -731,8 +736,8 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 	}
 }
 
-func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan result, idx int) {
-	var res result
+func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirationWindowResult, idx int) {
+	var res aspirationWindowResult
 	mainThread := idx == 0
 	lastValue := -Mate
 	// I do not think this matters much, but at the beginning only thread with id 0 have sorted moves list
@@ -785,7 +790,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		return e.singleThreadBestMove(ctx, rootMoves)
 	}
 
-	resultChan := make(chan result)
+	resultChan := make(chan aspirationWindowResult)
 	for i := range e.threads {
 		go func(idx int) {
 			defer recoverFromTimeout()
@@ -802,7 +807,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			return lastBestMove
 		case res := <-resultChan:
 			// If thread reports result for depth that is lower than already calculated one, ignore results
-			if res.depth <= prevDepth {
+			if res.requestedDepth <= prevDepth {
 				continue
 			}
 			nodes := e.nodes()
@@ -823,7 +828,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				return res.Move
 			}
 			lastBestMove = res.Move
-			prevDepth = res.depth
+			prevDepth = res.requestedDepth
 		}
 	}
 }
