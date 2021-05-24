@@ -47,5 +47,19 @@ type Trace struct {
 	RookBishopExistence           [16]int
 	QueenBishopExistence          [16]int
 	KingBishopExistence           [16]int
-	Scale                         int
+
+	KingSafetyAttacksWeights  [2][Queen + 1]int
+	KingSafetyWeakSquares     [2]int
+	KingSafetyFriendlyPawns   [2]int
+	KingSafetyNoEnemyQueens   [2]int
+	KingSafetySafeQueenCheck  [2]int
+	KingSafetySafeRookCheck   [2]int
+	KingSafetySafeBishopCheck [2]int
+	KingSafetySafeKnightCheck [2]int
+	KingSafetyAdjustment      [2]int
+
+	KingSafetyAttackValueNumerator   [2]int
+	KingSafetyAttackValueDenumerator [2]int
+
+	Scale int
 }

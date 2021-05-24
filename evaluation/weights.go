@@ -372,17 +372,6 @@ var KingStorm = [2][4][8]Score{
 }
 var KingOnPawnlessFlank = S(4, -67)
 
-var KingSafetyAttacksWeights = [King + 1]int16{0, -3, -7, -4, 4, 0}
-var KingSafetyAttackValue int16 = 124
-var KingSafetyWeakSquares int16 = 44
-var KingSafetyFriendlyPawns int16 = -35
-var KingSafetyNoEnemyQueens int16 = -176
-var KingSafetySafeQueenCheck int16 = 90
-var KingSafetySafeRookCheck int16 = 73
-var KingSafetySafeBishopCheck int16 = 51
-var KingSafetySafeKnightCheck int16 = 112
-var KingSafetyAdjustment int16 = -12
-
 var Hanging = S(38, 16)
 var ThreatByKing = S(-7, 35)
 var ThreatByMinor = [King + 1]Score{S(0, 0), S(20, 38), S(17, 38), S(33, 28), S(30, 28), S(0, 27)}
@@ -398,3 +387,19 @@ var QueenBishopExistence = [16]Score{
 var KingBishopExistence = [16]Score{
 	S(0, 0), S(1, 4), S(2, 4), S(-17, -11), S(-3, -10), S(-2, -7), S(-1, -3), S(0, 4), S(0, -1), S(1, 3), S(2, 7), S(3, 13), S(17, 11), S(0, -11), S(1, -8), S(0, 0),
 }
+
+// King safety
+//
+
+var KingSafetyAttacksWeights = [Queen + 1]Score{S(0, 0), S(-3, -3), S(-7, -7), S(-4, -4), S(4, 4)}
+var KingSafetyWeakSquares = S(44, 44)
+var KingSafetyFriendlyPawns = S(-35, -35)
+var KingSafetyNoEnemyQueens = S(-176, -176)
+var KingSafetySafeQueenCheck = S(90, 90)
+var KingSafetySafeRookCheck = S(73, 73)
+var KingSafetySafeBishopCheck = S(51, 51)
+var KingSafetySafeKnightCheck = S(112, 112)
+var KingSafetyAdjustment = S(-12, -12)
+
+// Attack value is special as it is scaled by a fraction
+var KingSafetyAttackValue = S(124, 124)

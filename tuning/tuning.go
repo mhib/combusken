@@ -714,18 +714,6 @@ func loadScoresToSlice() (res []EvaluationValue) {
 		}
 	}
 	res = append(res, ScoreValue{&KingOnPawnlessFlank})
-	for x := Knight; x <= Queen; x++ {
-		res = append(res, SingleValue{&KingSafetyAttacksWeights[x]})
-	}
-	res = append(res, SingleValue{&KingSafetyAttackValue})
-	res = append(res, SingleValue{&KingSafetyWeakSquares})
-	res = append(res, SingleValue{&KingSafetyFriendlyPawns})
-	res = append(res, SingleValue{&KingSafetyNoEnemyQueens})
-	res = append(res, SingleValue{&KingSafetySafeQueenCheck})
-	res = append(res, SingleValue{&KingSafetySafeRookCheck})
-	res = append(res, SingleValue{&KingSafetySafeBishopCheck})
-	res = append(res, SingleValue{&KingSafetySafeKnightCheck})
-	res = append(res, SingleValue{&KingSafetyAdjustment})
 	res = append(res, SingleValue{&Tempo})
 	res = append(res, ScoreValue{&Hanging})
 	res = append(res, ScoreValue{&ThreatByKing})
@@ -747,6 +735,19 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	for flag := 0; flag <= 15; flag++ {
 		res = append(res, ScoreValue{&KingBishopExistence[flag]})
 	}
+
+	for x := Knight; x <= Queen; x++ {
+		res = append(res, ScoreValue{&KingSafetyAttacksWeights[x]})
+	}
+	res = append(res, ScoreValue{&KingSafetyWeakSquares})
+	res = append(res, ScoreValue{&KingSafetyFriendlyPawns})
+	res = append(res, ScoreValue{&KingSafetyNoEnemyQueens})
+	res = append(res, ScoreValue{&KingSafetySafeQueenCheck})
+	res = append(res, ScoreValue{&KingSafetySafeRookCheck})
+	res = append(res, ScoreValue{&KingSafetySafeBishopCheck})
+	res = append(res, ScoreValue{&KingSafetySafeKnightCheck})
+	res = append(res, ScoreValue{&KingSafetyAdjustment})
+	res = append(res, ScoreValue{&KingSafetyAttackValue})
 
 	return
 }

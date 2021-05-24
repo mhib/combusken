@@ -21,41 +21,52 @@ const (
 	END
 )
 
-const learningRate = 1.0
+const learningRate = 0.1
 
-type coefficient struct {
-	value int
+type linearCoefficient struct {
 	idx   int
+	value int
+}
+
+type safetyCoefficient struct {
+	idx        int
+	blackValue int
+	whiteValue int
 }
 
 type traceEntry struct {
-	result       float64
-	eval         float64
-	phase        int
-	factors      [2]float64
-	coefficients []coefficient
-	evalDiff     float64
-	scale        int
-	whiteMove    bool
+	result             float64
+	eval               float64
+	phase              int
+	factors            [2]float64
+	linearCoefficients []linearCoefficient
+	safetyCoefficients []safetyCoefficient
+	scale              int
+	whiteMove          bool
+	evalDiff           float64
 }
 
 type weight [2]float64
 
 type traceTuner struct {
-	k                       float64
-	weights                 []weight
-	adagrad                 []weight
-	bestWeights             []weight
-	entries                 []traceEntry
-	bestError               float64
-	bestErrorRegularization float64
-	done                    bool
-	batchSize               int
+	k                 float64
+	linearWeights     []weight
+	safetyWeights     []weight
+	safetyWeightsLen  int
+	adagrad           []weight
+	bestLinearWeights []weight
+	bestSafetyWeights []weight
+	entries           []traceEntry
+	bestError         float64
+	done              bool
+	batchSize         int
 }
 
-func printWeights(weights []weight) {
-	for _, weight := range weights {
-		fmt.Printf("Score(%d, %d), ", int(math.Round(weight[0])), int(math.Round(weight[1])))
+func printWeights(weightSlices ...[]weight) {
+	for _, weights := range weightSlices {
+		for _, weight := range weights {
+			fmt.Printf("Score(%d, %d), ", int(math.Round(weight[0])), int(math.Round(weight[1])))
+		}
 	}
 	fmt.Println()
 }
@@ -104,7 +115,7 @@ func (t *traceTuner) computeLinearError() float64 {
 			var c, sum float64
 			for y := idx; y < len(t.entries); y += numCPU {
 				entry := t.entries[y]
-				diff := entry.result - sigmoid(t.k, entry.evalDiff+t.linearEvaluation(&entry))
+				diff := entry.result - sigmoid(t.k, entry.evalDiff+t.linearEvaluation(&entry).cp)
 
 				// Kahan summation
 				y := (diff * diff) - c
@@ -150,12 +161,19 @@ func (t *traceTuner) calculateOptimalK() {
 	t.k = start
 }
 
+func (t *traceTuner) copyCurrentWeightsToBest() {
+	copy(t.bestLinearWeights, t.linearWeights)
+	copy(t.bestSafetyWeights, t.safetyWeights)
+}
+
 func TraceTune() {
 	t := &traceTuner{done: false}
-	t.weights = loadWeights()
-	t.adagrad = make([]weight, len(t.weights))
-	t.bestWeights = make([]weight, len(t.weights))
-	copy(t.bestWeights, t.weights)
+	t.linearWeights, t.safetyWeights = loadWeights()
+	t.safetyWeightsLen = len(t.safetyWeights)
+	t.adagrad = make([]weight, len(t.linearWeights)+len(t.safetyWeights))
+	t.bestLinearWeights = make([]weight, len(t.linearWeights))
+	t.bestSafetyWeights = make([]weight, len(t.safetyWeights))
+	t.copyCurrentWeightsToBest()
 
 	inputChan := make(chan string)
 	go loadEntries(inputChan)
@@ -167,14 +185,14 @@ func TraceTune() {
 	}
 	fmt.Println("Number of entries:")
 	fmt.Println(len(t.entries))
-	t.batchSize = len(t.entries) / 256
+	t.batchSize = len(t.entries) / 10
 	t.calculateOptimalK()
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
 		fmt.Printf("\nBest values; error: %.17g", t.bestError)
-		printWeights(t.bestWeights)
+		printWeights(t.bestLinearWeights, t.bestSafetyWeights)
 		t.done = true
 	}()
 
@@ -188,20 +206,16 @@ func TraceTune() {
 
 		for batchStart := 0; batchStart < len(t.entries); batchStart += t.batchSize {
 			batch := t.entries[batchStart:Min(len(t.entries)-1, batchStart+t.batchSize)]
-			gradient := t.calculateGradient(batch)
-			for idx := range t.weights {
-				for i := MIDDLE; i <= END; i++ {
-					t.adagrad[idx][i] += math.Pow(t.k*gradient[idx][i]/float64(t.batchSize), 2)
-					t.weights[idx][i] -= (t.k / float64(t.batchSize)) * gradient[idx][i] * (learningRate / math.Sqrt(1e-8+t.adagrad[idx][i]))
-				}
-			}
+			linearGradient, safetyGradient := t.calculateGradient(batch)
+			t.applyGradient(t.linearWeights, linearGradient, t.adagrad)
+			t.applyGradient(t.safetyWeights, safetyGradient, t.adagrad[len(t.linearWeights):])
 		}
 		currentError := t.computeLinearError()
 		if currentError < t.bestError {
 			t.bestError = currentError
-			copy(t.bestWeights, t.weights)
-			fmt.Printf("Iteration %d error: %.17g regularization: %.17g\n", iteration, t.bestError, t.regularization())
-			printWeights(t.bestWeights)
+			t.copyCurrentWeightsToBest()
+			fmt.Printf("Iteration %d error: %.17g\n", iteration, t.bestError)
+			printWeights(t.bestLinearWeights, t.bestSafetyWeights)
 			iterationsSinceImprovement = 0
 		} else {
 			iterationsSinceImprovement++
@@ -214,16 +228,13 @@ func TraceTune() {
 	}
 }
 
-const regularizationWeight = 0.2e-7
-
-func (t *traceTuner) regularization() float64 {
-	return 0.0
-	// sum := 0.0
-	// for _, weight := range t.weights {
-	// 	sum += math.Abs(weight[0])
-	// 	sum += math.Abs(weight[1])
-	// }
-	// return sum * regularizationWeight
+func (t *traceTuner) applyGradient(weights, gradient, adagrad []weight) {
+	for idx := range weights {
+		for i := MIDDLE; i <= END; i++ {
+			adagrad[idx][i] += math.Pow(t.k*gradient[idx][i]/float64(t.batchSize), 2)
+			weights[idx][i] -= (t.k / float64(t.batchSize)) * gradient[idx][i] * (learningRate / math.Sqrt(1e-8+adagrad[idx][i]))
+		}
+	}
 }
 
 func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, bool) {
@@ -255,10 +266,15 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	}
 
 	res.whiteMove = board.SideToMove == White
-
-	for idx, val := range loadTrace() {
+	linearTrace, safetyTrace := loadTrace()
+	for idx, val := range linearTrace {
 		if val != 0 {
-			res.coefficients = append(res.coefficients, coefficient{idx: idx, value: val})
+			res.linearCoefficients = append(res.linearCoefficients, linearCoefficient{idx: idx, value: val})
+		}
+	}
+	for idx, val := range safetyTrace {
+		if val[White] != 0 || val[Black] != 0 {
+			res.safetyCoefficients = append(res.safetyCoefficients, safetyCoefficient{idx: idx, blackValue: val[Black], whiteValue: val[White]})
 		}
 	}
 
@@ -275,33 +291,68 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	res.factors[END] = float64(res.phase) / float64(TotalPhase)
 	res.phase = (res.phase*256 + (TotalPhase / 2)) / TotalPhase
 
-	// We currently do not trace tune king safety so we just treat it as a constant for the position
-	res.evalDiff = res.eval - tuner.linearEvaluation(&res)
+	res.evalDiff = res.eval - tuner.linearEvaluation(&res).cp
+
+	// Comment that if if tuning only some of the parameters
+	if math.Abs(res.evalDiff) > 0 {
+		fmt.Println("Problem with evaluation", res.evalDiff, fen)
+	}
 
 	return res, true
 }
 
-func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
+func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight) {
 	numCPU := runtime.NumCPU()
-	res := make([]weight, len(t.weights))
+	type weightTuple struct {
+		liner  []weight
+		safety []weight
+	}
+	linearRes := make([]weight, len(t.linearWeights))
+	safetyRes := make([]weight, len(t.safetyWeights))
 
-	resultChan := make(chan []weight)
+	resultChan := make(chan weightTuple)
 	wg := &sync.WaitGroup{}
 	for i := 0; i < numCPU; i++ {
 		wg.Add(1)
 
 		go func(idx int) {
 			defer wg.Done()
-			localRes := make([]weight, len(t.weights))
+			localLinearRes := make([]weight, len(t.linearWeights))
+			localSafetyRes := make([]weight, len(t.safetyWeights))
 			for y := idx; y < len(entries); y += numCPU {
 				entry := entries[y]
-				derivative := t.singleLinearDerivative(&entry)
-				for _, coef := range entry.coefficients {
-					localRes[coef.idx][MIDDLE] += derivative * entry.factors[MIDDLE] * float64(coef.value)
-					localRes[coef.idx][END] += derivative * entry.factors[END] * float64(coef.value) * (float64(entry.scale) / float64(SCALE_NORMAL))
+				evaluationResult := t.linearEvaluation(&entry)
+				derivative := t.singleLinearDerivative(&entry, evaluationResult.cp)
+				middleMultiplier := entry.factors[MIDDLE] * derivative
+				endMultiplier := entry.factors[END] * (float64(entry.scale) / float64(SCALE_NORMAL)) * derivative
+				for _, coef := range entry.linearCoefficients {
+					localLinearRes[coef.idx][MIDDLE] += float64(coef.value) * middleMultiplier
+					localLinearRes[coef.idx][END] += float64(coef.value) * endMultiplier
+				}
+				for coefIdx, coef := range entry.safetyCoefficients {
+					// King safety attack value
+					if coef.idx == t.safetyWeightsLen-1 {
+						whiteScale := float64(coef.whiteValue) / float64(entry.safetyCoefficients[coefIdx+1].whiteValue)
+						if entry.safetyCoefficients[coefIdx+1].whiteValue == 0 {
+							whiteScale = 0.0
+						}
+						blackScale := float64(coef.blackValue) / float64(entry.safetyCoefficients[coefIdx+1].blackValue)
+						if entry.safetyCoefficients[coefIdx+1].blackValue == 0 {
+							blackScale = 0.0
+						}
+						localSafetyRes[coef.idx][MIDDLE] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*blackScale -
+							math.Max(float64(evaluationResult.safetyWhite.Middle()), 0)*whiteScale) * (middleMultiplier / 360)
+						localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*blackScale -
+							sign(float64(evaluationResult.safetyWhite.End()))*whiteScale) * (endMultiplier / 20)
+						break
+					}
+					localSafetyRes[coef.idx][MIDDLE] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*float64(coef.blackValue) -
+						math.Max(float64(evaluationResult.safetyWhite.Middle()), 0)*float64(coef.whiteValue)) * (middleMultiplier / 360)
+					localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*float64(coef.blackValue) -
+						sign(float64(evaluationResult.safetyWhite.End()))*float64(coef.whiteValue)) * (endMultiplier / 20)
 				}
 			}
-			resultChan <- localRes
+			resultChan <- weightTuple{localLinearRes, localSafetyRes}
 		}(i)
 	}
 	go func() {
@@ -309,19 +360,18 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) []weight {
 		close(resultChan)
 	}()
 	for threadResult := range resultChan {
-		for idx := range res {
+		for idx := range linearRes {
 			for i := MIDDLE; i <= END; i++ {
-				res[idx][i] += threadResult[idx][i]
+				linearRes[idx][i] += threadResult.liner[idx][i]
+			}
+		}
+		for idx := range safetyRes {
+			for i := MIDDLE; i <= END; i++ {
+				safetyRes[idx][i] += threadResult.safety[idx][i]
 			}
 		}
 	}
-
-	// for idx := range res {
-	// 	for i := MIDDLE; i <= END; i++ {
-	// 		res[idx][i] += sign(t.weights[idx][i]) * regularizationWeight
-	// 	}
-	// }
-	return res
+	return linearRes, safetyRes
 }
 
 func sign(x float64) float64 {
@@ -334,155 +384,214 @@ func sign(x float64) float64 {
 	}
 }
 
-func (t *traceTuner) linearEvaluation(entry *traceEntry) float64 {
+type linearEvaluationResult struct {
+	cp          float64
+	safetyBlack Score
+	safetyWhite Score
+}
+
+func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult {
 	var middle, end int
-	for _, coeff := range entry.coefficients {
-		middle += int(math.Round(t.weights[coeff.idx][MIDDLE])) * coeff.value
-		end += int(math.Round(t.weights[coeff.idx][END])) * coeff.value
+	var safetyWhite, safetyBlack Score
+	for _, coeff := range entry.linearCoefficients {
+		middle += int(math.Round(t.linearWeights[coeff.idx][MIDDLE])) * coeff.value
+		end += int(math.Round(t.linearWeights[coeff.idx][END])) * coeff.value
 	}
-	phased := (middle*(256-entry.phase) + (end*entry.phase*entry.scale)/SCALE_NORMAL) / 256
+	for traceIdx, coeff := range entry.safetyCoefficients {
+		multiplier := S(int16(math.Round(t.safetyWeights[coeff.idx][MIDDLE])), int16(math.Round(t.safetyWeights[coeff.idx][END])))
+		if coeff.idx != t.safetyWeightsLen-1 {
+			safetyBlack += multiplier * Score(coeff.blackValue)
+			safetyWhite += multiplier * Score(coeff.whiteValue)
+			continue
+		}
+
+		// King safety attack value
+		if entry.safetyCoefficients[traceIdx+1].blackValue != 0 {
+			safetyBlack += S(
+				int16(int(multiplier.Middle())*coeff.blackValue/entry.safetyCoefficients[traceIdx+1].blackValue),
+				int16(int(multiplier.End())*coeff.blackValue/entry.safetyCoefficients[traceIdx+1].blackValue),
+			)
+		}
+		if entry.safetyCoefficients[traceIdx+1].whiteValue != 0 {
+			safetyWhite += S(
+				int16(int(multiplier.Middle())*coeff.whiteValue/entry.safetyCoefficients[traceIdx+1].whiteValue),
+				int16(int(multiplier.End())*coeff.whiteValue/entry.safetyCoefficients[traceIdx+1].whiteValue),
+			)
+		}
+		break
+	}
+	score := S(int16(middle), int16(end))
+	middleWhite := int(safetyWhite.Middle())
+	endWhite := int(safetyWhite.End())
+	middleBlack := int(safetyBlack.Middle())
+	endBlack := int(safetyBlack.End())
+	score += S(
+		int16(-middleWhite*Max(middleWhite, 0)/720),
+		-int16(Max(endWhite, 0)/20),
+	)
+	score -= S(
+		int16(-middleBlack*Max(middleBlack, 0)/720),
+		-int16(Max(endBlack, 0)/20),
+	)
+
+	phased := (int(score.Middle())*(256-entry.phase) + (int(score.End())*entry.phase*entry.scale)/SCALE_NORMAL) / 256
 	if entry.whiteMove {
-		return float64(phased + int(Tempo))
+		return linearEvaluationResult{float64(phased + int(Tempo)), safetyBlack, safetyWhite}
 	} else {
-		return float64(phased - int(Tempo))
+		return linearEvaluationResult{float64(phased - int(Tempo)), safetyBlack, safetyWhite}
 	}
 
 }
 
-func (t *traceTuner) singleLinearDerivative(entry *traceEntry) float64 {
-	sigma := sigmoid(t.k, entry.evalDiff+t.linearEvaluation(entry))
+func (t *traceTuner) singleLinearDerivative(entry *traceEntry, linearEvaluation float64) float64 {
+	sigma := sigmoid(t.k, entry.evalDiff+linearEvaluation)
 	sigmaPrim := sigma * (1 - sigma)
 	return -((entry.result - sigma) * sigmaPrim)
 }
 
-func loadTrace() (res []int) {
-	res = append(res, T.PawnValue)
-	res = append(res, T.KnightValue)
-	res = append(res, T.BishopValue)
-	res = append(res, T.RookValue)
-	res = append(res, T.QueenValue)
+func loadTrace() (linearRes []int, safetyRes [][2]int) {
+	linearRes = append(linearRes, T.PawnValue)
+	linearRes = append(linearRes, T.KnightValue)
+	linearRes = append(linearRes, T.BishopValue)
+	linearRes = append(linearRes, T.RookValue)
+	linearRes = append(linearRes, T.QueenValue)
 
 	for flag := 0; flag <= 15; flag++ {
 		for y := 1; y < 7; y++ {
 			for x := 0; x < 8; x++ {
-				res = append(res, T.PawnScores[flag][y][x])
+				linearRes = append(linearRes, T.PawnScores[flag][y][x])
 			}
 		}
 	}
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
-				res = append(res, T.PieceScores[i][y][x])
+				linearRes = append(linearRes, T.PieceScores[i][y][x])
 			}
 		}
 	}
 
 	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
-			res = append(res, T.PawnsConnected[y][x])
+			linearRes = append(linearRes, T.PawnsConnected[y][x])
 		}
 	}
 	for y := 0; y < 9; y++ {
-		res = append(res, T.MobilityBonus[0][y])
+		linearRes = append(linearRes, T.MobilityBonus[0][y])
 	}
 	for y := 0; y < 14; y++ {
-		res = append(res, T.MobilityBonus[1][y])
+		linearRes = append(linearRes, T.MobilityBonus[1][y])
 	}
 	for y := 0; y < 15; y++ {
-		res = append(res, T.MobilityBonus[2][y])
+		linearRes = append(linearRes, T.MobilityBonus[2][y])
 	}
 	for y := 0; y < 28; y++ {
-		res = append(res, T.MobilityBonus[3][y])
+		linearRes = append(linearRes, T.MobilityBonus[3][y])
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, T.PassedFriendlyDistance[y])
+		linearRes = append(linearRes, T.PassedFriendlyDistance[y])
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, T.PassedEnemyDistance[y])
+		linearRes = append(linearRes, T.PassedEnemyDistance[y])
 	}
 	for a := 0; a < 2; a++ {
 		for b := 0; b < 2; b++ {
 			for c := 0; c < 2; c++ {
 				for y := 0; y < 7; y++ {
-					res = append(res, T.PassedRank[a][b][c][y])
+					linearRes = append(linearRes, T.PassedRank[a][b][c][y])
 				}
 			}
 		}
 	}
 	for y := 0; y < 8; y++ {
-		res = append(res, T.PassedFile[y])
+		linearRes = append(linearRes, T.PassedFile[y])
 	}
 	for y := 0; y < 7; y++ {
-		res = append(res, T.PassedStacked[y])
+		linearRes = append(linearRes, T.PassedStacked[y])
 	}
 	for y := 0; y < 6; y++ {
-		res = append(res, T.PassedUncontested[y])
+		linearRes = append(linearRes, T.PassedUncontested[y])
 	}
 	for y := 0; y < 6; y++ {
-		res = append(res, T.PassedPushDefended[y])
+		linearRes = append(linearRes, T.PassedPushDefended[y])
 	}
 	for y := 0; y < 6; y++ {
-		res = append(res, T.PassedPushUncontestedDefended[y])
+		linearRes = append(linearRes, T.PassedPushUncontestedDefended[y])
 	}
-	res = append(res, T.Isolated)
-	res = append(res, T.Doubled)
-	res = append(res, T.Backward)
-	res = append(res, T.BackwardOpen)
-	res = append(res, T.BishopPair)
-	res = append(res, T.BishopRammedPawns)
-	res = append(res, T.BishopOutpostUndefendedBonus)
-	res = append(res, T.BishopOutpostDefendedBonus)
-	res = append(res, T.LongDiagonalBishop)
+	linearRes = append(linearRes, T.Isolated)
+	linearRes = append(linearRes, T.Doubled)
+	linearRes = append(linearRes, T.Backward)
+	linearRes = append(linearRes, T.BackwardOpen)
+	linearRes = append(linearRes, T.BishopPair)
+	linearRes = append(linearRes, T.BishopRammedPawns)
+	linearRes = append(linearRes, T.BishopOutpostUndefendedBonus)
+	linearRes = append(linearRes, T.BishopOutpostDefendedBonus)
+	linearRes = append(linearRes, T.LongDiagonalBishop)
 	for y := 0; y < 4; y++ {
-		res = append(res, T.DistantBishop[y])
+		linearRes = append(linearRes, T.DistantBishop[y])
 	}
-	res = append(res, T.KnightOutpostUndefendedBonus)
-	res = append(res, T.KnightOutpostDefendedBonus)
+	linearRes = append(linearRes, T.KnightOutpostUndefendedBonus)
+	linearRes = append(linearRes, T.KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {
-		res = append(res, T.DistantKnight[y])
+		linearRes = append(linearRes, T.DistantKnight[y])
 	}
-	res = append(res, T.MinorBehindPawn)
-	res = append(res, T.RookOnFile[0])
-	res = append(res, T.RookOnFile[1])
-	res = append(res, T.RookOnQueenFile)
+	linearRes = append(linearRes, T.MinorBehindPawn)
+	linearRes = append(linearRes, T.RookOnFile[0])
+	linearRes = append(linearRes, T.RookOnFile[1])
+	linearRes = append(linearRes, T.RookOnQueenFile)
 	for y := 0; y < 12; y++ {
-		res = append(res, T.KingDefenders[y])
+		linearRes = append(linearRes, T.KingDefenders[y])
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
-				res = append(res, T.KingShelter[x][y][z])
+				linearRes = append(linearRes, T.KingShelter[x][y][z])
 			}
 		}
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 4; y++ {
 			for z := 0; z < 8; z++ {
-				res = append(res, T.KingStorm[x][y][z])
+				linearRes = append(linearRes, T.KingStorm[x][y][z])
 			}
 		}
 	}
-	res = append(res, T.KingOnPawnlessFlank)
+	linearRes = append(linearRes, T.KingOnPawnlessFlank)
 
-	res = append(res, T.Hanging)
-	res = append(res, T.ThreatByKing)
+	linearRes = append(linearRes, T.Hanging)
+	linearRes = append(linearRes, T.ThreatByKing)
 	for i := Pawn; i <= King; i++ {
-		res = append(res, T.ThreatByMinor[i])
+		linearRes = append(linearRes, T.ThreatByMinor[i])
 	}
 	for i := Pawn; i <= King; i++ {
-		res = append(res, T.ThreatByRook[i])
+		linearRes = append(linearRes, T.ThreatByRook[i])
 	}
 
 	for flag := 0; flag <= 15; flag++ {
-		res = append(res, T.RookBishopExistence[flag])
+		linearRes = append(linearRes, T.RookBishopExistence[flag])
 	}
 	for flag := 0; flag <= 15; flag++ {
-		res = append(res, T.QueenBishopExistence[flag])
+		linearRes = append(linearRes, T.QueenBishopExistence[flag])
 	}
 
 	for flag := 0; flag <= 15; flag++ {
-		res = append(res, T.KingBishopExistence[flag])
+		linearRes = append(linearRes, T.KingBishopExistence[flag])
 	}
+
+	for x := Pawn; x <= Queen; x++ {
+		safetyRes = append(safetyRes, [2]int{T.KingSafetyAttacksWeights[Black][x], T.KingSafetyAttacksWeights[White][x]})
+	}
+	safetyRes = append(safetyRes, T.KingSafetyWeakSquares)
+	safetyRes = append(safetyRes, T.KingSafetyFriendlyPawns)
+	safetyRes = append(safetyRes, T.KingSafetyNoEnemyQueens)
+	safetyRes = append(safetyRes, T.KingSafetySafeQueenCheck)
+	safetyRes = append(safetyRes, T.KingSafetySafeRookCheck)
+	safetyRes = append(safetyRes, T.KingSafetySafeBishopCheck)
+	safetyRes = append(safetyRes, T.KingSafetySafeKnightCheck)
+	safetyRes = append(safetyRes, T.KingSafetyAdjustment)
+
+	safetyRes = append(safetyRes, T.KingSafetyAttackValueNumerator)
+	safetyRes = append(safetyRes, T.KingSafetyAttackValueDenumerator)
 
 	return
 }
@@ -491,140 +600,158 @@ func scoreToWeight(s Score) weight {
 	return weight{float64(s.Middle()), float64(s.End())}
 }
 
-func loadWeights() []weight {
-	var tmp []Score
-	tmp = append(tmp, PawnValue)
-	tmp = append(tmp, KnightValue)
-	tmp = append(tmp, BishopValue)
-	tmp = append(tmp, RookValue)
-	tmp = append(tmp, QueenValue)
+func scoresToWeights(scores []Score) []weight {
+	res := make([]weight, 0, len(scores))
+	for _, s := range scores {
+		res = append(res, scoreToWeight(s))
+	}
+	return res
+}
+
+func loadWeights() ([]weight, []weight) {
+	var linearScores []Score
+	linearScores = append(linearScores, PawnValue)
+	linearScores = append(linearScores, KnightValue)
+	linearScores = append(linearScores, BishopValue)
+	linearScores = append(linearScores, RookValue)
+	linearScores = append(linearScores, QueenValue)
 
 	for flag := 0; flag <= 15; flag++ {
 		for y := 1; y < 7; y++ {
 			for x := 0; x < 8; x++ {
-				tmp = append(tmp, PawnScores[flag][y][x])
+				linearScores = append(linearScores, PawnScores[flag][y][x])
 			}
 		}
 	}
 	for i := Knight; i <= King; i++ {
 		for y := 0; y < 8; y++ {
 			for x := 0; x < 8; x++ {
-				tmp = append(tmp, PieceScores[i][y][x])
+				linearScores = append(linearScores, PieceScores[i][y][x])
 			}
 		}
 	}
 
 	for y := 0; y < 7; y++ {
 		for x := 0; x < 4; x++ {
-			tmp = append(tmp, PawnsConnected[y][x])
+			linearScores = append(linearScores, PawnsConnected[y][x])
 		}
 	}
 	for y := 0; y < 9; y++ {
-		tmp = append(tmp, MobilityBonus[0][y])
+		linearScores = append(linearScores, MobilityBonus[0][y])
 	}
 	for y := 0; y < 14; y++ {
-		tmp = append(tmp, MobilityBonus[1][y])
+		linearScores = append(linearScores, MobilityBonus[1][y])
 	}
 	for y := 0; y < 15; y++ {
-		tmp = append(tmp, MobilityBonus[2][y])
+		linearScores = append(linearScores, MobilityBonus[2][y])
 	}
 	for y := 0; y < 28; y++ {
-		tmp = append(tmp, MobilityBonus[3][y])
+		linearScores = append(linearScores, MobilityBonus[3][y])
 	}
 	for y := 0; y < 8; y++ {
-		tmp = append(tmp, PassedFriendlyDistance[y])
+		linearScores = append(linearScores, PassedFriendlyDistance[y])
 	}
 	for y := 0; y < 8; y++ {
-		tmp = append(tmp, PassedEnemyDistance[y])
+		linearScores = append(linearScores, PassedEnemyDistance[y])
 	}
 	for a := 0; a < 2; a++ {
 		for b := 0; b < 2; b++ {
 			for c := 0; c < 2; c++ {
 				for y := 0; y < 7; y++ {
-					tmp = append(tmp, PassedRank[a][b][c][y])
+					linearScores = append(linearScores, PassedRank[a][b][c][y])
 				}
 			}
 		}
 	}
 	for y := 0; y < 8; y++ {
-		tmp = append(tmp, PassedFile[y])
+		linearScores = append(linearScores, PassedFile[y])
 	}
 	for y := 0; y < 7; y++ {
-		tmp = append(tmp, PassedStacked[y])
+		linearScores = append(linearScores, PassedStacked[y])
 	}
 	for y := 0; y < 6; y++ {
-		tmp = append(tmp, PassedUncontested[y])
+		linearScores = append(linearScores, PassedUncontested[y])
 	}
 	for y := 0; y < 6; y++ {
-		tmp = append(tmp, PassedPushDefended[y])
+		linearScores = append(linearScores, PassedPushDefended[y])
 	}
 	for y := 0; y < 6; y++ {
-		tmp = append(tmp, PassedPushUncontestedDefended[y])
+		linearScores = append(linearScores, PassedPushUncontestedDefended[y])
 	}
-	tmp = append(tmp, Isolated)
-	tmp = append(tmp, Doubled)
-	tmp = append(tmp, Backward)
-	tmp = append(tmp, BackwardOpen)
-	tmp = append(tmp, BishopPair)
-	tmp = append(tmp, BishopRammedPawns)
-	tmp = append(tmp, BishopOutpostUndefendedBonus)
-	tmp = append(tmp, BishopOutpostDefendedBonus)
-	tmp = append(tmp, LongDiagonalBishop)
+	linearScores = append(linearScores, Isolated)
+	linearScores = append(linearScores, Doubled)
+	linearScores = append(linearScores, Backward)
+	linearScores = append(linearScores, BackwardOpen)
+	linearScores = append(linearScores, BishopPair)
+	linearScores = append(linearScores, BishopRammedPawns)
+	linearScores = append(linearScores, BishopOutpostUndefendedBonus)
+	linearScores = append(linearScores, BishopOutpostDefendedBonus)
+	linearScores = append(linearScores, LongDiagonalBishop)
 	for y := 0; y < 4; y++ {
-		tmp = append(tmp, DistantBishop[y])
+		linearScores = append(linearScores, DistantBishop[y])
 	}
-	tmp = append(tmp, KnightOutpostUndefendedBonus)
-	tmp = append(tmp, KnightOutpostDefendedBonus)
+	linearScores = append(linearScores, KnightOutpostUndefendedBonus)
+	linearScores = append(linearScores, KnightOutpostDefendedBonus)
 	for y := 0; y < 4; y++ {
-		tmp = append(tmp, DistantKnight[y])
+		linearScores = append(linearScores, DistantKnight[y])
 	}
-	tmp = append(tmp, MinorBehindPawn)
-	tmp = append(tmp, RookOnFile[0])
-	tmp = append(tmp, RookOnFile[1])
-	tmp = append(tmp, RookOnQueenFile)
+	linearScores = append(linearScores, MinorBehindPawn)
+	linearScores = append(linearScores, RookOnFile[0])
+	linearScores = append(linearScores, RookOnFile[1])
+	linearScores = append(linearScores, RookOnQueenFile)
 	for y := 0; y < 12; y++ {
-		tmp = append(tmp, KingDefenders[y])
+		linearScores = append(linearScores, KingDefenders[y])
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
-				tmp = append(tmp, KingShelter[x][y][z])
+				linearScores = append(linearScores, KingShelter[x][y][z])
 			}
 		}
 	}
 	for x := 0; x < 2; x++ {
 		for y := 0; y < 4; y++ {
 			for z := 0; z < 8; z++ {
-				tmp = append(tmp, KingStorm[x][y][z])
+				linearScores = append(linearScores, KingStorm[x][y][z])
 			}
 		}
 	}
-	tmp = append(tmp, KingOnPawnlessFlank)
-	tmp = append(tmp, Hanging)
-	tmp = append(tmp, ThreatByKing)
+	linearScores = append(linearScores, KingOnPawnlessFlank)
+	linearScores = append(linearScores, Hanging)
+	linearScores = append(linearScores, ThreatByKing)
 	for x := Pawn; x <= King; x++ {
-		tmp = append(tmp, ThreatByMinor[x])
+		linearScores = append(linearScores, ThreatByMinor[x])
 	}
 	for x := Pawn; x <= King; x++ {
-		tmp = append(tmp, ThreatByRook[x])
+		linearScores = append(linearScores, ThreatByRook[x])
 	}
 
 	for flag := 0; flag <= 15; flag++ {
-		tmp = append(tmp, RookBishopExistence[flag])
+		linearScores = append(linearScores, RookBishopExistence[flag])
 	}
 
 	for flag := 0; flag <= 15; flag++ {
-		tmp = append(tmp, QueenBishopExistence[flag])
+		linearScores = append(linearScores, QueenBishopExistence[flag])
 	}
 
 	for flag := 0; flag <= 15; flag++ {
-		tmp = append(tmp, KingBishopExistence[flag])
+		linearScores = append(linearScores, KingBishopExistence[flag])
 	}
 
-	res := make([]weight, 0, len(tmp))
-	for _, s := range tmp {
-		res = append(res, scoreToWeight(s))
+	var safetyScores []Score
+	for x := Pawn; x <= Queen; x++ {
+		safetyScores = append(safetyScores, KingSafetyAttacksWeights[x])
 	}
+	safetyScores = append(safetyScores, KingSafetyWeakSquares)
+	safetyScores = append(safetyScores, KingSafetyFriendlyPawns)
+	safetyScores = append(safetyScores, KingSafetyNoEnemyQueens)
+	safetyScores = append(safetyScores, KingSafetySafeQueenCheck)
+	safetyScores = append(safetyScores, KingSafetySafeRookCheck)
+	safetyScores = append(safetyScores, KingSafetySafeBishopCheck)
+	safetyScores = append(safetyScores, KingSafetySafeKnightCheck)
+	safetyScores = append(safetyScores, KingSafetyAdjustment)
 
-	return res
+	safetyScores = append(safetyScores, KingSafetyAttackValue)
+
+	return scoresToWeights(linearScores), scoresToWeights(safetyScores)
 }
