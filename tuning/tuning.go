@@ -749,5 +749,11 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&KingSafetyAdjustment})
 	res = append(res, ScoreValue{&KingSafetyAttackValue})
 
+	res = append(res, ScoreValue{&ComplexityTotalPawns})
+	res = append(res, ScoreValue{&ComplexityPawnEndgame})
+	res = append(res, ScoreValue{&ComplexityPawnBothFlanks})
+	res = append(res, ScoreValue{&ComplexityInfiltration})
+	res = append(res, ScoreValue{&ComplexityAdjustment})
+
 	return
 }

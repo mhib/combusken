@@ -1237,6 +1237,31 @@ func Evaluate(pos *Position) int {
 		}
 	}
 
+	{
+		sign := BoolToInt(score.End() > 0) - BoolToInt(score.End() < 0)
+		pawnsOnBothFlanks := BoolToInt((pos.Pieces[Pawn]&KING_SIDE_BB != 0) && (pos.Pieces[Pawn]&QUEEN_SIDE_BB != 0))
+		pawnEndgame := BoolToInt(pos.Pieces[Knight]|pos.Pieces[Bishop]|pos.Pieces[Rook]|pos.Pieces[Queen] == 0)
+		infiltration := BoolToInt(Rank(whiteKingLocation) > RANK_4 || Rank(blackKingLocation) < RANK_5)
+
+		complexity := ComplexityTotalPawns*Score(PopCount(pos.Pieces[Pawn])) +
+			ComplexityPawnBothFlanks*Score(pawnsOnBothFlanks) +
+			ComplexityPawnEndgame*Score(pawnEndgame) +
+			ComplexityInfiltration*Score(infiltration) +
+			ComplexityAdjustment
+
+		if tuning {
+			T.ComplexityTotalPawns = PopCount(pos.Pieces[Pawn])
+			T.ComplexityPawnBothFlanks = pawnsOnBothFlanks
+			T.ComplexityPawnEndgame = pawnEndgame
+			T.ComplexityInfiltration = infiltration
+			T.ComplexityAdjustment = 1
+
+			T.BeforeComplexity = score
+			T.Complexity = complexity
+		}
+		score += S(0, int16(sign*Max(int(complexity.End()), -Abs(int(score.End())))))
+	}
+
 	// Scale Factor inlined
 	scale := SCALE_NORMAL
 	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&

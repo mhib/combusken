@@ -35,31 +35,34 @@ type safetyCoefficient struct {
 }
 
 type traceEntry struct {
-	result             float64
-	eval               float64
-	phase              int
-	factors            [2]float64
-	linearCoefficients []linearCoefficient
-	safetyCoefficients []safetyCoefficient
-	scale              int
-	whiteMove          bool
-	evalDiff           float64
+	result                 float64
+	eval                   float64
+	phase                  int
+	factors                [2]float64
+	linearCoefficients     []linearCoefficient
+	safetyCoefficients     []safetyCoefficient
+	complexityCoefficients []linearCoefficient
+	scale                  int
+	whiteMove              bool
+	evalDiff               float64
 }
 
 type weight [2]float64
 
 type traceTuner struct {
-	k                 float64
-	linearWeights     []weight
-	safetyWeights     []weight
-	safetyWeightsLen  int
-	adagrad           []weight
-	bestLinearWeights []weight
-	bestSafetyWeights []weight
-	entries           []traceEntry
-	bestError         float64
-	done              bool
-	batchSize         int
+	k                     float64
+	linearWeights         []weight
+	safetyWeights         []weight
+	safetyWeightsLen      int
+	complexityWeights     []weight
+	adagrad               []weight
+	bestLinearWeights     []weight
+	bestSafetyWeights     []weight
+	bestComplexityWeights []weight
+	entries               []traceEntry
+	bestError             float64
+	done                  bool
+	batchSize             int
 }
 
 func printWeights(weightSlices ...[]weight) {
@@ -164,15 +167,17 @@ func (t *traceTuner) calculateOptimalK() {
 func (t *traceTuner) copyCurrentWeightsToBest() {
 	copy(t.bestLinearWeights, t.linearWeights)
 	copy(t.bestSafetyWeights, t.safetyWeights)
+	copy(t.bestComplexityWeights, t.complexityWeights)
 }
 
 func TraceTune() {
 	t := &traceTuner{done: false}
-	t.linearWeights, t.safetyWeights = loadWeights()
+	t.linearWeights, t.safetyWeights, t.complexityWeights = loadWeights()
 	t.safetyWeightsLen = len(t.safetyWeights)
-	t.adagrad = make([]weight, len(t.linearWeights)+len(t.safetyWeights))
+	t.adagrad = make([]weight, len(t.linearWeights)+len(t.safetyWeights)+len(t.complexityWeights))
 	t.bestLinearWeights = make([]weight, len(t.linearWeights))
 	t.bestSafetyWeights = make([]weight, len(t.safetyWeights))
+	t.bestComplexityWeights = make([]weight, len(t.complexityWeights))
 	t.copyCurrentWeightsToBest()
 
 	inputChan := make(chan string)
@@ -206,16 +211,17 @@ func TraceTune() {
 
 		for batchStart := 0; batchStart < len(t.entries); batchStart += t.batchSize {
 			batch := t.entries[batchStart:Min(len(t.entries)-1, batchStart+t.batchSize)]
-			linearGradient, safetyGradient := t.calculateGradient(batch)
+			linearGradient, safetyGradient, complexityGradient := t.calculateGradient(batch)
 			t.applyGradient(t.linearWeights, linearGradient, t.adagrad)
 			t.applyGradient(t.safetyWeights, safetyGradient, t.adagrad[len(t.linearWeights):])
+			t.applyGradient(t.complexityWeights, complexityGradient, t.adagrad[len(t.linearWeights)+len(t.safetyWeights):])
 		}
 		currentError := t.computeLinearError()
 		if currentError < t.bestError {
 			t.bestError = currentError
 			t.copyCurrentWeightsToBest()
 			fmt.Printf("Iteration %d error: %.17g\n", iteration, t.bestError)
-			printWeights(t.bestLinearWeights, t.bestSafetyWeights)
+			printWeights(t.bestLinearWeights, t.bestSafetyWeights, t.bestComplexityWeights)
 			iterationsSinceImprovement = 0
 		} else {
 			iterationsSinceImprovement++
@@ -266,7 +272,7 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	}
 
 	res.whiteMove = board.SideToMove == White
-	linearTrace, safetyTrace := loadTrace()
+	linearTrace, safetyTrace, complexityTrace := loadTrace()
 	for idx, val := range linearTrace {
 		if val != 0 {
 			res.linearCoefficients = append(res.linearCoefficients, linearCoefficient{idx: idx, value: val})
@@ -275,6 +281,11 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	for idx, val := range safetyTrace {
 		if val[White] != 0 || val[Black] != 0 {
 			res.safetyCoefficients = append(res.safetyCoefficients, safetyCoefficient{idx: idx, blackValue: val[Black], whiteValue: val[White]})
+		}
+	}
+	for idx, val := range complexityTrace {
+		if val != 0 {
+			res.complexityCoefficients = append(res.complexityCoefficients, linearCoefficient{idx: idx, value: val})
 		}
 	}
 
@@ -294,21 +305,23 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 	res.evalDiff = res.eval - tuner.linearEvaluation(&res).cp
 
 	// Comment that if if tuning only some of the parameters
-	if math.Abs(res.evalDiff) > 0 {
+	if math.Abs(res.evalDiff) > 1 {
 		fmt.Println("Problem with evaluation", res.evalDiff, fen)
 	}
 
 	return res, true
 }
 
-func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight) {
+func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight, []weight) {
 	numCPU := runtime.NumCPU()
 	type weightTuple struct {
-		liner  []weight
-		safety []weight
+		liner      []weight
+		safety     []weight
+		complexity []weight
 	}
 	linearRes := make([]weight, len(t.linearWeights))
 	safetyRes := make([]weight, len(t.safetyWeights))
+	complexityRes := make([]weight, len(t.complexityWeights))
 
 	resultChan := make(chan weightTuple)
 	wg := &sync.WaitGroup{}
@@ -319,15 +332,20 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight
 			defer wg.Done()
 			localLinearRes := make([]weight, len(t.linearWeights))
 			localSafetyRes := make([]weight, len(t.safetyWeights))
+			localComplexityRes := make([]weight, len(t.complexityWeights))
 			for y := idx; y < len(entries); y += numCPU {
 				entry := entries[y]
 				evaluationResult := t.linearEvaluation(&entry)
 				derivative := t.singleLinearDerivative(&entry, evaluationResult.cp)
 				middleMultiplier := entry.factors[MIDDLE] * derivative
 				endMultiplier := entry.factors[END] * (float64(entry.scale) / float64(SCALE_NORMAL)) * derivative
+				canUpdateEndgame := evaluationResult.endGameEval == 0 || evaluationResult.complexity >= -Abs(int(evaluationResult.endGameEval))
+				complexitySign := BoolToInt(evaluationResult.endGameEval > 0) - BoolToInt(evaluationResult.endGameEval < 0)
 				for _, coef := range entry.linearCoefficients {
 					localLinearRes[coef.idx][MIDDLE] += float64(coef.value) * middleMultiplier
-					localLinearRes[coef.idx][END] += float64(coef.value) * endMultiplier
+					if canUpdateEndgame {
+						localLinearRes[coef.idx][END] += float64(coef.value) * endMultiplier
+					}
 				}
 				for coefIdx, coef := range entry.safetyCoefficients {
 					// King safety attack value
@@ -342,17 +360,27 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight
 						}
 						localSafetyRes[coef.idx][MIDDLE] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*blackScale -
 							math.Max(float64(evaluationResult.safetyWhite.Middle()), 0)*whiteScale) * (middleMultiplier / 360)
-						localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*blackScale -
-							sign(float64(evaluationResult.safetyWhite.End()))*whiteScale) * (endMultiplier / 20)
+						if canUpdateEndgame {
+							localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*blackScale -
+								sign(float64(evaluationResult.safetyWhite.End()))*whiteScale) * (endMultiplier / 20)
+
+						}
 						break
 					}
 					localSafetyRes[coef.idx][MIDDLE] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*float64(coef.blackValue) -
 						math.Max(float64(evaluationResult.safetyWhite.Middle()), 0)*float64(coef.whiteValue)) * (middleMultiplier / 360)
-					localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*float64(coef.blackValue) -
-						sign(float64(evaluationResult.safetyWhite.End()))*float64(coef.whiteValue)) * (endMultiplier / 20)
+					if canUpdateEndgame {
+						localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*float64(coef.blackValue) -
+							sign(float64(evaluationResult.safetyWhite.End()))*float64(coef.whiteValue)) * (endMultiplier / 20)
+					}
+				}
+				for _, coef := range entry.complexityCoefficients {
+					if canUpdateEndgame && evaluationResult.endGameEval != 0 {
+						localComplexityRes[coef.idx][END] += float64(coef.value) * endMultiplier * float64(complexitySign)
+					}
 				}
 			}
-			resultChan <- weightTuple{localLinearRes, localSafetyRes}
+			resultChan <- weightTuple{localLinearRes, localSafetyRes, localComplexityRes}
 		}(i)
 	}
 	go func() {
@@ -370,8 +398,13 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight
 				safetyRes[idx][i] += threadResult.safety[idx][i]
 			}
 		}
+		for idx := range complexityRes {
+			for i := MIDDLE; i <= END; i++ {
+				safetyRes[idx][i] += threadResult.complexity[idx][i]
+			}
+		}
 	}
-	return linearRes, safetyRes
+	return linearRes, safetyRes, complexityRes
 }
 
 func sign(x float64) float64 {
@@ -388,6 +421,8 @@ type linearEvaluationResult struct {
 	cp          float64
 	safetyBlack Score
 	safetyWhite Score
+	endGameEval int16
+	complexity  int
 }
 
 func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult {
@@ -420,6 +455,11 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult 
 		}
 		break
 	}
+
+	var complexity int
+	for _, coeff := range entry.complexityCoefficients {
+		complexity += int(math.Round(t.complexityWeights[coeff.idx][END])) * coeff.value
+	}
 	score := S(int16(middle), int16(end))
 	middleWhite := int(safetyWhite.Middle())
 	endWhite := int(safetyWhite.End())
@@ -434,11 +474,16 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult 
 		-int16(Max(endBlack, 0)/20),
 	)
 
+	endGameEval := score.End()
+
+	sign := BoolToInt(endGameEval > 0) - BoolToInt(endGameEval < 0)
+	score += S(0, int16(sign*Max(-Abs(int(score.End())), complexity)))
+
 	phased := (int(score.Middle())*(256-entry.phase) + (int(score.End())*entry.phase*entry.scale)/SCALE_NORMAL) / 256
 	if entry.whiteMove {
-		return linearEvaluationResult{float64(phased + int(Tempo)), safetyBlack, safetyWhite}
+		return linearEvaluationResult{float64(phased + int(Tempo)), safetyBlack, safetyWhite, endGameEval, complexity}
 	} else {
-		return linearEvaluationResult{float64(phased - int(Tempo)), safetyBlack, safetyWhite}
+		return linearEvaluationResult{float64(phased - int(Tempo)), safetyBlack, safetyWhite, endGameEval, complexity}
 	}
 
 }
@@ -449,7 +494,7 @@ func (t *traceTuner) singleLinearDerivative(entry *traceEntry, linearEvaluation 
 	return -((entry.result - sigma) * sigmaPrim)
 }
 
-func loadTrace() (linearRes []int, safetyRes [][2]int) {
+func loadTrace() (linearRes []int, safetyRes [][2]int, complexityRes []int) {
 	linearRes = append(linearRes, T.PawnValue)
 	linearRes = append(linearRes, T.KnightValue)
 	linearRes = append(linearRes, T.BishopValue)
@@ -578,6 +623,9 @@ func loadTrace() (linearRes []int, safetyRes [][2]int) {
 		linearRes = append(linearRes, T.KingBishopExistence[flag])
 	}
 
+	//
+	// King Safety
+	//
 	for x := Pawn; x <= Queen; x++ {
 		safetyRes = append(safetyRes, [2]int{T.KingSafetyAttacksWeights[Black][x], T.KingSafetyAttacksWeights[White][x]})
 	}
@@ -592,6 +640,15 @@ func loadTrace() (linearRes []int, safetyRes [][2]int) {
 
 	safetyRes = append(safetyRes, T.KingSafetyAttackValueNumerator)
 	safetyRes = append(safetyRes, T.KingSafetyAttackValueDenumerator)
+
+	//
+	// Complexity
+	//
+	complexityRes = append(complexityRes, T.ComplexityTotalPawns)
+	complexityRes = append(complexityRes, T.ComplexityPawnEndgame)
+	complexityRes = append(complexityRes, T.ComplexityPawnBothFlanks)
+	complexityRes = append(complexityRes, T.ComplexityInfiltration)
+	complexityRes = append(complexityRes, T.ComplexityAdjustment)
 
 	return
 }
@@ -608,7 +665,7 @@ func scoresToWeights(scores []Score) []weight {
 	return res
 }
 
-func loadWeights() ([]weight, []weight) {
+func loadWeights() ([]weight, []weight, []weight) {
 	var linearScores []Score
 	linearScores = append(linearScores, PawnValue)
 	linearScores = append(linearScores, KnightValue)
@@ -738,6 +795,10 @@ func loadWeights() ([]weight, []weight) {
 		linearScores = append(linearScores, KingBishopExistence[flag])
 	}
 
+	//
+	// Safety
+	//
+
 	var safetyScores []Score
 	for x := Pawn; x <= Queen; x++ {
 		safetyScores = append(safetyScores, KingSafetyAttacksWeights[x])
@@ -753,5 +814,16 @@ func loadWeights() ([]weight, []weight) {
 
 	safetyScores = append(safetyScores, KingSafetyAttackValue)
 
-	return scoresToWeights(linearScores), scoresToWeights(safetyScores)
+	//
+	// Complexity
+	//
+
+	var complexityScores []Score
+	complexityScores = append(complexityScores, ComplexityTotalPawns)
+	complexityScores = append(complexityScores, ComplexityPawnEndgame)
+	complexityScores = append(complexityScores, ComplexityPawnBothFlanks)
+	complexityScores = append(complexityScores, ComplexityInfiltration)
+	complexityScores = append(complexityScores, ComplexityAdjustment)
+
+	return scoresToWeights(linearScores), scoresToWeights(safetyScores), scoresToWeights(complexityScores)
 }

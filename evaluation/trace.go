@@ -48,6 +48,9 @@ type Trace struct {
 	QueenBishopExistence          [16]int
 	KingBishopExistence           [16]int
 
+	//
+	// King safety
+	//
 	KingSafetyAttacksWeights  [2][Queen + 1]int
 	KingSafetyWeakSquares     [2]int
 	KingSafetyFriendlyPawns   [2]int
@@ -57,9 +60,23 @@ type Trace struct {
 	KingSafetySafeBishopCheck [2]int
 	KingSafetySafeKnightCheck [2]int
 	KingSafetyAdjustment      [2]int
-
+	// KingSafetyAttackValue is represented as a fraction
 	KingSafetyAttackValueNumerator   [2]int
 	KingSafetyAttackValueDenumerator [2]int
 
-	Scale int
+	//
+	// Complexity
+	//
+	ComplexityTotalPawns     int
+	ComplexityPawnEndgame    int
+	ComplexityPawnBothFlanks int
+	ComplexityInfiltration   int
+	ComplexityAdjustment     int
+
+	//
+	// Metadata
+	//
+	BeforeComplexity Score
+	Complexity       Score
+	Scale            int
 }

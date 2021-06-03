@@ -388,6 +388,7 @@ var KingBishopExistence = [16]Score{
 	S(0, 0), S(1, 4), S(2, 4), S(-17, -11), S(-3, -10), S(-2, -7), S(-1, -3), S(0, 4), S(0, -1), S(1, 3), S(2, 7), S(3, 13), S(17, 11), S(0, -11), S(1, -8), S(0, 0),
 }
 
+//
 // King safety
 //
 
@@ -403,3 +404,13 @@ var KingSafetyAdjustment = S(-12, -12)
 
 // Attack value is special as it is scaled by a fraction
 var KingSafetyAttackValue = S(124, 124)
+
+//
+// Complexity
+//
+
+var ComplexityTotalPawns = S(0, 6)
+var ComplexityPawnEndgame = S(0, 83)
+var ComplexityPawnBothFlanks = S(0, 106)
+var ComplexityInfiltration = S(0, 6)
+var ComplexityAdjustment = S(0, -173)
