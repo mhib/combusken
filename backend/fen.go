@@ -77,7 +77,6 @@ func insertPiece(pos *Position, piece rune, bit uint64) {
 		pos.Pieces[Knight] |= bit
 	case 'b':
 		pos.Pieces[Bishop] |= bit
-		pos.BishopFlag |= BishopFlags[colour][Colour(BitScan(bit))]
 	case 'q':
 		pos.Pieces[Queen] |= bit
 	case 'k':
