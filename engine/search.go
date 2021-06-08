@@ -525,7 +525,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 		}
 		if !move.IsCaptureOrPromotion() {
 			quiets++
-			if quiets >= 6 {
+			if quiets >= 4 {
 				break
 			}
 		}
