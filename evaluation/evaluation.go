@@ -261,16 +261,19 @@ func evaluateKingPawns(pos *Position) Score {
 	}
 	var fromBB uint64
 	var fromId int
+	whitePawns := pos.Pieces[Pawn] & pos.Colours[White]
+	blackPawns := pos.Pieces[Pawn] & pos.Colours[Black]
 	whiteKingLocation := BitScan(pos.Pieces[King] & pos.Colours[White])
 	blackKingLocation := BitScan(pos.Pieces[King] & pos.Colours[Black])
 	score := SCORE_ZERO
 
 	// white pawns
-	for fromBB = pos.Pieces[Pawn] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {
+	for fromBB = whitePawns; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
+		neighbours := adjacentFilesMask[File(fromId)] & whitePawns
 
 		// Isolated pawn penalty
-		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+		if neighbours == 0 {
 			score += Isolated
 			if tuning {
 				T.Isolated++
@@ -278,9 +281,9 @@ func evaluateKingPawns(pos *Position) Score {
 		}
 
 		// Pawn is backward if there are no pawns behind it and cannot increase rank without being attacked by enemy pawn
-		if passedMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 &&
-			PawnAttacks[White][fromId+8]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
-			if FILES[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+		if passedMask[Black][fromId]&whitePawns == 0 &&
+			PawnAttacks[White][fromId+8]&blackPawns != 0 {
+			if FILES[File(fromId)]&blackPawns == 0 {
 				score += BackwardOpen
 				if tuning {
 					T.BackwardOpen++
@@ -291,33 +294,40 @@ func evaluateKingPawns(pos *Position) Score {
 					T.Backward++
 				}
 			}
-		} else if pawnsConnectedMask[White][fromId]&(pos.Colours[White]&pos.Pieces[Pawn]) != 0 {
+		} else if pawnsConnectedMask[White][fromId]&whitePawns != 0 {
 			score += PawnsConnectedSquare[White][fromId]
 			if tuning {
 				T.PawnsConnected[Rank(fromId)][FileMirror[File(fromId)]]++
 			}
 		}
-	}
 
-	// white doubled pawns
-	score += Score(PopCount(pos.Pieces[Pawn]&pos.Colours[White]&South(pos.Pieces[Pawn]&pos.Colours[White]))) * Doubled
-	if tuning {
-		T.Doubled += PopCount(pos.Pieces[Pawn] & pos.Colours[White] & South(pos.Pieces[Pawn]&pos.Colours[White]))
+		// Note that Passed has its own stacked evaluation
+		if forwardFileMask[White][fromId]&whitePawns != 0 && passedMask[White][fromId]&blackPawns != 0 {
+			friendlyBlockers := passedMask[White][fromId] & blackPawns
+			isDoubled := BoolToInt(SquareMask[fromId+8]&whitePawns != 0)
+			canBeTraded := BoolToInt(friendlyBlockers & ^(forwardFileMask[White][fromId]&whitePawns) != 0 ||
+				(friendlyBlockers != 0 && (neighbours != 0 || PawnAttacks[White][fromId]&blackPawns != 0)))
+			score += StackedPawns[isDoubled][canBeTraded][File(fromId)]
+			if tuning {
+				T.StackedPawns[isDoubled][canBeTraded][File(fromId)]++
+			}
+		}
 	}
 
 	// black pawns
-	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
+	for fromBB = blackPawns; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 
-		if adjacentFilesMask[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+		neighbours := adjacentFilesMask[File(fromId)] & blackPawns
+		if neighbours == 0 {
 			score -= Isolated
 			if tuning {
 				T.Isolated--
 			}
 		}
-		if passedMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 &&
-			PawnAttacks[Black][fromId-8]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
-			if FILES[File(fromId)]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+		if passedMask[White][fromId]&blackPawns == 0 &&
+			PawnAttacks[Black][fromId-8]&whitePawns != 0 {
+			if FILES[File(fromId)]&whitePawns == 0 {
 				score -= BackwardOpen
 				if tuning {
 					T.BackwardOpen--
@@ -328,18 +338,23 @@ func evaluateKingPawns(pos *Position) Score {
 					T.Backward--
 				}
 			}
-		} else if pawnsConnectedMask[Black][fromId]&(pos.Colours[Black]&pos.Pieces[Pawn]) != 0 {
+		} else if pawnsConnectedMask[Black][fromId]&blackPawns != 0 {
 			score -= PawnsConnectedSquare[Black][fromId]
 			if tuning {
 				T.PawnsConnected[7-Rank(fromId)][FileMirror[File(fromId)]]--
 			}
 		}
-	}
-
-	// black doubled pawns
-	score -= Score(PopCount(pos.Pieces[Pawn]&pos.Colours[Black]&North(pos.Pieces[Pawn]&pos.Colours[Black]))) * Doubled
-	if tuning {
-		T.Doubled -= PopCount(pos.Pieces[Pawn] & pos.Colours[Black] & North(pos.Pieces[Pawn]&pos.Colours[Black]))
+		// Note that Passed has its own stacked evaluation
+		if forwardFileMask[Black][fromId]&blackPawns != 0 && passedMask[Black][fromId]&whitePawns != 0 {
+			friendlyBlockers := passedMask[Black][fromId] & blackPawns
+			isDoubled := BoolToInt(SquareMask[fromId-8]&blackPawns != 0)
+			canBeTraded := BoolToInt(friendlyBlockers & ^(forwardFileMask[Black][fromId]&blackPawns) != 0 ||
+				(friendlyBlockers != 0 && (neighbours != 0 || PawnAttacks[Black][fromId]&whitePawns != 0)))
+			score -= StackedPawns[isDoubled][canBeTraded][File(fromId)]
+			if tuning {
+				T.StackedPawns[isDoubled][canBeTraded][File(fromId)]--
+			}
+		}
 	}
 
 	// White king storm shelter

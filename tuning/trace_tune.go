@@ -564,7 +564,13 @@ func loadTrace() (linearRes []int, safetyRes [][2]int, complexityRes []int) {
 		linearRes = append(linearRes, T.PassedPushUncontestedDefended[y])
 	}
 	linearRes = append(linearRes, T.Isolated)
-	linearRes = append(linearRes, T.Doubled)
+	for a := 0; a < 2; a++ {
+		for b := 0; b < 2; b++ {
+			for file := FILE_A; file <= FILE_H; file++ {
+				linearRes = append(linearRes, T.StackedPawns[a][b][file])
+			}
+		}
+	}
 	linearRes = append(linearRes, T.Backward)
 	linearRes = append(linearRes, T.BackwardOpen)
 	linearRes = append(linearRes, T.BishopPair)
@@ -736,7 +742,13 @@ func loadWeights() ([]weight, []weight, []weight) {
 		linearScores = append(linearScores, PassedPushUncontestedDefended[y])
 	}
 	linearScores = append(linearScores, Isolated)
-	linearScores = append(linearScores, Doubled)
+	for a := 0; a < 2; a++ {
+		for b := 0; b < 2; b++ {
+			for file := FILE_A; file <= FILE_H; file++ {
+				linearScores = append(linearScores, StackedPawns[a][b][file])
+			}
+		}
+	}
 	linearScores = append(linearScores, Backward)
 	linearScores = append(linearScores, BackwardOpen)
 	linearScores = append(linearScores, BishopPair)

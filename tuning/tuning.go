@@ -676,7 +676,13 @@ func loadScoresToSlice() (res []EvaluationValue) {
 		res = append(res, ScoreValue{&PassedPushUncontestedDefended[y]})
 	}
 	res = append(res, ScoreValue{&Isolated})
-	res = append(res, ScoreValue{&Doubled})
+	for a := 0; a < 2; a++ {
+		for b := 0; b < 2; b++ {
+			for file := FILE_A; file <= FILE_H; file++ {
+				res = append(res, ScoreValue{&StackedPawns[a][b][file]})
+			}
+		}
+	}
 	res = append(res, ScoreValue{&Backward})
 	res = append(res, ScoreValue{&BackwardOpen})
 	res = append(res, ScoreValue{&BishopPair})
