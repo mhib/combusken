@@ -1,8 +1,12 @@
 package engine
 
-import "time"
-import . "github.com/mhib/combusken/backend"
-import . "github.com/mhib/combusken/utils"
+import (
+	"math"
+	"time"
+
+	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/utils"
+)
 
 type timeElapser struct {
 	startedAt time.Time
@@ -60,23 +64,11 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 	if depth < 4 {
 		return
 	}
-
-	if lastScore > score+16 {
-		manager.ideal += manager.ideal / 20
-	}
-	if lastScore > score+21 {
-		manager.ideal += manager.ideal / 20
-	}
-	if lastScore > score+61 {
-		manager.ideal += manager.ideal / 20
+	if lastScore > score {
+		multiplier := math.Min(float64(lastScore-score)*0.042709881489053105, 3.525357845675907)
+		manager.ideal += time.Duration(float64(manager.ideal) * multiplier / 16)
 	}
 
-	if lastScore+23 < score {
-		manager.ideal += manager.ideal / 40
-	}
-	if lastScore+46 < score {
-		manager.ideal += manager.ideal / 20
-	}
 }
 
 func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, sideToMove int) *tournamentTimeManager {
