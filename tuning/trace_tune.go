@@ -590,6 +590,7 @@ func loadTrace() (linearRes []int, safetyRes [][2]int, complexityRes []int) {
 	linearRes = append(linearRes, T.RookOnFile[0])
 	linearRes = append(linearRes, T.RookOnFile[1])
 	linearRes = append(linearRes, T.RookOnQueenFile)
+	linearRes = append(linearRes, T.TrappedRook)
 	for y := 0; y < 12; y++ {
 		linearRes = append(linearRes, T.KingDefenders[y])
 	}
@@ -768,6 +769,7 @@ func loadWeights() ([]weight, []weight, []weight) {
 	linearScores = append(linearScores, RookOnFile[0])
 	linearScores = append(linearScores, RookOnFile[1])
 	linearScores = append(linearScores, RookOnQueenFile)
+	linearScores = append(linearScores, TrappedRook)
 	for y := 0; y < 12; y++ {
 		linearScores = append(linearScores, KingDefenders[y])
 	}

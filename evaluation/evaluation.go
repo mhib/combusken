@@ -811,6 +811,16 @@ func Evaluate(pos *Position) int {
 			}
 		}
 
+		if mobility <= 3 {
+			kingFile := File(whiteKingLocation)
+			if (kingFile <= FILE_E) == (File(fromId) < kingFile) && pos.Flags|WhiteQueenSideCastleFlag|WhiteKingSideCastleFlag == pos.Flags {
+				score += TrappedRook
+				if tuning {
+					T.TrappedRook++
+				}
+			}
+		}
+
 		if attacks&blackKingArea != 0 {
 			whiteKingAttacksCount += int16(PopCount(attacks & blackKingArea))
 			whiteKingAttackersCount++
@@ -860,6 +870,16 @@ func Evaluate(pos *Position) int {
 			score -= RookOnQueenFile
 			if tuning {
 				T.RookOnQueenFile--
+			}
+		}
+
+		if mobility <= 3 {
+			kingFile := File(blackKingLocation)
+			if (kingFile <= FILE_E) == (File(fromId) < kingFile) && pos.Flags|BlackQueenSideCastleFlag|BlackKingSideCastleFlag == pos.Flags {
+				score -= TrappedRook
+				if tuning {
+					T.TrappedRook--
+				}
 			}
 		}
 

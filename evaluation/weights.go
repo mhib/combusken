@@ -7,7 +7,7 @@ import (
 var PawnValue = S(79, 166)
 var KnightValue = S(410, 555)
 var BishopValue = S(386, 543)
-var RookValue = S(541, 926)
+var RookValue = S(535, 930)
 var QueenValue = S(1229, 1760)
 
 // Pawns Square scores
@@ -230,9 +230,9 @@ var MobilityBonus = [...][32]Score{
 	{S(4, -128), S(9, -58), S(16, -17), S(23, 5), S(29, 19), S(34, 34), // Bishops
 		S(36, 43), S(35, 46), S(36, 49), S(39, 49), S(43, 43), S(54, 34),
 		S(74, 35), S(81, 8)},
-	{S(-126, -156), S(-14, -35), S(-4, 19), S(-6, 47), S(-2, 59), S(0, 72), // Rooks
-		S(1, 81), S(5, 89), S(10, 94), S(13, 100), S(16, 107), S(17, 113),
-		S(22, 114), S(38, 101), S(95, 57)},
+	{S(-110, -156), S(-14, -24), S(-4, 24), S(-5, 49), S(-2, 59), S(0, 71), // Rooks
+		S(1, 83), S(5, 89), S(10, 94), S(13, 100), S(16, 107), S(17, 113),
+		S(22, 114), S(37, 101), S(94, 57)},
 	{S(-413, -159), S(-130, -143), S(-46, -178), S(-23, -117), S(-10, -83), S(-10, -13), // Queens
 		S(-6, 14), S(-2, 34), S(1, 50), S(4, 63), S(7, 71), S(11, 74),
 		S(13, 77), S(14, 82), S(17, 77), S(14, 82), S(14, 78), S(12, 77),
@@ -321,6 +321,7 @@ var Tempo int16 = 15
 // Rook on semiopen, open file
 var RookOnFile = [2]Score{S(12, 12), S(38, 4)}
 var RookOnQueenFile = S(6, 29)
+var TrappedRook = S(-30, 4)
 
 var KingDefenders = [12]Score{
 	S(-18, -15), S(-2, -11), S(1, -7), S(4, -4),
