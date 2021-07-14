@@ -1026,6 +1026,54 @@ func Evaluate(pos *Position) int {
 		}
 	}
 
+	{
+		safeWhitePawns := ((^blackAttacked) | whiteAttacked) & pos.Pieces[Pawn] & pos.Colours[White]
+		blackPiecesAttackedByPawns := WhitePawnsAttacks(safeWhitePawns) & pos.Colours[Black] & (^pos.Pieces[Pawn])
+		if blackPiecesAttackedByPawns > 0 {
+			knightsAttacked := PopCount(blackPiecesAttackedByPawns & pos.Pieces[Knight])
+			bishopsAttacked := PopCount(blackPiecesAttackedByPawns & pos.Pieces[Bishop])
+			rooksAttacked := PopCount(blackPiecesAttackedByPawns & pos.Pieces[Rook])
+			queensAttacked := PopCount(blackPiecesAttackedByPawns & pos.Pieces[Queen])
+			kingAttacked := BoolToInt(blackPiecesAttackedByPawns&pos.Pieces[King] != 0)
+			score += AttackedBySafePawn[0]*Score(knightsAttacked) +
+				AttackedBySafePawn[1]*Score(bishopsAttacked) +
+				AttackedBySafePawn[2]*Score(rooksAttacked) +
+				AttackedBySafePawn[3]*Score(queensAttacked) +
+				AttackedBySafePawn[4]*Score(kingAttacked)
+			if tuning {
+				T.AttackedBySafePawn[0] += knightsAttacked
+				T.AttackedBySafePawn[1] += bishopsAttacked
+				T.AttackedBySafePawn[2] += rooksAttacked
+				T.AttackedBySafePawn[3] += queensAttacked
+				T.AttackedBySafePawn[4] += kingAttacked
+			}
+		}
+	}
+
+	{
+		safeBlackPawns := pos.Pieces[Pawn] & pos.Colours[Black]
+		whitePiecesAttackedByPawns := BlackPawnsAttacks(safeBlackPawns) & pos.Colours[White] & (^pos.Pieces[Pawn])
+		if whitePiecesAttackedByPawns > 0 {
+			knightsAttacked := PopCount(whitePiecesAttackedByPawns & pos.Pieces[Knight])
+			bishopsAttacked := PopCount(whitePiecesAttackedByPawns & pos.Pieces[Bishop])
+			rooksAttacked := PopCount(whitePiecesAttackedByPawns & pos.Pieces[Rook])
+			queensAttacked := PopCount(whitePiecesAttackedByPawns & pos.Pieces[Queen])
+			kingAttacked := BoolToInt(whitePiecesAttackedByPawns&pos.Pieces[King] != 0)
+			score -= AttackedBySafePawn[0]*Score(knightsAttacked) +
+				AttackedBySafePawn[1]*Score(bishopsAttacked) +
+				AttackedBySafePawn[2]*Score(rooksAttacked) +
+				AttackedBySafePawn[3]*Score(queensAttacked) +
+				AttackedBySafePawn[4]*Score(kingAttacked)
+			if tuning {
+				T.AttackedBySafePawn[0] -= knightsAttacked
+				T.AttackedBySafePawn[1] -= bishopsAttacked
+				T.AttackedBySafePawn[2] -= rooksAttacked
+				T.AttackedBySafePawn[3] -= queensAttacked
+				T.AttackedBySafePawn[4] -= kingAttacked
+			}
+		}
+	}
+
 	// black pawns
 	for fromBB = pos.Pieces[Pawn] & pos.Colours[Black]; fromBB != 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)

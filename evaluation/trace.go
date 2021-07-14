@@ -22,6 +22,7 @@ type Trace struct {
 	PassedPushUncontestedDefended [6]int
 	Isolated                      int
 	StackedPawns                  [2][2][8]int
+	AttackedBySafePawn            [5]int
 	Backward                      int
 	BackwardOpen                  int
 	BishopPair                    int

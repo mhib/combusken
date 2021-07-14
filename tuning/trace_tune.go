@@ -571,6 +571,7 @@ func loadTrace() (linearRes []int, safetyRes [][2]int, complexityRes []int) {
 			}
 		}
 	}
+	linearRes = append(linearRes, T.AttackedBySafePawn[:]...)
 	linearRes = append(linearRes, T.Backward)
 	linearRes = append(linearRes, T.BackwardOpen)
 	linearRes = append(linearRes, T.BishopPair)
@@ -750,6 +751,7 @@ func loadWeights() ([]weight, []weight, []weight) {
 			}
 		}
 	}
+	linearScores = append(linearScores, AttackedBySafePawn[:]...)
 	linearScores = append(linearScores, Backward)
 	linearScores = append(linearScores, BackwardOpen)
 	linearScores = append(linearScores, BishopPair)

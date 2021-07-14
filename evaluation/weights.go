@@ -297,6 +297,14 @@ var StackedPawns = [2][2][8]Score{
 		{S(-20, -42), S(-7, -34), S(-18, -38), S(-18, -34), S(-17, -34), S(-7, -40), S(-1, -39), S(-19, -43)},
 	},
 }
+var AttackedBySafePawn = [5]Score{
+	S(37, 72),
+	S(38, 79),
+	S(34, 32),
+	S(38, 18),
+	S(40, 40),
+}
+
 var Backward = S(8, -2)
 var BackwardOpen = S(-4, -19)
 

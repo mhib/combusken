@@ -683,6 +683,9 @@ func loadScoresToSlice() (res []EvaluationValue) {
 			}
 		}
 	}
+	for i := 0; i < 5; i++ {
+		res = append(res, ScoreValue{&AttackedBySafePawn[i]})
+	}
 	res = append(res, ScoreValue{&Backward})
 	res = append(res, ScoreValue{&BackwardOpen})
 	res = append(res, ScoreValue{&BishopPair})
