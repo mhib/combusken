@@ -41,7 +41,21 @@ func (mv *MoveHistory) GetPreviousMove(height int) Move {
 }
 
 func (mv *MoveHistory) GetPreviousMoveFromCurrentSide(height int) Move {
+	if height < 2 {
+		return NullMove
+	}
 	return mv.CurrentMove[height-2]
+}
+
+func (mv *MoveHistory) HistoryValue(pos *Position, move, followUp Move) (value int) {
+	value = int(mv.ButterflyHistory[pos.SideToMove][move.From()][move.To()])
+	if pos.LastMove != NullMove {
+		value += int(mv.CounterHistory[pos.LastMove.MovedPiece()][pos.LastMove.To()][move.MovedPiece()][move.To()])
+	}
+	if followUp != NullMove {
+		value += int(mv.FollowUpHistory[followUp.MovedPiece()][followUp.To()][move.MovedPiece()][move.To()])
+	}
+	return
 }
 
 func (mv *MoveHistory) Clear() {

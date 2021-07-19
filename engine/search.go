@@ -312,7 +312,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	}
 
 	// Null move pruning
-	if !pvNode && pos.LastMove != NullMove && depth >= 2 && (height < 2 || t.GetPreviousMoveFromCurrentSide(height) != NullMove) && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
+	if !pvNode && pos.LastMove != NullMove && depth >= 2 && t.GetPreviousMoveFromCurrentSide(height) != NullMove && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
@@ -419,6 +419,8 @@ afterPreMovesPruning:
 				reduction += BoolToInt(cutNode) * 2
 				// Increase reduction if not improving
 				reduction += BoolToInt(!improving)
+
+				reduction -= (t.HistoryValue(pos, move, t.GetPreviousMoveFromCurrentSide(height)) - 2746) / 12124
 			}
 			reduction = Max(0, Min(depth-2, reduction))
 		}
