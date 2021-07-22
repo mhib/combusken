@@ -264,7 +264,7 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 		board = child
 	}
 	T = Trace{}
-	res.eval = float64(Evaluate(&board))
+	res.eval = float64((&EvaluationContext{}).Evaluate(&board))
 
 	res.scale = T.Scale
 	if board.SideToMove == Black {

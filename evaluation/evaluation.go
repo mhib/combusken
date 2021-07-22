@@ -433,7 +433,15 @@ func evaluateKingPawns(pos *Position) Score {
 	return score
 }
 
-func Evaluate(pos *Position) int {
+type EvaluationContext struct {
+	contempt Score
+}
+
+func (ec *EvaluationContext) SetContempt(contempt Score) {
+	ec.contempt = contempt
+}
+
+func (ec *EvaluationContext) Evaluate(pos *Position) int {
 	var fromId int
 	var fromBB uint64
 	var attacks uint64
@@ -489,7 +497,7 @@ func Evaluate(pos *Position) int {
 	blackAttackedBy[Pawn] |= attacks
 	blackKingAttacksCount += int16(PopCount(attacks & whiteKingArea))
 
-	score := evaluateKingPawns(pos)
+	score := ec.contempt + evaluateKingPawns(pos)
 
 	// white knights
 	for fromBB = pos.Pieces[Knight] & pos.Colours[White]; fromBB != 0; fromBB &= (fromBB - 1) {

@@ -114,7 +114,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 			}
 		} else {
 			if pos.LastMove != NullMove {
-				eval = int16(Evaluate(pos))
+				eval = int16(t.Evaluate(pos))
 			} else {
 				eval = -t.getEvaluation(height-1) + 2*Tempo
 			}
@@ -286,7 +286,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 		}
 	} else {
 		if pos.LastMove != NullMove {
-			eval = int16(Evaluate(pos))
+			eval = int16(t.Evaluate(pos))
 		} else {
 			eval = -t.getEvaluation(height-1) + 2*Tempo
 		}
@@ -591,10 +591,19 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) aspi
 	if depth >= WindowDepth {
 		alpha = Max(-Mate, lastValue-delta)
 		beta = Min(Mate, lastValue+delta)
+
+		tempo := lastValue / 4
+		tempo = Min(30, Max(tempo, -30))
+		if t.stack[0].position.SideToMove == White {
+			t.SetContempt(S(int16(tempo), int16(tempo/2)))
+		} else {
+			t.SetContempt(-S(int16(tempo), int16(tempo/2)))
+		}
 	} else {
 		// Search with [-Mate, Mate] in shallow depths
 		alpha = -Mate
 		beta = Mate
+		t.SetContempt(Score(0))
 	}
 	for {
 		res := t.depSearch(Max(1, searchDepth), alpha, beta, moves)
@@ -622,7 +631,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 	alphaOrig := alpha
 	inCheck := pos.IsInCheck()
 	moveCount := 0
-	eval := int16(Evaluate(pos))
+	eval := int16(t.Evaluate(pos))
 	t.setEvaluation(0, eval)
 	t.stack[0].PV.clear()
 	t.ResetKillers(1)

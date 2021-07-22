@@ -37,6 +37,7 @@ type Engine struct {
 type thread struct {
 	engine *Engine
 	MoveHistory
+	evaluation.EvaluationContext
 	nodes  int
 	tbhits int
 	stack  [STACK_SIZE]StackEntry
