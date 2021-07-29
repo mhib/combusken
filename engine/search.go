@@ -433,14 +433,19 @@ afterPreMovesPruning:
 			}
 		}
 
-		extension := BoolToInt(
-			// Castling extension
-			move.IsCastling() ||
-				// Check extension
-				(inCheck && SeeSign(pos, move)) ||
-				// singular extension
-				(move == hashMove && depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha) &&
-					t.isMoveSingular(depth, height, hashMove, int(hashValue), cutNode))
+		var extension int
+		if move == hashMove && depth >= 8 && int(hashDepth) >= depth-2 && hashFlag != TransAlpha {
+			singularValue, singularBeta := t.singularSearch(depth, height, hashMove, int(hashValue), cutNode)
+			if singularValue <= singularBeta {
+				extension = 1
+			} else if singularBeta >= beta {
+				// Multi-cut pruning
+				// Idea from stockfish
+				return singularBeta
+			}
+		} else {
+			extension = BoolToInt(move.IsCastling() || (inCheck && SeeSign(pos, move)))
+		}
 
 		newDepth := depth - 1 + extension
 
@@ -504,13 +509,13 @@ afterPreMovesPruning:
 	return alpha
 }
 
-func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int, cutNode bool) bool {
+func (t *thread) singularSearch(depth, height int, hashMove Move, hashValue int, cutNode bool) (val, rBeta int) {
 	var pos *Position = &t.stack[height].position
 	var child *Position = &t.stack[height+1].position
 	// Store child as we already made a move into it in alphaBeta
 	oldChild := *child
-	val := -Mate
-	rBeta := Max(hashValue-depth, -Mate)
+	val = -Mate
+	rBeta = Max(hashValue-depth, -Mate)
 	quiets := 0
 	t.stack[height].InitSingular()
 	for {
@@ -536,7 +541,7 @@ func (t *thread) isMoveSingular(depth, height int, hashMove Move, hashValue int,
 	// restore child
 	*child = oldChild
 	t.stack[height].RestoreFromSingular()
-	return val <= rBeta
+	return val, rBeta
 }
 
 func (t *thread) isDraw(height int) bool {
