@@ -1012,7 +1012,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 			}
 			// Rank seventh's push == advance so it is already calculated
 			if !stacked && Rank(fromId) != RANK_7 {
-				if push&(blackAttacked|pos.Pieces[Black]) == 0 {
+				if push&(blackAttacked|pos.Colours[Black]) == 0 {
 					if rookOrQueenBehind || (push&whiteAttacked) == push {
 						score += PassedPushUncontestedDefended[Rank(fromId)]
 						if tuning {
@@ -1126,7 +1126,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 			}
 
 			if !stacked && Rank(fromId) != RANK_2 {
-				if push&(whiteAttacked|pos.Pieces[White]) == 0 {
+				if push&(whiteAttacked|pos.Colours[White]) == 0 {
 					if rookOrQueenBehind || (push&blackAttacked) == push {
 						score -= PassedPushUncontestedDefended[7-Rank(fromId)]
 						if tuning {
