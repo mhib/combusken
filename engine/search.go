@@ -318,7 +318,16 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
 		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false, !cutNode)
 		if val >= beta {
-			return beta
+			if depth < 10 {
+				return val
+			} else {
+				// Null move pruning verification search.
+				// Idea from stockfish
+				val = t.alphaBeta(depth-reduction, beta-1, beta, height, false, false)
+				if val >= beta {
+					return val
+				}
+			}
 		}
 	}
 
