@@ -17,6 +17,7 @@ const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
+const ValueTbWinInMaxDepth = ValueWin - MAX_HEIGHT - 1
 
 const seePruningDepth = 10
 const seeQuietMargin = -100
@@ -307,7 +308,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	}
 
 	// Reverse futility pruning
-	if !pvNode && depth < reverseFutilityPruningDepth && int(eval)-reverseFutilityPruningMargin*depth >= beta && int(eval) < ValueWin {
+	if !pvNode && depth < reverseFutilityPruningDepth && int(eval)-reverseFutilityPruningMargin*depth >= beta && int(eval) < ValueTbWinInMaxDepth {
 		return int(eval)
 	}
 
@@ -319,13 +320,21 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false, !cutNode)
 		if val >= beta {
 			if depth < 10 {
-				return val
+				if val >= ValueTbWinInMaxDepth {
+					return beta
+				} else {
+					return val
+				}
 			} else {
 				// Null move pruning verification search.
 				// Idea from stockfish
 				val = t.alphaBeta(depth-reduction, beta-1, beta, height, false, false)
 				if val >= beta {
-					return val
+					if val >= ValueTbWinInMaxDepth {
+						return beta
+					} else {
+						return val
+					}
 				}
 			}
 		}
@@ -334,8 +343,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	// Probcut pruning
 	// If we have a good enough capture and a reduced search returns a value
 	// much above beta, we can (almost) safely prune the previous move.
-	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueWin {
-		rBeta := Min(beta+probCutMargin, ValueWin-1)
+	if !pvNode && depth >= probCutDepth && Abs(beta) < ValueTbWinInMaxDepth {
+		rBeta := Min(beta+probCutMargin, ValueTbWinInMaxDepth-1)
 		//Idea from stockfish
 		if !(hashMove != NullMove && int(hashDepth) >= depth-4 && int(hashValue) < rBeta) {
 			t.stack[height].InitQs()
