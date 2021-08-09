@@ -18,6 +18,7 @@ const (
 const (
 	Black = iota
 	White
+	ColourNone
 )
 
 const (

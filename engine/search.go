@@ -313,13 +313,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	}
 
 	// Null move pruning
-	if !pvNode && pos.LastMove != NullMove && depth >= 2 && t.GetPreviousMoveFromCurrentSide(height) != NullMove && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
+	if !pvNode && pos.LastMove != NullMove && t.disableNmpColor != pos.SideToMove && depth >= 2 && t.GetPreviousMoveFromCurrentSide(height) != NullMove && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
 		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false, !cutNode)
 		if val >= beta {
-			if depth < 10 {
+			if depth < 10 || t.disableNmpColor != ColourNone {
 				if val >= ValueTbWinInMaxDepth {
 					return beta
 				} else {
@@ -328,7 +328,9 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 			} else {
 				// Null move pruning verification search.
 				// Idea from stockfish
+				t.disableNmpColor = pos.SideToMove
 				val = t.alphaBeta(depth-reduction, beta-1, beta, height, false, false)
+				t.disableNmpColor = ColourNone
 				if val >= beta {
 					if val >= ValueTbWinInMaxDepth {
 						return beta
@@ -794,6 +796,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 		e.threads[i].stack[0].position = *pos
 		e.threads[i].nodes = 0
 		e.threads[i].tbhits = 0
+		e.threads[i].disableNmpColor = ColourNone
 	}
 
 	rootMoves := GenerateAllLegalMoves(pos)

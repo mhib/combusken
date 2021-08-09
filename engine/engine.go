@@ -38,9 +38,10 @@ type thread struct {
 	engine *Engine
 	MoveHistory
 	evaluation.EvaluationContext
-	nodes  int
-	tbhits int
-	stack  [STACK_SIZE]StackEntry
+	nodes           int
+	tbhits          int
+	disableNmpColor int
+	stack           [STACK_SIZE]StackEntry
 }
 
 type UciScore struct {
