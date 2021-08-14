@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"math"
 	"time"
 
@@ -16,31 +17,37 @@ func (elapser *timeElapser) getElapsedTime() time.Duration {
 	return time.Since(elapser.startedAt)
 }
 
+func newTimeElapser() timeElapser {
+	return timeElapser{startedAt: time.Now()}
+}
+
 type timeManager interface {
-	hardTimeout() time.Duration
-	isSoftTimeout(depth, nodes int) bool
 	updateTime(depth, score int)
 	getElapsedTime() time.Duration
 }
 
 type depthMoveTimeManager struct {
 	timeElapser
-	duration int
+	duration time.Duration
 	depth    int
+	cancel   context.CancelFunc
 }
 
-func (manager *depthMoveTimeManager) hardTimeout() time.Duration {
-	if manager.duration > 0 {
-		return time.Duration(manager.duration) * time.Millisecond
+func (manager *depthMoveTimeManager) updateTime(depth, nodes int) {
+	if manager.depth > 0 && depth >= manager.depth {
+		manager.cancel()
 	}
-	return 0
 }
 
-func (manager *depthMoveTimeManager) isSoftTimeout(depth, nodes int) bool {
-	return manager.depth > 0 && depth >= manager.depth
-}
-
-func (manager *depthMoveTimeManager) updateTime(int, int) {
+func newDepthMoveTimeManager(ctx context.Context, limits *LimitsType) (context.Context, *depthMoveTimeManager) {
+	var cancel context.CancelFunc
+	duration := time.Duration(limits.MoveTime) * time.Millisecond
+	if duration > 0 {
+		ctx, cancel = context.WithTimeout(ctx, duration)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
+	return ctx, &depthMoveTimeManager{newTimeElapser(), duration, limits.Depth, cancel}
 }
 
 type tournamentTimeManager struct {
@@ -48,14 +55,7 @@ type tournamentTimeManager struct {
 	hard      time.Duration
 	ideal     time.Duration
 	lastScore int
-}
-
-func (manager *tournamentTimeManager) hardTimeout() time.Duration {
-	return manager.hard
-}
-
-func (manager *tournamentTimeManager) isSoftTimeout(int, int) bool {
-	return time.Since(manager.startedAt) >= manager.ideal
+	cancel    context.CancelFunc
 }
 
 func (manager *tournamentTimeManager) updateTime(depth, score int) {
@@ -69,10 +69,14 @@ func (manager *tournamentTimeManager) updateTime(depth, score int) {
 		manager.ideal += time.Duration(float64(manager.ideal) * multiplier / 16)
 	}
 
+	since := time.Since(manager.startedAt)
+	if since >= manager.ideal {
+		manager.cancel()
+	}
 }
 
-func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, sideToMove int) *tournamentTimeManager {
-	res := &tournamentTimeManager{timeElapser: timeElapser{startedAt: startedAt}}
+func newTournamentTimeManager(ctx context.Context, limits *LimitsType, overhead int, ponder bool, sideToMove int) (context.Context, *tournamentTimeManager) {
+	res := &tournamentTimeManager{timeElapser: newTimeElapser()}
 	var limit, inc int
 	if sideToMove == White {
 		limit, inc = limits.WhiteTime, limits.WhiteIncrement
@@ -89,16 +93,32 @@ func newTournamentTimeManager(startedAt time.Time, limits LimitsType, overhead, 
 		ideal = ((limit - overhead) + 25*inc) / 45
 		hard = 5 * ((limit - overhead) + 25*inc) / 45
 	}
+	if ponder {
+		ideal += ideal / 4
+		hard += hard / 16
+	}
 	res.ideal = time.Duration(Min(ideal, limit-overhead)) * time.Millisecond
 	res.hard = time.Duration(Min(hard, limit-overhead)) * time.Millisecond
-	return res
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(ctx, res.hard)
+	res.cancel = cancel
+	return ctx, res
 }
 
-func newTimeManager(limits LimitsType, overhead int, sideToMove int) timeManager {
-	startedAt := time.Now()
+type infiniteTimeManager struct {
+	timeElapser
+}
+
+func (infiniteTimeManager) updateTime(int, int) {
+}
+
+func newTimeManager(ctx context.Context, limits *LimitsType, overhead int, ponder bool, sideToMove int) (context.Context, timeManager) {
+	if limits.Infinite {
+		return ctx, &infiniteTimeManager{newTimeElapser()}
+	}
 	if limits.WhiteTime > 0 || limits.BlackTime > 0 {
-		return newTournamentTimeManager(startedAt, limits, overhead, sideToMove)
+		return newTournamentTimeManager(ctx, limits, overhead, ponder, sideToMove)
 	} else {
-		return &depthMoveTimeManager{timeElapser{startedAt: startedAt}, limits.MoveTime, limits.Depth}
+		return newDepthMoveTimeManager(ctx, limits)
 	}
 }

@@ -72,3 +72,27 @@ func (option *StringOption) SetValue(value string) error {
 	option.Dirty = true
 	return nil
 }
+
+type CheckOption struct {
+	Name    string
+	Val     bool
+	Default bool
+}
+
+func (option *CheckOption) ToUci() string {
+	var inspectValue = "false"
+	if option.Default {
+		inspectValue = "true"
+	}
+	return fmt.Sprintf("option name %v type check default %v",
+		option.Name, inspectValue)
+}
+
+func (option *CheckOption) GetName() string {
+	return option.Name
+}
+
+func (option *CheckOption) SetValue(value string) error {
+	option.Val = (value == "true")
+	return nil
+}

@@ -598,7 +598,6 @@ func (t *thread) isDraw(height int) bool {
 }
 
 type searchResult struct {
-	Move
 	value int
 	depth int
 	moves []Move
@@ -733,11 +732,11 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 		flag = TransExact
 	}
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), eval, depth, bestMove, flag, true)
-	return searchResult{bestMove, alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return searchResult{alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
-func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMove) Move {
-	var lastBestMove Move
+func (e *Engine) singleThreadBestMove(ctx, ponderCtx context.Context, rootMoves []EvaledMove) (Move, Move) {
+	var lastBestMove, lastPonderMove Move
 	thread := e.threads[0]
 	var res searchResult
 	lastValue := -Mate
@@ -751,24 +750,26 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 		}(i)
 		select {
 		case <-ctx.Done():
-			return lastBestMove
+			return lastBestMove, lastPonderMove
 		case res := <-resultChan:
 			timeSinceStart := e.getElapsedTime()
 			e.Update(SearchInfo{newReportScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
-			if res.value >= ValueWin && depthToMate(res.value) <= i {
-				return res.Move
-			}
-			if res.Move == 0 {
-				return lastBestMove
+			lastBestMove = res.moves[0]
+			lastPonderMove = NullMove
+			if len(res.moves) > 1 {
+				lastPonderMove = res.moves[1]
 			}
 			if i >= MAX_HEIGHT {
-				return res.Move
+				return lastBestMove, lastPonderMove
 			}
 			e.updateTime(res.depth, res.value)
-			if e.isSoftTimeout(i, thread.nodes) {
-				return res.Move
+			// Do not stop searching even when found a mate in ponder
+			if isContextActive(ponderCtx) {
+				continue
 			}
-			lastBestMove = res.Move
+			if res.value >= ValueWin && depthToMate(res.value) <= i {
+				return lastBestMove, lastPonderMove
+			}
 		}
 	}
 }
@@ -791,7 +792,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirati
 	}
 }
 
-func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
+func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, Move) {
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
 		e.threads[i].nodes = 0
@@ -812,7 +813,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 				score = 0
 			}
 			e.Update(SearchInfo{newReportScore(score), MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
-			return bestMove
+			return bestMove, NullMove
 		}
 	}
 
@@ -825,7 +826,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	sortMoves(rootMoves)
 
 	if e.Threads.Val == 1 {
-		return e.singleThreadBestMove(ctx, rootMoves)
+		return e.singleThreadBestMove(ctx, ponderCtx, rootMoves)
 	}
 
 	resultChan := make(chan aspirationWindowResult)
@@ -837,37 +838,48 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 	}
 
 	prevDepth := 0
-	var lastBestMove Move
+	var lastBestMove, lastPonderMove Move
 	for {
 		select {
 		case <-e.done:
 			// Hard timeout
-			return lastBestMove
+			return lastBestMove, lastPonderMove
 		case res := <-resultChan:
 			// If thread reports result for depth that is lower than already calculated one, ignore results
 			if res.requestedDepth <= prevDepth {
 				continue
 			}
+			e.updateTime(res.depth, res.value)
 			nodes := e.nodes()
 			tbhits := e.tbhits()
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newReportScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
-			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
-				return res.Move
-			}
-			if res.Move == 0 {
-				return lastBestMove
-			}
-			if res.depth >= MAX_HEIGHT {
-				return res.Move
-			}
-			e.updateTime(res.depth, res.value)
-			if e.isSoftTimeout(res.depth, nodes) {
-				return res.Move
-			}
-			lastBestMove = res.Move
 			prevDepth = res.requestedDepth
+			lastBestMove = res.moves[0]
+			lastPonderMove = NullMove
+			if len(res.moves) > 1 {
+				lastPonderMove = res.moves[1]
+			}
+			e.Update(SearchInfo{newReportScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
+			if res.depth >= MAX_HEIGHT {
+				return lastBestMove, lastPonderMove
+			}
+			// Do not stop searching even when found a mate in ponder
+			if isContextActive(ponderCtx) {
+				continue
+			}
+			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
+				return lastBestMove, lastPonderMove
+			}
 		}
+	}
+}
+
+func isContextActive(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	default:
+		return true
 	}
 }
 

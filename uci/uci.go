@@ -14,13 +14,19 @@ import (
 )
 
 type UciProtocol struct {
-	commands  map[string]func(args ...string)
-	messages  chan interface{}
-	engine    Engine
-	positions []backend.Position
-	cancel    context.CancelFunc
-	state     func(msg interface{})
-	waitChan  chan interface{}
+	commands     map[string]func(args ...string)
+	messages     chan interface{}
+	engine       Engine
+	positions    []backend.Position
+	cancel       context.CancelFunc
+	ponderCancel context.CancelFunc
+	state        func(msg interface{})
+	waitChan     chan interface{}
+}
+
+type searchResult struct {
+	bestMove   backend.Move
+	ponderMove backend.Move
 }
 
 func NewUciProtocol(e Engine) *UciProtocol {
@@ -79,7 +85,7 @@ func (uci *UciProtocol) idle(msg interface{}) {
 		} else {
 			debugUci("Command not found.")
 		}
-	case backend.Move:
+	case searchResult:
 		debugUci("Unexpected best move.")
 	}
 }
@@ -92,13 +98,22 @@ func (uci *UciProtocol) thinking(msg interface{}) {
 			return
 		}
 		commandName := fields[0]
-		if commandName == "stop" {
+		switch commandName {
+		case "stop":
 			uci.stopCommand()
-		} else {
+		case "ponderhit":
+			uci.ponderhitCommand()
+		default:
 			debugUci("Unexpected command " + commandName + ".")
 		}
-	case backend.Move:
-		fmt.Printf("bestmove %s\n", msg.String())
+	case searchResult:
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("bestmove %s", msg.bestMove.String()))
+		if msg.ponderMove != backend.NullMove {
+			sb.WriteString(fmt.Sprintf(" ponder %s", msg.ponderMove.String()))
+		}
+		sb.WriteString("\n")
+		fmt.Print(sb.String())
 		uci.state = uci.idle
 	}
 }
@@ -168,15 +183,21 @@ func findIndexString(slice []string, value string) int {
 func (uci *UciProtocol) goCommand(fields ...string) {
 	limits := parseLimits(fields)
 	ctx, cancel := context.WithCancel(context.Background())
+	ponderCtx, ponderCancel := context.WithCancel(ctx)
 	searchParams := SearchParams{
 		Positions: uci.positions,
 		Limits:    limits,
 	}
 	uci.cancel = cancel
+	uci.ponderCancel = ponderCancel
+	if !limits.Ponder {
+		ponderCancel()
+	}
 	uci.state = uci.thinking
 	go func() {
-		var searchResult = uci.engine.Search(ctx, searchParams)
-		uci.messages <- searchResult
+		bestMove, ponderMove := uci.engine.Search(ctx, ponderCtx, searchParams)
+		cancel()
+		uci.messages <- searchResult{bestMove, ponderMove}
 	}()
 }
 
@@ -226,7 +247,9 @@ func (uci *UciProtocol) uciNewGameCommand(...string) {
 }
 
 func (uci *UciProtocol) ponderhitCommand(...string) {
-	debugUci("Not implemented")
+	if uci.ponderCancel != nil {
+		uci.ponderCancel()
+	}
 }
 
 func (uci *UciProtocol) stopCommand(...string) {

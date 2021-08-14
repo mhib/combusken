@@ -16,7 +16,9 @@ func TestWAC(t *testing.T) {
 	engine.Hash.Val = 256
 	for _, entry := range loadEPD("./test_positions/WinAtChess.epd") {
 		engine.NewGame()
-		result := engine.Search(context.Background(), SearchParams{Positions: []Position{entry.Position}, Limits: LimitsType{MoveTime: 1000}}) // search for 1 second
+		ponderCtx, cancel := context.WithCancel(context.Background())
+		cancel()
+		result, _ := engine.Search(context.Background(), ponderCtx, SearchParams{Positions: []Position{entry.Position}, Limits: LimitsType{MoveTime: 1000}}) // search for 1 second
 		found := false
 		for _, move := range entry.bestMoves {
 			if ParseMoveSAN(&entry.Position, move) == result {

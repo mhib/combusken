@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	. "github.com/mhib/combusken/backend"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	. "github.com/mhib/combusken/backend"
 )
 
 type positionTest struct {
@@ -57,7 +58,9 @@ func Benchmark() {
 		engine.Update = func(si SearchInfo) {
 			tmpNodes = si.Nodes
 		}
-		engine.Search(context.Background(), SearchParams{Positions: []Position{entry.Position}, Limits: LimitsType{Depth: 5}})
+		ponderCtx, ponderCancel := context.WithCancel(context.Background())
+		ponderCancel()
+		engine.Search(context.Background(), ponderCtx, SearchParams{Positions: []Position{entry.Position}, Limits: LimitsType{Depth: 5}})
 		nodes += tmpNodes
 	}
 	duration := time.Since(start)

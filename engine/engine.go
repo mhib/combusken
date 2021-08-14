@@ -26,6 +26,7 @@ type Engine struct {
 	PawnHash          IntOption
 	SyzygyPath        StringOption
 	SyzygyProbeDepth  IntOption
+	Ponder            CheckOption
 	done              <-chan struct{}
 	RepeatedPositions map[uint64]interface{}
 	MovesCount        int
@@ -114,7 +115,7 @@ func (e *Engine) GetInfo() (name, version, author string) {
 }
 
 func (e *Engine) GetOptions() []EngineOption {
-	return []EngineOption{&e.Hash, &e.Threads, &e.PawnHash, &e.MoveOverhead, &e.SyzygyPath, &e.SyzygyProbeDepth}
+	return []EngineOption{&e.Hash, &e.Threads, &e.PawnHash, &e.MoveOverhead, &e.SyzygyPath, &e.SyzygyProbeDepth, &e.Ponder}
 }
 
 func NewEngine() (ret Engine) {
@@ -124,6 +125,7 @@ func NewEngine() (ret Engine) {
 	ret.MoveOverhead = IntOption{"Move Overhead", 0, 10000, 50, 50}
 	ret.SyzygyPath = StringOption{"SyzygyPath", "", "", false}
 	ret.SyzygyProbeDepth = IntOption{"SyzygyProbeDepth", 0, 100, 0, 0}
+	ret.Ponder = CheckOption{"Ponder", false, false}
 	ret.threads = make([]thread, 1)
 	ret.Update = func(SearchInfo) {}
 	return
@@ -133,17 +135,28 @@ func (e *Engine) SetUpdate(update func(SearchInfo)) {
 	e.Update = update
 }
 
-func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
+func (e *Engine) Search(ctx context.Context, ponderCtx context.Context, searchParams SearchParams) (bestMove, ponderMove backend.Move) {
 	e.fillMoveHistory(searchParams.Positions)
-	e.timeManager = newTimeManager(searchParams.Limits, e.MoveOverhead.Val, searchParams.Positions[len(searchParams.Positions)-1].SideToMove)
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
-	if e.hardTimeout() > 0 {
-		ctx, cancel = context.WithTimeout(ctx, e.hardTimeout())
-	}
 	defer cancel()
+	var timeoutCtx context.Context
+	timeoutCtx, e.timeManager = newTimeManager(ctx, &searchParams.Limits, e.MoveOverhead.Val, e.Ponder.Val, searchParams.Positions[len(searchParams.Positions)-1].SideToMove)
+	if searchParams.Limits.Ponder {
+		definePonderCancellation(ponderCtx, timeoutCtx, cancel)
+	} else {
+		ctx = timeoutCtx
+	}
 	e.done = ctx.Done()
-	return e.bestMove(ctx, &searchParams.Positions[len(searchParams.Positions)-1])
+	return e.bestMove(ctx, ponderCtx, &searchParams.Positions[len(searchParams.Positions)-1])
+}
+
+func definePonderCancellation(ponderCtx context.Context, timeoutCtx context.Context, cancel context.CancelFunc) {
+	go func() {
+		<-ponderCtx.Done()
+		<-timeoutCtx.Done()
+		cancel()
+	}()
 }
 
 func (e *Engine) fillMoveHistory(positions []backend.Position) {
