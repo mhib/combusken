@@ -208,7 +208,7 @@ func (e *Engine) tbhits() (sum int) {
 
 func (t *thread) incNodes() {
 	t.nodes++
-	if (t.nodes % 255) == 0 {
+	if (t.nodes % 511) == 0 {
 		select {
 		case <-t.engine.done:
 			panic(errTimeout)
