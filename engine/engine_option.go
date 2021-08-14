@@ -13,15 +13,16 @@ type EngineOption interface {
 }
 
 type IntOption struct {
-	Name string
-	Min  int
-	Max  int
-	Val  int
+	Name    string
+	Min     int
+	Max     int
+	Val     int
+	Default int
 }
 
 func (option *IntOption) ToUci() string {
-	return fmt.Sprintf("option name %v type %v default %v min %v max %v",
-		option.Name, "spin", option.Val, option.Min, option.Max)
+	return fmt.Sprintf("option name %v type spin default %v min %v max %v",
+		option.Name, option.Default, option.Min, option.Max)
 }
 
 func (option *IntOption) GetName() string {
@@ -31,7 +32,7 @@ func (option *IntOption) GetName() string {
 func (option *IntOption) SetValue(value string) error {
 	v, err := strconv.Atoi(value)
 	if err != nil {
-		return errors.New("Invalid setoption arguments")
+		return errors.New("invalid setoption arguments")
 	}
 	if v < option.Min || v > option.Max {
 		return errors.New("argument out of range")
@@ -41,20 +42,21 @@ func (option *IntOption) SetValue(value string) error {
 }
 
 type StringOption struct {
-	Name  string
-	Val   string
-	Dirty bool
+	Name    string
+	Val     string
+	Default string
+	Dirty   bool
 }
 
 func (option *StringOption) ToUci() string {
 	var inspectValue string
-	if option.Val == "" {
+	if option.Default == "" {
 		inspectValue = "<empty>"
 	} else {
-		inspectValue = option.Val
+		inspectValue = option.Default
 	}
-	return fmt.Sprintf("option name %v type %v default %v",
-		option.Name, "string", inspectValue)
+	return fmt.Sprintf("option name %v type string default %v",
+		option.Name, inspectValue)
 }
 
 func (option *StringOption) GetName() string {

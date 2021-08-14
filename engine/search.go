@@ -754,7 +754,7 @@ func (e *Engine) singleThreadBestMove(ctx context.Context, rootMoves []EvaledMov
 			return lastBestMove
 		case res := <-resultChan:
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newUciScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
+			e.Update(SearchInfo{newReportScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= i {
 				return res.Move
 			}
@@ -811,7 +811,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			} else {
 				score = 0
 			}
-			e.Update(SearchInfo{newUciScore(score), MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
+			e.Update(SearchInfo{newReportScore(score), MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
 			return bestMove
 		}
 	}
@@ -851,7 +851,7 @@ func (e *Engine) bestMove(ctx context.Context, pos *Position) Move {
 			nodes := e.nodes()
 			tbhits := e.tbhits()
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newUciScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
+			e.Update(SearchInfo{newReportScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {
 				return res.Move
 			}

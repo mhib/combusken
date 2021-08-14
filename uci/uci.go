@@ -24,7 +24,7 @@ type UciProtocol struct {
 }
 
 func NewUciProtocol(e Engine) *UciProtocol {
-	e.Update = updateUci
+	e.SetUpdate(updateUci)
 	uci := &UciProtocol{
 		messages:  make(chan interface{}),
 		waitChan:  make(chan interface{}),

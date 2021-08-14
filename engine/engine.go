@@ -44,23 +44,23 @@ type thread struct {
 	stack           [STACK_SIZE]StackEntry
 }
 
-type UciScore struct {
+type ReportScore struct {
 	Mate      int
 	Centipawn int
 }
 
-func newUciScore(score int) UciScore {
+func newReportScore(score int) ReportScore {
 	if score >= ValueWin {
-		return UciScore{Mate: (Mate - score + 1) / 2}
+		return ReportScore{Mate: (Mate - score + 1) / 2}
 	} else if score <= ValueLoss {
-		return UciScore{Mate: (-Mate - score) / 2}
+		return ReportScore{Mate: (-Mate - score) / 2}
 	} else {
-		return UciScore{Centipawn: score}
+		return ReportScore{Centipawn: score}
 	}
 }
 
 type SearchInfo struct {
-	Score    UciScore
+	Score    ReportScore
 	Depth    int
 	Nodes    int
 	Nps      int
@@ -118,15 +118,19 @@ func (e *Engine) GetOptions() []EngineOption {
 }
 
 func NewEngine() (ret Engine) {
-	ret.Hash = IntOption{"Hash", 4, 1024 * 256, 256}
-	ret.Threads = IntOption{"Threads", 1, runtime.NumCPU(), 1}
-	ret.PawnHash = IntOption{"PawnHash", 0, 8, 2}
-	ret.MoveOverhead = IntOption{"Move Overhead", 0, 10000, 50}
-	ret.SyzygyPath = StringOption{"SyzygyPath", "", false}
-	ret.SyzygyProbeDepth = IntOption{"SyzygyProbeDepth", 0, 100, 0}
+	ret.Hash = IntOption{"Hash", 4, 1024 * 256, 256, 256}
+	ret.Threads = IntOption{"Threads", 1, runtime.NumCPU(), 1, 1}
+	ret.PawnHash = IntOption{"PawnHash", 0, 8, 2, 2}
+	ret.MoveOverhead = IntOption{"Move Overhead", 0, 10000, 50, 50}
+	ret.SyzygyPath = StringOption{"SyzygyPath", "", "", false}
+	ret.SyzygyProbeDepth = IntOption{"SyzygyProbeDepth", 0, 100, 0, 0}
 	ret.threads = make([]thread, 1)
 	ret.Update = func(SearchInfo) {}
 	return
+}
+
+func (e *Engine) SetUpdate(update func(SearchInfo)) {
+	e.Update = update
 }
 
 func (e *Engine) Search(ctx context.Context, searchParams SearchParams) backend.Move {
