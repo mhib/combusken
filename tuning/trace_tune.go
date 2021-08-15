@@ -1,5 +1,8 @@
 package tuning
 
+// Tuner is based on this paper by Andrew Grant:
+// https://github.com/AndyGrant/Ethereal/blob/master/Tuning.pdf
+
 import (
 	"fmt"
 	"math"

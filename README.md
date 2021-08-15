@@ -46,9 +46,11 @@ Combusken's search procedure is influenced by Ethereal's; some parts of evaluati
 
 Andrew Grant's [OpenBench](https://github.com/AndyGrant/OpenBench) is used for testing.
 
+Tuner is based on [this paper](https://github.com/AndyGrant/Ethereal/blob/master/Tuning.pdf) by Andrew Grant
+
 + [Laser](https://github.com/jeffreyan11/laser-chess-engine/) by Jeffrey An
 
-SEE, Internal Iterative Deepening constants.
+Static Exchange Evaluation
 
 + [Stockfish](https://github.com/official-stockfish/Stockfish/) by Tord Romstad, Marco Costalba, Joona Kiiski & Gary Linscott
 
