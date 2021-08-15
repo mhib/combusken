@@ -12,6 +12,10 @@ Size of Pawn Hash Table. Default value should always work ok, as hit-ratio in Pa
 ### Move Overhead
 Time buffer in ms. Should be increased when you notice time-losses.
 
+### Ponder
+Set when engine is used in "thinking on opponent's time" mode.
+Alters time management algorithm to use slightly more time.
+
 ## CLI options
 ### `combusken bench`
 Runs benchmark
