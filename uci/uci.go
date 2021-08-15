@@ -21,7 +21,6 @@ type UciProtocol struct {
 	cancel       context.CancelFunc
 	ponderCancel context.CancelFunc
 	state        func(msg interface{})
-	waitChan     chan interface{}
 }
 
 type searchResult struct {
@@ -33,7 +32,6 @@ func NewUciProtocol(e Engine) *UciProtocol {
 	e.SetUpdate(updateUci)
 	uci := &UciProtocol{
 		messages:  make(chan interface{}),
-		waitChan:  make(chan interface{}),
 		engine:    e,
 		positions: []backend.Position{backend.InitialPosition},
 	}
@@ -47,7 +45,6 @@ func NewUciProtocol(e Engine) *UciProtocol {
 		"stop":       uci.stopCommand,
 		"setoption":  uci.setOptionCommand,
 	}
-	close(uci.waitChan)
 	return uci
 }
 
@@ -134,13 +131,10 @@ func (uci *UciProtocol) uciCommand(...string) {
 }
 
 func (uci *UciProtocol) isReadyCommand(...string) {
-	<-uci.waitChan
 	fmt.Println("readyok")
 }
 
 func (uci *UciProtocol) positionCommand(args ...string) {
-	uci.waitChan = make(chan interface{})
-	defer close(uci.waitChan)
 	var fen string
 	token := args[0]
 	movesIndex := findIndexString(args, "moves")
@@ -241,8 +235,6 @@ func parseLimits(args []string) (result LimitsType) {
 }
 
 func (uci *UciProtocol) uciNewGameCommand(...string) {
-	uci.waitChan = make(chan interface{})
-	defer close(uci.waitChan)
 	uci.engine.NewGame()
 }
 
