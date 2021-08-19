@@ -252,7 +252,7 @@ func (uci *UciProtocol) stopCommand(...string) {
 
 func updateUci(s SearchInfo) {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("info depth %d nodes %d score ", s.Depth, s.Nodes))
+	sb.WriteString(fmt.Sprintf("info depth %d seldepth %d nodes %d score ", s.Depth, s.SelDepth, s.Nodes))
 	if s.Score.Mate != 0 {
 		sb.WriteString(fmt.Sprintf("mate %d ", s.Score.Mate))
 	} else {

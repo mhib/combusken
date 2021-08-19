@@ -42,6 +42,7 @@ type thread struct {
 	nodes           int
 	tbhits          int
 	disableNmpColor int
+	seldepth        int
 	stack           [STACK_SIZE]StackEntry
 }
 
@@ -63,6 +64,7 @@ func newReportScore(score int) ReportScore {
 type SearchInfo struct {
 	Score    ReportScore
 	Depth    int
+	SelDepth int
 	Nodes    int
 	Nps      int
 	Duration int
@@ -192,16 +194,11 @@ func (e *Engine) NewGame() {
 	runtime.GC()
 }
 
-func (e *Engine) nodes() (sum int) {
+func (e *Engine) aggregatesInfo() (nodes, tbhits, seldepth int) {
 	for i := range e.threads {
-		sum += e.threads[i].nodes
-	}
-	return
-}
-
-func (e *Engine) tbhits() (sum int) {
-	for i := range e.threads {
-		sum += e.threads[i].tbhits
+		nodes += e.threads[i].nodes
+		tbhits += e.threads[i].tbhits
+		seldepth = Max(seldepth, e.threads[i].seldepth)
 	}
 	return
 }
