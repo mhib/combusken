@@ -738,13 +738,12 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 func (e *Engine) singleThreadBestMove(ctx, ponderCtx context.Context, rootMoves []EvaledMove) (Move, Move) {
 	var lastBestMove, lastPonderMove Move
 	thread := e.threads[0]
-	var res searchResult
 	lastValue := -Mate
 	for i := 1; ; i++ {
-		resultChan := make(chan searchResult, 1)
+		resultChan := make(chan aspirationWindowResult, 1)
 		go func(depth int) {
 			defer recoverFromTimeout()
-			res = thread.aspirationWindow(depth, lastValue, rootMoves).searchResult
+			res := thread.aspirationWindow(depth, lastValue, rootMoves)
 			resultChan <- res
 			lastValue = res.value
 		}(i)
@@ -753,7 +752,7 @@ func (e *Engine) singleThreadBestMove(ctx, ponderCtx context.Context, rootMoves 
 			return lastBestMove, lastPonderMove
 		case res := <-resultChan:
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newReportScore(res.value), res.depth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
+			e.Update(SearchInfo{newReportScore(res.value), res.requestedDepth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
 			lastBestMove = res.moves[0]
 			lastPonderMove = NullMove
 			if len(res.moves) > 1 {
@@ -859,7 +858,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 			if len(res.moves) > 1 {
 				lastPonderMove = res.moves[1]
 			}
-			e.Update(SearchInfo{newReportScore(res.value), res.depth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
+			e.Update(SearchInfo{newReportScore(res.value), res.requestedDepth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
 			if res.depth >= MAX_HEIGHT {
 				return lastBestMove, lastPonderMove
 			}
