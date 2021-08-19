@@ -30,7 +30,7 @@ type Engine struct {
 	done              <-chan struct{}
 	RepeatedPositions map[uint64]interface{}
 	MovesCount        int
-	Update            func(SearchInfo)
+	Update            func(*SearchInfo)
 	timeManager
 	threads []thread
 }
@@ -129,11 +129,11 @@ func NewEngine() (ret Engine) {
 	ret.SyzygyProbeDepth = IntOption{"SyzygyProbeDepth", 0, 100, 0, 0}
 	ret.Ponder = CheckOption{"Ponder", false, false}
 	ret.threads = make([]thread, 1)
-	ret.Update = func(SearchInfo) {}
+	ret.Update = func(*SearchInfo) {}
 	return
 }
 
-func (e *Engine) SetUpdate(update func(SearchInfo)) {
+func (e *Engine) SetUpdate(update func(*SearchInfo)) {
 	e.Update = update
 }
 

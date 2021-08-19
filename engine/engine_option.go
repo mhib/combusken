@@ -21,7 +21,7 @@ type IntOption struct {
 }
 
 func (option *IntOption) ToUci() string {
-	return fmt.Sprintf("option name %v type spin default %v min %v max %v",
+	return fmt.Sprintf("option name %s type spin default %d min %d max %d",
 		option.Name, option.Default, option.Min, option.Max)
 }
 
@@ -55,8 +55,7 @@ func (option *StringOption) ToUci() string {
 	} else {
 		inspectValue = option.Default
 	}
-	return fmt.Sprintf("option name %v type string default %v",
-		option.Name, inspectValue)
+	return fmt.Sprintf("option name %s type string default %s", option.Name, inspectValue)
 }
 
 func (option *StringOption) GetName() string {
@@ -84,8 +83,7 @@ func (option *CheckOption) ToUci() string {
 	if option.Default {
 		inspectValue = "true"
 	}
-	return fmt.Sprintf("option name %v type check default %v",
-		option.Name, inspectValue)
+	return fmt.Sprintf("option name %s type check default %s", option.Name, inspectValue)
 }
 
 func (option *CheckOption) GetName() string {

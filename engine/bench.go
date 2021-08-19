@@ -55,7 +55,7 @@ func Benchmark() {
 	for _, entry := range epds {
 		tmpNodes := 0
 		engine.NewGame()
-		engine.Update = func(si SearchInfo) {
+		engine.Update = func(si *SearchInfo) {
 			tmpNodes = si.Nodes
 		}
 		ponderCtx, ponderCancel := context.WithCancel(context.Background())

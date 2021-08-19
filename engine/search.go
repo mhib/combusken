@@ -757,7 +757,7 @@ func (e *Engine) singleThreadBestMove(ctx, ponderCtx context.Context, rootMoves 
 			return lastBestMove, lastPonderMove
 		case res := <-resultChan:
 			timeSinceStart := e.getElapsedTime()
-			e.Update(SearchInfo{newReportScore(res.value), res.requestedDepth, thread.seldepth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
+			e.Update(&SearchInfo{newReportScore(res.value), res.requestedDepth, thread.seldepth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
 			lastBestMove = res.moves[0]
 			lastPonderMove = NullMove
 			if len(res.moves) > 1 {
@@ -816,7 +816,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 			} else {
 				score = 0
 			}
-			e.Update(SearchInfo{newReportScore(score), MAX_HEIGHT - 1, MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
+			e.Update(&SearchInfo{newReportScore(score), MAX_HEIGHT - 1, MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
 			return bestMove, NullMove
 		}
 	}
@@ -862,7 +862,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 			if len(res.moves) > 1 {
 				lastPonderMove = res.moves[1]
 			}
-			e.Update(SearchInfo{newReportScore(res.value), res.requestedDepth, seldepth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
+			e.Update(&SearchInfo{newReportScore(res.value), res.requestedDepth, seldepth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
 			if res.depth >= MAX_HEIGHT {
 				return lastBestMove, lastPonderMove
 			}

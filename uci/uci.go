@@ -3,6 +3,7 @@ package uci
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -14,9 +15,10 @@ import (
 )
 
 type UciProtocol struct {
+	writeBuffer  bytes.Buffer
 	commands     map[string]func(args ...string)
 	messages     chan interface{}
-	engine       Engine
+	engine       *Engine
 	positions    []backend.Position
 	cancel       context.CancelFunc
 	ponderCancel context.CancelFunc
@@ -28,12 +30,13 @@ type searchResult struct {
 	ponderMove backend.Move
 }
 
-func NewUciProtocol(e Engine) *UciProtocol {
-	e.SetUpdate(updateUci)
+func NewUciProtocol(e *Engine) *UciProtocol {
+	var updateBufferArray [1000]byte
 	uci := &UciProtocol{
-		messages:  make(chan interface{}),
-		engine:    e,
-		positions: []backend.Position{backend.InitialPosition},
+		messages:    make(chan interface{}),
+		engine:      e,
+		positions:   []backend.Position{backend.InitialPosition},
+		writeBuffer: *bytes.NewBuffer(updateBufferArray[:]),
 	}
 	uci.commands = map[string]func(args ...string){
 		"uci":        uci.uciCommand,
@@ -45,12 +48,15 @@ func NewUciProtocol(e Engine) *UciProtocol {
 		"stop":       uci.stopCommand,
 		"setoption":  uci.setOptionCommand,
 	}
+	e.SetUpdate(func(s *SearchInfo) {
+		uci.messages <- s
+	})
 	return uci
 }
 
 func (uci *UciProtocol) Run() {
 	name, version, _ := uci.engine.GetInfo()
-	fmt.Printf("%v %v\n", name, version)
+	uci.printLn(name, " ", version)
 	go func() {
 		uci.state = uci.idle
 		for msg := range uci.messages {
@@ -80,10 +86,12 @@ func (uci *UciProtocol) idle(msg interface{}) {
 		if ok {
 			cmd(fields[1:]...)
 		} else {
-			debugUci("Command not found.")
+			uci.debug("Command not found.")
 		}
 	case searchResult:
-		debugUci("Unexpected best move.")
+		uci.debug("Unexpected best move.")
+	case *SearchInfo:
+		uci.debug("Unexpected searchInfo.")
 	}
 }
 
@@ -101,37 +109,51 @@ func (uci *UciProtocol) thinking(msg interface{}) {
 		case "ponderhit":
 			uci.ponderhitCommand()
 		default:
-			debugUci("Unexpected command " + commandName + ".")
+			uci.debug("Unexpected command " + commandName + ".")
 		}
 	case searchResult:
-		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("bestmove %s", msg.bestMove.String()))
+		uci.writeBuffer.WriteString("bestmove ")
+		uci.writeBuffer.WriteString(msg.bestMove.String())
 		if msg.ponderMove != backend.NullMove {
-			sb.WriteString(fmt.Sprintf(" ponder %s", msg.ponderMove.String()))
+			uci.writeBuffer.WriteString(" ")
+			uci.writeBuffer.WriteString(msg.ponderMove.String())
 		}
-		sb.WriteString("\n")
-		fmt.Print(sb.String())
+		uci.writeBuffer.WriteString("\n")
+		uci.writeBuffer.WriteTo(os.Stdout)
 		uci.state = uci.idle
+	case *SearchInfo:
+		uci.update(msg)
 	}
 }
 
-func debugUci(s string) {
-	fmt.Println("info string " + s)
+func (uci *UciProtocol) debug(s string) {
+	uci.writeBuffer.WriteString("info string ")
+	uci.writeBuffer.WriteString(s)
+	uci.writeBuffer.WriteString("\n")
+	uci.writeBuffer.WriteTo(os.Stdout)
+}
+
+func (uci *UciProtocol) printLn(strings ...string) {
+	for idx := range strings {
+		uci.writeBuffer.WriteString(strings[idx])
+	}
+	uci.writeBuffer.WriteString("\n")
+	uci.writeBuffer.WriteTo(os.Stdout)
 }
 
 func (uci *UciProtocol) uciCommand(...string) {
 	uci.engine.NewGame()
 	name, version, author := uci.engine.GetInfo()
-	fmt.Printf("id name %s %s\n", name, version)
-	fmt.Printf("id author %s\n", author)
+	uci.printLn("id name ", name, " ", version)
+	uci.printLn("id author ", author)
 	for _, option := range uci.engine.GetOptions() {
-		fmt.Println(option.ToUci())
+		uci.printLn(option.ToUci())
 	}
-	fmt.Println("uciok")
+	uci.printLn("uciok")
 }
 
 func (uci *UciProtocol) isReadyCommand(...string) {
-	fmt.Println("readyok")
+	uci.printLn("readyok")
 }
 
 func (uci *UciProtocol) positionCommand(args ...string) {
@@ -147,7 +169,7 @@ func (uci *UciProtocol) positionCommand(args ...string) {
 			fen = strings.Join(args[1:movesIndex], " ")
 		}
 	} else {
-		debugUci("Wrong position command")
+		uci.debug("Wrong position command")
 		return
 	}
 	p := backend.ParseFen(fen)
@@ -156,7 +178,7 @@ func (uci *UciProtocol) positionCommand(args ...string) {
 		for _, smove := range args[movesIndex+1:] {
 			newPos, ok := positions[len(positions)-1].MakeMoveLAN(smove)
 			if !ok {
-				debugUci("Wrong move")
+				uci.debug("Wrong move")
 				return
 			}
 			positions = append(positions, newPos)
@@ -250,30 +272,29 @@ func (uci *UciProtocol) stopCommand(...string) {
 	}
 }
 
-func updateUci(s SearchInfo) {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("info depth %d seldepth %d nodes %d score ", s.Depth, s.SelDepth, s.Nodes))
+func (uci *UciProtocol) update(s *SearchInfo) {
+	uci.writeBuffer.WriteString(fmt.Sprintf("info depth %d seldepth %d nodes %d score ", s.Depth, s.SelDepth, s.Nodes))
 	if s.Score.Mate != 0 {
-		sb.WriteString(fmt.Sprintf("mate %d ", s.Score.Mate))
+		uci.writeBuffer.WriteString(fmt.Sprintf("mate %d ", s.Score.Mate))
 	} else {
-		sb.WriteString(fmt.Sprintf("cp %d ", s.Score.Centipawn))
+		uci.writeBuffer.WriteString(fmt.Sprintf("cp %d ", s.Score.Centipawn))
 	}
-	sb.WriteString(fmt.Sprintf("nps %d ", s.Nps))
-	sb.WriteString(fmt.Sprintf("time %d ", s.Duration))
-	sb.WriteString(fmt.Sprintf("tbhits %d ", s.Tbhits))
+	uci.writeBuffer.WriteString(fmt.Sprintf("nps %d ", s.Nps))
+	uci.writeBuffer.WriteString(fmt.Sprintf("time %d ", s.Duration))
+	uci.writeBuffer.WriteString(fmt.Sprintf("tbhits %d ", s.Tbhits))
 
-	sb.WriteString("pv ")
+	uci.writeBuffer.WriteString("pv ")
 	for _, move := range s.Moves {
-		sb.WriteString(move.String())
-		sb.WriteString(" ")
+		uci.writeBuffer.WriteString(move.String())
+		uci.writeBuffer.WriteString(" ")
 	}
-	sb.WriteString("\n")
-	fmt.Print(sb.String())
+	uci.writeBuffer.WriteString("\n")
+	uci.writeBuffer.WriteTo(os.Stdout)
 }
 
 func (uci *UciProtocol) setOptionCommand(fields ...string) {
 	if len(fields) < 4 {
-		debugUci("invalid setoption arguments")
+		uci.debug("invalid setoption arguments")
 		return
 	}
 
@@ -285,10 +306,10 @@ func (uci *UciProtocol) setOptionCommand(fields ...string) {
 		if strings.EqualFold(option.GetName(), name) {
 			err := option.SetValue(value)
 			if err != nil {
-				debugUci(err.Error())
+				uci.debug(err.Error())
 			}
 			return
 		}
 	}
-	debugUci("unhandled option")
+	uci.debug("unhandled option")
 }
