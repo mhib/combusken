@@ -15,12 +15,12 @@ const HistoryMultiplier = 47
 const HistoryDivisor = 482
 
 type MoveHistory struct {
-	KillerMoves      [STACK_SIZE + 1][2]Move
+	KillerMoves      [StackSize + 1][2]Move
 	CounterMoves     [2][64][64]Move
 	ButterflyHistory [2][64][64]int32
 	FollowUpHistory  [King + 1][64][King + 1][64]int32
 	CounterHistory   [King + 1][64][King + 1][64]int32
-	CurrentMove      [STACK_SIZE + 1]Move
+	CurrentMove      [StackSize + 1]Move
 }
 
 func (mv *MoveHistory) ResetKillers(height int) {
@@ -72,7 +72,7 @@ func (mv *MoveHistory) Clear() {
 		}
 
 	}
-	for y := 0; y <= STACK_SIZE; y++ {
+	for y := 0; y <= StackSize; y++ {
 		for x := 0; x < 2; x++ {
 			mv.KillerMoves[y][x] = NullMove
 		}

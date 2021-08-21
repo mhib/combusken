@@ -14,9 +14,9 @@ func addPromotions(move Move, buffer []EvaledMove) {
 }
 
 var forwardByColor = [2]int{-8, +8}
-var secondRank = [2]int{RANK_7, RANK_2}
-var promotionBB = [2]uint64{RANK_2_BB, RANK_7_BB}
-var epRankBB = [2]uint64{RANK_4_BB, RANK_5_BB}
+var secondRank = [2]int{Rank7, Rank2}
+var promotion_BB = [2]uint64{Rank2_BB, Rank7_BB}
+var epRank_BB = [2]uint64{Rank4_BB, Rank5_BB}
 
 func GenerateQuiet(pos *Position, buffer []EvaledMove) (size uint8) {
 	var fromBB, toBB, toMask uint64
@@ -26,7 +26,7 @@ func GenerateQuiet(pos *Position, buffer []EvaledMove) (size uint8) {
 	theirOccupation := pos.Colours[sideToMove^1]
 	allOccupation := ourOccupation | theirOccupation
 	forward := forwardByColor[sideToMove]
-	for fromBB = pos.Pieces[Pawn] & ourOccupation & ^promotionBB[sideToMove]; fromBB > 0; fromBB &= (fromBB - 1) {
+	for fromBB = pos.Pieces[Pawn] & ourOccupation & ^promotion_BB[sideToMove]; fromBB > 0; fromBB &= (fromBB - 1) {
 		fromId = BitScan(fromBB)
 		toId = fromId + forward
 		toMask = SquareMask[toId]
@@ -46,20 +46,20 @@ func GenerateQuiet(pos *Position, buffer []EvaledMove) (size uint8) {
 
 	// Castling
 	if pos.SideToMove == White {
-		if allOccupation&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(F1, Black) {
+		if allOccupation&WhiteKingCastleBlock_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(F1, Black) {
 			buffer[size].Move = WhiteKingSideCastle
 			size++
 		}
-		if allOccupation&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(D1, Black) {
+		if allOccupation&WhiteQueenCastleBlock_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(D1, Black) {
 			buffer[size].Move = WhiteQueenSideCastle
 			size++
 		}
 	} else {
-		if allOccupation&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(F8, White) {
+		if allOccupation&BlackKingCastleBlock_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(F8, White) {
 			buffer[size].Move = BlackKingSideCastle
 			size++
 		}
-		if allOccupation&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(D8, White) {
+		if allOccupation&BlackQueenCastleBlock_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(D8, White) {
 			buffer[size].Move = BlackQueenSideCastle
 			size++
 		}
@@ -135,7 +135,7 @@ func GenerateNoisy(pos *Position, buffer []EvaledMove) (size uint8) {
 	forward := forwardByColor[sideToMove]
 	if pos.EpSquare != 0 {
 		fromBB = (SquareMask[uint(pos.EpSquare)-1] | SquareMask[uint(pos.EpSquare)+1]) &
-			epRankBB[sideToMove] & pos.Pieces[Pawn] & ourOccupation
+			epRank_BB[sideToMove] & pos.Pieces[Pawn] & ourOccupation
 		for ; fromBB > 0; fromBB &= (fromBB - 1) {
 			fromId = BitScan(fromBB)
 			buffer[size].Move = NewMove(fromId, pos.EpSquare+forward, Pawn, Pawn, NewType(1, 0, 0, 1))
@@ -143,9 +143,9 @@ func GenerateNoisy(pos *Position, buffer []EvaledMove) (size uint8) {
 		}
 	}
 	if sideToMove == White {
-		fromBB = BlackPawnsAttacks(theirOccupation) | RANK_7_BB
+		fromBB = BlackPawnsAttacks(theirOccupation) | Rank7_BB
 	} else {
-		fromBB = WhitePawnsAttacks(theirOccupation) | RANK_2_BB
+		fromBB = WhitePawnsAttacks(theirOccupation) | Rank2_BB
 	}
 	for fromBB &= pos.Pieces[Pawn] & ourOccupation; fromBB != 0; fromBB &= fromBB - 1 {
 		fromId = BitScan(fromBB)

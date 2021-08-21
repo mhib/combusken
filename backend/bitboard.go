@@ -6,74 +6,74 @@ import (
 )
 
 const (
-	FILE_A = iota
-	FILE_B
-	FILE_C
-	FILE_D
-	FILE_E
-	FILE_F
-	FILE_G
-	FILE_H
+	FileA = iota
+	FileB
+	FileC
+	FileD
+	FileE
+	FileF
+	FileG
+	FileH
 )
 
 const (
-	RANK_1 = iota
-	RANK_2
-	RANK_3
-	RANK_4
-	RANK_5
-	RANK_6
-	RANK_7
-	RANK_8
+	Rank1 = iota
+	Rank2
+	Rank3
+	Rank4
+	Rank5
+	Rank6
+	Rank7
+	Rank8
 )
 const (
-	RANK_1_BB uint64 = 0x00000000000000FF
-	RANK_2_BB uint64 = 0x000000000000FF00
-	RANK_3_BB uint64 = 0x0000000000FF0000
-	RANK_4_BB uint64 = 0x00000000FF000000
-	RANK_5_BB uint64 = 0x000000FF00000000
-	RANK_6_BB uint64 = 0x0000FF0000000000
-	RANK_7_BB uint64 = 0x00FF000000000000
-	RANK_8_BB uint64 = 0xFF00000000000000
+	Rank1_BB uint64 = 0x00000000000000FF
+	Rank2_BB uint64 = 0x000000000000FF00
+	Rank3_BB uint64 = 0x0000000000FF0000
+	Rank4_BB uint64 = 0x00000000FF000000
+	Rank5_BB uint64 = 0x000000FF00000000
+	Rank6_BB uint64 = 0x0000FF0000000000
+	Rank7_BB uint64 = 0x00FF000000000000
+	Rank8_BB uint64 = 0xFF00000000000000
 
-	FILE_A_BB uint64 = 0x0101010101010101
-	FILE_B_BB uint64 = 0x0202020202020202
-	FILE_C_BB uint64 = 0x0404040404040404
-	FILE_D_BB uint64 = 0x0808080808080808
-	FILE_E_BB uint64 = 0x1010101010101010
-	FILE_F_BB uint64 = 0x2020202020202020
-	FILE_G_BB uint64 = 0x4040404040404040
-	FILE_H_BB uint64 = 0x8080808080808080
+	FileA_BB uint64 = 0x0101010101010101
+	FileB_BB uint64 = 0x0202020202020202
+	FileC_BB uint64 = 0x0404040404040404
+	FileD_BB uint64 = 0x0808080808080808
+	FileE_BB uint64 = 0x1010101010101010
+	FileF_BB uint64 = 0x2020202020202020
+	FileG_BB uint64 = 0x4040404040404040
+	FileH_BB uint64 = 0x8080808080808080
 
-	WHITE_SQUARES uint64 = 0x55AA55AA55AA55AA
-	BLACK_SQUARES uint64 = 0xAA55AA55AA55AA55
+	WhiteSquares_BB uint64 = 0x55AA55AA55AA55AA
+	BlackSquares_BB uint64 = 0xAA55AA55AA55AA55
 
-	WHITE_KING_CASTLE_BLOCK_BB  uint64 = F1_BB | G1_BB
-	WHITE_QUEEN_CASTLE_BLOCK_BB uint64 = B1_BB | C1_BB | D1_BB
-	BLACK_KING_CASTLE_BLOCK_BB  uint64 = F8_BB | G8_BB
-	BLACK_QUEEN_CASTLE_BLOCK_BB uint64 = B8_BB | C8_BB | D8_BB
+	WhiteKingCastleBlock_BB  uint64 = F1_BB | G1_BB
+	WhiteQueenCastleBlock_BB uint64 = B1_BB | C1_BB | D1_BB
+	BlackKingCastleBlock_BB  uint64 = F8_BB | G8_BB
+	BlackQueenCastleBlock_BB uint64 = B8_BB | C8_BB | D8_BB
 
-	PROMOTION_RANKS uint64 = RANK_1_BB | RANK_8_BB
-	CENTER          uint64 = (FILE_D_BB | FILE_E_BB) & (RANK_4_BB | RANK_5_BB)
-	LONG_DIAGONALS  uint64 = 0x8142241818244281
+	PromotionRanks_BB uint64 = Rank1_BB | Rank8_BB
+	Center_BB         uint64 = (FileD_BB | FileE_BB) & (Rank4_BB | Rank5_BB)
+	LongDiagonals_BB  uint64 = 0x8142241818244281
 
-	QUEEN_SIDE_BB   uint64 = FILE_A_BB | FILE_B_BB | FILE_C_BB | FILE_D_BB
-	KING_SIDE_BB    uint64 = FILE_E_BB | FILE_F_BB | FILE_G_BB | FILE_H_BB
-	CENTER_FILES_BB uint64 = FILE_C_BB | FILE_D_BB | FILE_E_BB | FILE_F_BB
+	QueenSide_BB   uint64 = FileA_BB | FileB_BB | FileC_BB | FileD_BB
+	KingSide_BB    uint64 = FileE_BB | FileF_BB | FileG_BB | FileH_BB
+	CenterFiles_BB uint64 = FileC_BB | FileD_BB | FileE_BB | FileF_BB
 )
 
-var RANKS = [...]uint64{RANK_1_BB, RANK_2_BB, RANK_3_BB, RANK_4_BB, RANK_5_BB, RANK_6_BB, RANK_7_BB, RANK_8_BB}
-var FILES = [...]uint64{FILE_A_BB, FILE_B_BB, FILE_C_BB, FILE_D_BB, FILE_E_BB, FILE_F_BB, FILE_G_BB, FILE_H_BB}
+var Ranks_BB = [...]uint64{Rank1_BB, Rank2_BB, Rank3_BB, Rank4_BB, Rank5_BB, Rank6_BB, Rank7_BB, Rank8_BB}
+var Files_BB = [...]uint64{FileA_BB, FileB_BB, FileC_BB, FileD_BB, FileE_BB, FileF_BB, FileG_BB, FileH_BB}
 
-var KING_FLANK_BB = [8]uint64{QUEEN_SIDE_BB ^ FILE_D_BB, QUEEN_SIDE_BB, QUEEN_SIDE_BB,
-	CENTER_FILES_BB, CENTER_FILES_BB, KING_SIDE_BB, KING_SIDE_BB, KING_SIDE_BB ^ FILE_E_BB}
+var KingFlank_BB = [8]uint64{QueenSide_BB ^ FileD_BB, QueenSide_BB, QueenSide_BB,
+	CenterFiles_BB, CenterFiles_BB, KingSide_BB, KingSide_BB, KingSide_BB ^ FileE_BB}
 
 func File(id int) int {
 	return id & 7
 }
 
 func FileBB(id int) uint64 {
-	return FILES[File(id)]
+	return Files_BB[File(id)]
 }
 
 func Rank(id int) int {
@@ -295,7 +295,7 @@ func SouthEast(set uint64) uint64 {
 	return set >> 7
 }
 
-var FileMirror = [8]int{FILE_A, FILE_B, FILE_C, FILE_D, FILE_D, FILE_C, FILE_B, FILE_A}
+var FileMirror = [8]int{FileA, FileB, FileC, FileD, FileD, FileC, FileB, FileA}
 
 func initArray(array *[64]uint64, method func(mask uint64) uint64) {
 	for i := uint32(0); i <= 63; i++ {
@@ -304,9 +304,9 @@ func initArray(array *[64]uint64, method func(mask uint64) uint64) {
 }
 
 func KingsAttacks(set uint64) uint64 {
-	return NorthEast(set & ^RANK_8_BB & ^FILE_H_BB) | North(set & ^RANK_8_BB) |
-		NorthWest(set & ^RANK_8_BB & ^FILE_A_BB) | East(set & ^FILE_H_BB) | West(set & ^FILE_A_BB) |
-		SouthEast(set & ^RANK_1_BB & ^FILE_H_BB) | South(set & ^RANK_1_BB) | SouthWest(set & ^RANK_1_BB & ^FILE_A_BB)
+	return NorthEast(set & ^Rank8_BB & ^FileH_BB) | North(set & ^Rank8_BB) |
+		NorthWest(set & ^Rank8_BB & ^FileA_BB) | East(set & ^FileH_BB) | West(set & ^FileA_BB) |
+		SouthEast(set & ^Rank1_BB & ^FileH_BB) | South(set & ^Rank1_BB) | SouthWest(set & ^Rank1_BB & ^FileA_BB)
 }
 
 func InspectBB(bb uint64) {
@@ -335,31 +335,31 @@ func KnightsAttacks(set uint64) uint64 {
 }
 
 func WhitePawnsAttacks(set uint64) uint64 {
-	return NorthWest(set & ^FILE_A_BB) |
-		NorthEast(set & ^FILE_H_BB)
+	return NorthWest(set & ^FileA_BB) |
+		NorthEast(set & ^FileH_BB)
 }
 
 func WhitePawnsDoubleAttacks(set uint64) uint64 {
-	return NorthWest(set & ^FILE_A_BB) &
-		NorthEast(set & ^FILE_H_BB)
+	return NorthWest(set & ^FileA_BB) &
+		NorthEast(set & ^FileH_BB)
 }
 
 func WhitePawnsMoves(set uint64, occupancy uint64) uint64 {
-	return (North(set) | ((North(North(set)) & RANK_4_BB) & ^North(occupancy&RANK_3_BB))) & ^occupancy
+	return (North(set) | ((North(North(set)) & Rank4_BB) & ^North(occupancy&Rank3_BB))) & ^occupancy
 }
 
 func BlackPawnsAttacks(set uint64) uint64 {
-	return SouthWest(set & ^FILE_A_BB) |
-		SouthEast(set & ^FILE_H_BB)
+	return SouthWest(set & ^FileA_BB) |
+		SouthEast(set & ^FileH_BB)
 }
 
 func BlackPawnsDoubleAttacks(set uint64) uint64 {
-	return SouthWest(set & ^FILE_A_BB) &
-		SouthEast(set & ^FILE_H_BB)
+	return SouthWest(set & ^FileA_BB) &
+		SouthEast(set & ^FileH_BB)
 }
 
 func BlackPawnsMoves(set uint64, occupancy uint64) uint64 {
-	return (South(set) | ((South(South(set)) & RANK_5_BB) & ^South(occupancy&RANK_6_BB))) & ^occupancy
+	return (South(set) | ((South(South(set)) & Rank5_BB) & ^South(occupancy&Rank6_BB))) & ^occupancy
 }
 
 func QueenAttacks(square int, occupancy uint64) uint64 {

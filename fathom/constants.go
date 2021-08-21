@@ -1,11 +1,11 @@
 package fathom
 
 const (
-	TB_LOSS = iota
-	TB_BLESSED_LOSS
-	TB_DRAW
-	TB_CURSED_WIN
-	TB_WIN
+	TbLoss = iota
+	TbBlessedLoss
+	TbDraw
+	TbCursedWin
+	TbWin
 )
 
-const TB_RESULT_FAILED = int64(0xFFFFFFFF)
+const TbResultFailed = int64(0xFFFFFFFF)

@@ -678,7 +678,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 	res = append(res, ScoreValue{&Isolated})
 	for a := 0; a < 2; a++ {
 		for b := 0; b < 2; b++ {
-			for file := FILE_A; file <= FILE_H; file++ {
+			for file := FileA; file <= FileH; file++ {
 				res = append(res, ScoreValue{&StackedPawns[a][b][file]})
 			}
 		}

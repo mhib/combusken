@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	MAX_ROOK_BITS        = 12
-	MAX_BISHOP_BITS      = 9
-	bishopShift     uint = 64 - MAX_BISHOP_BITS
-	rookShift       uint = 64 - MAX_ROOK_BITS
+	MaxRookBits        = 12
+	MaxBishopBits      = 9
+	bishopShift   uint = 64 - MaxBishopBits
+	rookShift     uint = 64 - MaxRookBits
 )
 
 var (
-	rookMoveBoard                      [64][1 << MAX_ROOK_BITS]uint64
-	bishopMoveBoard                    [64][1 << MAX_BISHOP_BITS]uint64
+	rookMoveBoard                      [64][1 << MaxRookBits]uint64
+	bishopMoveBoard                    [64][1 << MaxBishopBits]uint64
 	bishopBlockerMask, rookBlockerMask [64]uint64
 	rookMagicIndex, bishopMagicIndex   [64]uint64
 )
@@ -27,36 +27,36 @@ func generateRookBlockerMask(mask uint64) uint64 {
 	square := BitScan(mask)
 	file := File(square)
 	rank := Rank(square)
-	res |= FILES[file] | RANKS[rank]
+	res |= Files_BB[file] | Ranks_BB[rank]
 	res ^= mask
 
-	if file != FILE_A {
-		res &= ^FILE_A_BB
+	if file != FileA {
+		res &= ^FileA_BB
 	}
-	if file != FILE_H {
-		res &= ^FILE_H_BB
+	if file != FileH {
+		res &= ^FileH_BB
 	}
-	if rank != RANK_1 {
-		res &= ^RANK_1_BB
+	if rank != Rank1 {
+		res &= ^Rank1_BB
 	}
-	if rank != RANK_8 {
-		res &= ^RANK_8_BB
+	if rank != Rank8 {
+		res &= ^Rank8_BB
 	}
 	return res
 }
 
 func generateBishopBlockerMask(mask uint64) uint64 {
 	res := uint64(0)
-	for tmpMask := mask; tmpMask&FILE_H_BB == 0 && tmpMask&RANK_8_BB == 0; tmpMask = NorthEast(tmpMask) {
+	for tmpMask := mask; tmpMask&FileH_BB == 0 && tmpMask&Rank8_BB == 0; tmpMask = NorthEast(tmpMask) {
 		res |= tmpMask
 	}
-	for tmpMask := mask; tmpMask&FILE_H_BB == 0 && tmpMask&RANK_1_BB == 0; tmpMask = SouthEast(tmpMask) {
+	for tmpMask := mask; tmpMask&FileH_BB == 0 && tmpMask&Rank1_BB == 0; tmpMask = SouthEast(tmpMask) {
 		res |= tmpMask
 	}
-	for tmpMask := mask; tmpMask&FILE_A_BB == 0 && tmpMask&RANK_1_BB == 0; tmpMask = SouthWest(tmpMask) {
+	for tmpMask := mask; tmpMask&FileA_BB == 0 && tmpMask&Rank1_BB == 0; tmpMask = SouthWest(tmpMask) {
 		res |= tmpMask
 	}
-	for tmpMask := mask; tmpMask&FILE_A_BB == 0 && tmpMask&RANK_8_BB == 0; tmpMask = NorthWest(tmpMask) {
+	for tmpMask := mask; tmpMask&FileA_BB == 0 && tmpMask&Rank8_BB == 0; tmpMask = NorthWest(tmpMask) {
 		res |= tmpMask
 	}
 	res &= ^mask
@@ -102,7 +102,7 @@ func generateRookMoveBoard(idx int, board uint64) (res uint64) {
 	mask := uint64(1) << uint64(idx)
 	blockerMask := rookBlockerMask[idx]
 
-	if File(idx) != FILE_A {
+	if File(idx) != FileA {
 		for tmpMask := West(mask); ; tmpMask = West(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -110,7 +110,7 @@ func generateRookMoveBoard(idx int, board uint64) (res uint64) {
 			}
 		}
 	}
-	if File(idx) != FILE_H {
+	if File(idx) != FileH {
 		for tmpMask := East(mask); ; tmpMask = East(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -118,7 +118,7 @@ func generateRookMoveBoard(idx int, board uint64) (res uint64) {
 			}
 		}
 	}
-	if Rank(idx) != RANK_8 {
+	if Rank(idx) != Rank8 {
 		for tmpMask := North(mask); ; tmpMask = North(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -126,7 +126,7 @@ func generateRookMoveBoard(idx int, board uint64) (res uint64) {
 			}
 		}
 	}
-	if Rank(idx) != RANK_1 {
+	if Rank(idx) != Rank1 {
 		for tmpMask := South(mask); ; tmpMask = South(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -142,7 +142,7 @@ func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
 	mask := uint64(1) << uint64(idx)
 	blockerMask := bishopBlockerMask[idx]
 
-	if mask&FILE_H_BB == 0 && mask&RANK_8_BB == 0 {
+	if mask&FileH_BB == 0 && mask&Rank8_BB == 0 {
 		for tmpMask := NorthEast(mask); ; tmpMask = NorthEast(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -150,7 +150,7 @@ func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
 			}
 		}
 	}
-	if mask&FILE_H_BB == 0 && mask&RANK_1_BB == 0 {
+	if mask&FileH_BB == 0 && mask&Rank1_BB == 0 {
 		for tmpMask := SouthEast(mask); ; tmpMask = SouthEast(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -158,7 +158,7 @@ func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
 			}
 		}
 	}
-	if mask&FILE_A_BB == 0 && mask&RANK_1_BB == 0 {
+	if mask&FileA_BB == 0 && mask&Rank1_BB == 0 {
 		for tmpMask := SouthWest(mask); ; tmpMask = SouthWest(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {
@@ -166,7 +166,7 @@ func generateBishopMoveBoard(idx int, board uint64) (res uint64) {
 			}
 		}
 	}
-	if mask&FILE_A_BB == 0 && mask&RANK_8_BB == 0 {
+	if mask&FileA_BB == 0 && mask&Rank8_BB == 0 {
 		for tmpMask := NorthWest(mask); ; tmpMask = NorthWest(tmpMask) {
 			res |= tmpMask
 			if blockerMask&tmpMask == 0 || board&tmpMask > 0 {

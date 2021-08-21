@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	MIDDLE = iota
-	END
+	Middle = iota
+	End
 )
 
 const learningRate = 0.1
@@ -239,7 +239,7 @@ func TraceTune() {
 
 func (t *traceTuner) applyGradient(weights, gradient, adagrad []weight) {
 	for idx := range weights {
-		for i := MIDDLE; i <= END; i++ {
+		for i := Middle; i <= End; i++ {
 			adagrad[idx][i] += math.Pow(t.k*gradient[idx][i]/float64(t.batchSize), 2)
 			weights[idx][i] -= (t.k / float64(t.batchSize)) * gradient[idx][i] * (learningRate / math.Sqrt(1e-8+adagrad[idx][i]))
 		}
@@ -301,8 +301,8 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 		res.phase = 0
 	}
 
-	res.factors[MIDDLE] = 1.0 - float64(res.phase)/float64(TotalPhase)
-	res.factors[END] = float64(res.phase) / float64(TotalPhase)
+	res.factors[Middle] = 1.0 - float64(res.phase)/float64(TotalPhase)
+	res.factors[End] = float64(res.phase) / float64(TotalPhase)
 	res.phase = (res.phase*256 + (TotalPhase / 2)) / TotalPhase
 
 	res.evalDiff = res.eval - tuner.linearEvaluation(&res).cp
@@ -340,14 +340,14 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight
 				entry := entries[y]
 				evaluationResult := t.linearEvaluation(&entry)
 				derivative := t.singleLinearDerivative(&entry, evaluationResult.cp)
-				middleMultiplier := entry.factors[MIDDLE] * derivative
-				endMultiplier := entry.factors[END] * (float64(entry.scale) / float64(SCALE_NORMAL)) * derivative
+				middleMultiplier := entry.factors[Middle] * derivative
+				endMultiplier := entry.factors[End] * (float64(entry.scale) / float64(ScaleNormal)) * derivative
 				canUpdateEndgame := evaluationResult.endGameEval == 0 || evaluationResult.complexity >= -Abs(int(evaluationResult.endGameEval))
 				complexitySign := BoolToInt(evaluationResult.endGameEval > 0) - BoolToInt(evaluationResult.endGameEval < 0)
 				for _, coef := range entry.linearCoefficients {
-					localLinearRes[coef.idx][MIDDLE] += float64(coef.value) * middleMultiplier
+					localLinearRes[coef.idx][Middle] += float64(coef.value) * middleMultiplier
 					if canUpdateEndgame {
-						localLinearRes[coef.idx][END] += float64(coef.value) * endMultiplier
+						localLinearRes[coef.idx][End] += float64(coef.value) * endMultiplier
 					}
 				}
 				for coefIdx, coef := range entry.safetyCoefficients {
@@ -361,25 +361,25 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight
 						if entry.safetyCoefficients[coefIdx+1].blackValue == 0 {
 							blackScale = 0.0
 						}
-						localSafetyRes[coef.idx][MIDDLE] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*blackScale -
+						localSafetyRes[coef.idx][Middle] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*blackScale -
 							math.Max(float64(evaluationResult.safetyWhite.Middle()), 0)*whiteScale) * (middleMultiplier / 360)
 						if canUpdateEndgame {
-							localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*blackScale -
+							localSafetyRes[coef.idx][End] += (sign(float64(evaluationResult.safetyBlack.End()))*blackScale -
 								sign(float64(evaluationResult.safetyWhite.End()))*whiteScale) * (endMultiplier / 20)
 
 						}
 						break
 					}
-					localSafetyRes[coef.idx][MIDDLE] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*float64(coef.blackValue) -
+					localSafetyRes[coef.idx][Middle] += (math.Max(float64(evaluationResult.safetyBlack.Middle()), 0)*float64(coef.blackValue) -
 						math.Max(float64(evaluationResult.safetyWhite.Middle()), 0)*float64(coef.whiteValue)) * (middleMultiplier / 360)
 					if canUpdateEndgame {
-						localSafetyRes[coef.idx][END] += (sign(float64(evaluationResult.safetyBlack.End()))*float64(coef.blackValue) -
+						localSafetyRes[coef.idx][End] += (sign(float64(evaluationResult.safetyBlack.End()))*float64(coef.blackValue) -
 							sign(float64(evaluationResult.safetyWhite.End()))*float64(coef.whiteValue)) * (endMultiplier / 20)
 					}
 				}
 				for _, coef := range entry.complexityCoefficients {
 					if canUpdateEndgame && evaluationResult.endGameEval != 0 {
-						localComplexityRes[coef.idx][END] += float64(coef.value) * endMultiplier * float64(complexitySign)
+						localComplexityRes[coef.idx][End] += float64(coef.value) * endMultiplier * float64(complexitySign)
 					}
 				}
 			}
@@ -392,17 +392,17 @@ func (t *traceTuner) calculateGradient(entries []traceEntry) ([]weight, []weight
 	}()
 	for threadResult := range resultChan {
 		for idx := range linearRes {
-			for i := MIDDLE; i <= END; i++ {
+			for i := Middle; i <= End; i++ {
 				linearRes[idx][i] += threadResult.liner[idx][i]
 			}
 		}
 		for idx := range safetyRes {
-			for i := MIDDLE; i <= END; i++ {
+			for i := Middle; i <= End; i++ {
 				safetyRes[idx][i] += threadResult.safety[idx][i]
 			}
 		}
 		for idx := range complexityRes {
-			for i := MIDDLE; i <= END; i++ {
+			for i := Middle; i <= End; i++ {
 				safetyRes[idx][i] += threadResult.complexity[idx][i]
 			}
 		}
@@ -432,11 +432,11 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult 
 	var middle, end int
 	var safetyWhite, safetyBlack Score
 	for _, coeff := range entry.linearCoefficients {
-		middle += int(math.Round(t.linearWeights[coeff.idx][MIDDLE])) * coeff.value
-		end += int(math.Round(t.linearWeights[coeff.idx][END])) * coeff.value
+		middle += int(math.Round(t.linearWeights[coeff.idx][Middle])) * coeff.value
+		end += int(math.Round(t.linearWeights[coeff.idx][End])) * coeff.value
 	}
 	for traceIdx, coeff := range entry.safetyCoefficients {
-		multiplier := S(int16(math.Round(t.safetyWeights[coeff.idx][MIDDLE])), int16(math.Round(t.safetyWeights[coeff.idx][END])))
+		multiplier := S(int16(math.Round(t.safetyWeights[coeff.idx][Middle])), int16(math.Round(t.safetyWeights[coeff.idx][End])))
 		if coeff.idx != t.safetyWeightsLen-1 {
 			safetyBlack += multiplier * Score(coeff.blackValue)
 			safetyWhite += multiplier * Score(coeff.whiteValue)
@@ -461,7 +461,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult 
 
 	var complexity int
 	for _, coeff := range entry.complexityCoefficients {
-		complexity += int(math.Round(t.complexityWeights[coeff.idx][END])) * coeff.value
+		complexity += int(math.Round(t.complexityWeights[coeff.idx][End])) * coeff.value
 	}
 	score := S(int16(middle), int16(end))
 	middleWhite := int(safetyWhite.Middle())
@@ -482,7 +482,7 @@ func (t *traceTuner) linearEvaluation(entry *traceEntry) linearEvaluationResult 
 	sign := BoolToInt(endGameEval > 0) - BoolToInt(endGameEval < 0)
 	score += S(0, int16(sign*Max(-Abs(int(score.End())), complexity)))
 
-	phased := (int(score.Middle())*(256-entry.phase) + (int(score.End())*entry.phase*entry.scale)/SCALE_NORMAL) / 256
+	phased := (int(score.Middle())*(256-entry.phase) + (int(score.End())*entry.phase*entry.scale)/ScaleNormal) / 256
 	if entry.whiteMove {
 		return linearEvaluationResult{float64(phased + int(Tempo)), safetyBlack, safetyWhite, endGameEval, complexity}
 	} else {
@@ -569,7 +569,7 @@ func loadTrace() (linearRes []int, safetyRes [][2]int, complexityRes []int) {
 	linearRes = append(linearRes, T.Isolated)
 	for a := 0; a < 2; a++ {
 		for b := 0; b < 2; b++ {
-			for file := FILE_A; file <= FILE_H; file++ {
+			for file := FileA; file <= FileH; file++ {
 				linearRes = append(linearRes, T.StackedPawns[a][b][file])
 			}
 		}
@@ -749,7 +749,7 @@ func loadWeights() ([]weight, []weight, []weight) {
 	linearScores = append(linearScores, Isolated)
 	for a := 0; a < 2; a++ {
 		for b := 0; b < 2; b++ {
-			for file := FILE_A; file <= FILE_H; file++ {
+			for file := FileA; file <= FileH; file++ {
 				linearScores = append(linearScores, StackedPawns[a][b][file])
 			}
 		}

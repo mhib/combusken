@@ -311,19 +311,19 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 		var attacks, forward uint64
 		if pos.SideToMove == White {
 			if move.Type() == EPCapture {
-				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)+1])&RANK_5_BB&fromMask != 0
+				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)+1])&Rank5_BB&fromMask != 0
 			}
 			attacks = PawnAttacks[White][move.From()]
 			forward = North(fromMask) & ^occupancy
 		} else {
 			if move.Type() == EPCapture {
-				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)+1])&RANK_4_BB&fromMask != 0
+				return pos.EpSquare != 0 && (SquareMask[uint(pos.EpSquare)-1]|SquareMask[uint(pos.EpSquare)+1])&Rank4_BB&fromMask != 0
 			}
 			attacks = PawnAttacks[Black][move.From()]
 			forward = South(fromMask) & ^occupancy
 		}
 		if move.IsPromotion() {
-			return PROMOTION_RANKS&((attacks&them)|forward) != 0 && move.PromotedPiece() <= Queen
+			return PromotionRanks_BB&((attacks&them)|forward) != 0 && move.PromotedPiece() <= Queen
 		}
 
 		// Invalid move type as promotions and EPCapture were checked
@@ -332,12 +332,12 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 		}
 
 		// Double pawn push
-		if forward != 0 && pos.SideToMove == White && fromMask&RANK_2_BB != 0 && North(forward)&occupancy == 0 {
+		if forward != 0 && pos.SideToMove == White && fromMask&Rank2_BB != 0 && North(forward)&occupancy == 0 {
 			forward |= North(forward)
-		} else if forward != 0 && pos.SideToMove == Black && fromMask&RANK_7_BB != 0 && South(forward)&occupancy == 0 {
+		} else if forward != 0 && pos.SideToMove == Black && fromMask&Rank7_BB != 0 && South(forward)&occupancy == 0 {
 			forward |= South(forward)
 		}
-		return (^PROMOTION_RANKS)&((attacks&them)|forward)&toMask != 0
+		return (^PromotionRanks_BB)&((attacks&them)|forward)&toMask != 0
 	case King:
 		if (pos.Pieces[King] & fromMask) == 0 {
 			return false
@@ -347,17 +347,17 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 		}
 		if pos.SideToMove == White {
 			if move == WhiteKingSideCastle {
-				return occupancy&WHITE_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(F1, Black)
+				return occupancy&WhiteKingCastleBlock_BB == 0 && pos.Flags&WhiteKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(F1, Black)
 			} else if move == WhiteQueenSideCastle {
-				return occupancy&WHITE_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(D1, Black)
+				return occupancy&WhiteQueenCastleBlock_BB == 0 && pos.Flags&WhiteQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E1, Black) && !pos.IsSquareAttacked(D1, Black)
 			} else {
 				return false
 			}
 		} else {
 			if move == BlackKingSideCastle {
-				return occupancy&BLACK_KING_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(F8, White)
+				return occupancy&BlackKingCastleBlock_BB == 0 && pos.Flags&BlackKingSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(F8, White)
 			} else if move == BlackQueenSideCastleFlag {
-				return occupancy&BLACK_QUEEN_CASTLE_BLOCK_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(D8, White)
+				return occupancy&BlackQueenCastleBlock_BB == 0 && pos.Flags&BlackQueenSideCastleFlag == 0 && !pos.IsSquareAttacked(E8, White) && !pos.IsSquareAttacked(D8, White)
 			} else {
 				return false
 			}

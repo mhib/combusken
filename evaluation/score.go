@@ -4,7 +4,7 @@ import "fmt"
 
 type Score int32
 
-const SCORE_ZERO = Score(0)
+const ScoreZero = Score(0)
 
 func (s Score) Middle() int16 {
 	return int16(uint32(s+0x8000) >> 16)

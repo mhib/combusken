@@ -6,18 +6,21 @@ package fathom
 // #include "tbprobe.h"
 // #include <stdlib.h>
 import "C"
-import "unsafe"
-import "github.com/mhib/combusken/backend"
-import "strings"
+import (
+	"strings"
+	"unsafe"
 
-var MAX_PIECE_COUNT = 0
-var MIN_PROBE_DEPTH = 0
+	"github.com/mhib/combusken/backend"
+)
+
+var MaxPieceCount = 0
+var MinProbeDepth = 0
 
 func SetPath(path string) {
 	cPath := C.CString(strings.TrimSpace(path))
 	defer C.free(unsafe.Pointer(cPath))
 	C.tb_init(cPath)
-	MAX_PIECE_COUNT = int(C.TB_LARGEST)
+	MaxPieceCount = int(C.TB_LARGEST)
 }
 
 func Clear() {
@@ -42,7 +45,7 @@ func ProbeWDL(pos *backend.Position, depth int) int64 {
 }
 
 func IsWDLProbeable(pos *backend.Position, depth int) bool {
-	return MAX_PIECE_COUNT != 0 &&
+	return MaxPieceCount != 0 &&
 		pos.FiftyMove == 0 &&
 		pos.EpSquare == 0 &&
 		pos.Flags == 0xF &&
@@ -51,11 +54,11 @@ func IsWDLProbeable(pos *backend.Position, depth int) bool {
 
 func depthCardinalityCheck(pos *backend.Position, depth int) bool {
 	cardinality := backend.PopCount(pos.Colours[backend.White] | pos.Colours[backend.Black])
-	return cardinality < MAX_PIECE_COUNT || (cardinality == MAX_PIECE_COUNT && depth >= MIN_PROBE_DEPTH)
+	return cardinality < MaxPieceCount || (cardinality == MaxPieceCount && depth >= MinProbeDepth)
 }
 
 func IsDTZProbeable(pos *backend.Position) bool {
-	return pos.Flags == 0xF && backend.PopCount(pos.Colours[backend.White]|pos.Colours[backend.Black]) <= MAX_PIECE_COUNT
+	return pos.Flags == 0xF && backend.PopCount(pos.Colours[backend.White]|pos.Colours[backend.Black]) <= MaxPieceCount
 }
 
 var promoteTranslation = [...]int{backend.None, backend.Queen, backend.Rook, backend.Bishop, backend.Knight}

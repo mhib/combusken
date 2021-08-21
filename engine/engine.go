@@ -13,9 +13,9 @@ import (
 	. "github.com/mhib/combusken/utils"
 )
 
-const MAX_HEIGHT = 127
-const STACK_SIZE = MAX_HEIGHT + 1
-const MAX_MOVES = 256
+const MaxHeight = 127
+const StackSize = MaxHeight + 1
+const MaxMoves = 256
 
 var errTimeout = errors.New("Search timeout")
 
@@ -43,7 +43,7 @@ type thread struct {
 	tbhits          int
 	disableNmpColor int
 	seldepth        int
-	stack           [STACK_SIZE]StackEntry
+	stack           [StackSize]StackEntry
 }
 
 type ReportScore struct {
@@ -75,7 +75,7 @@ type SearchInfo struct {
 type StackEntry struct {
 	MoveProvider
 	PV
-	quietsSearched [MAX_MOVES]backend.Move
+	quietsSearched [MaxMoves]backend.Move
 	position       backend.Position
 	evaluation     int16
 }
@@ -90,7 +90,7 @@ func (t *thread) setEvaluation(height int, eval int16) {
 
 type PV struct {
 	size  int
-	items [STACK_SIZE]backend.Move
+	items [StackSize]backend.Move
 }
 
 type LimitsType struct {
@@ -186,7 +186,7 @@ func (e *Engine) NewGame() {
 		e.threads[i].engine = e
 	}
 	evaluation.GlobalPawnKingTable = evaluation.NewPawnKingTable(e.PawnHash.Val)
-	fathom.MIN_PROBE_DEPTH = e.SyzygyProbeDepth.Val
+	fathom.MinProbeDepth = e.SyzygyProbeDepth.Val
 	if e.SyzygyPath.Dirty {
 		fathom.SetPath(e.SyzygyPath.Val)
 		e.SyzygyPath.Clean()

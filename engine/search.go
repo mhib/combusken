@@ -17,7 +17,7 @@ const MaxInt = int(MaxUint >> 1)
 const MinInt = -MaxInt - 1
 const ValueWin = Mate - 150
 const ValueLoss = -ValueWin
-const ValueTbWinInMaxDepth = ValueWin - MAX_HEIGHT - 1
+const ValueTbWinInMaxDepth = ValueWin - MaxHeight - 1
 
 const seePruningDepth = 10
 const seeQuietMargin = -100
@@ -41,8 +41,8 @@ const WindowSize = 18
 const WindowDepth = 5
 const WindowDeltaInc = 10
 
-const QSDepthChecks = 0
-const QSDepthNoChecks = -1
+const qSDepthChecks = 0
+const qSDepthNoChecks = -1
 
 var PawnValueMiddle = PawnValue.Middle()
 
@@ -70,15 +70,15 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	alphaOrig := alpha
 	pvNode := alpha != beta-1
 
-	if height >= MAX_HEIGHT || t.isDraw(height) {
+	if height >= MaxHeight || t.isDraw(height) {
 		return t.contempt(pos, depth)
 	}
 
 	var ttDepth int
-	if inCheck || depth >= QSDepthChecks {
-		ttDepth = QSDepthChecks
+	if inCheck || depth >= qSDepthChecks {
+		ttDepth = qSDepthChecks
 	} else {
-		ttDepth = QSDepthNoChecks
+		ttDepth = qSDepthNoChecks
 	}
 	hashOk, hashValue, hashEval, hashDepth, hashMove, hashFlag, _ := transposition.GlobalTransTable.Get(pos.Key)
 	if hashOk && hashValue != UnknownValue && int(hashDepth) >= ttDepth {
@@ -203,7 +203,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 
 	var pos *Position = &t.stack[height].position
 
-	if height >= MAX_HEIGHT || t.isDraw(height) {
+	if height >= MaxHeight || t.isDraw(height) {
 		return t.contempt(pos, depth)
 	}
 
@@ -240,13 +240,13 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 
 	// Probe tablebase
 	if fathom.IsWDLProbeable(pos, depth) {
-		if tbResult := fathom.ProbeWDL(pos, depth); tbResult != fathom.TB_RESULT_FAILED {
+		if tbResult := fathom.ProbeWDL(pos, depth); tbResult != fathom.TbResultFailed {
 			t.tbhits++
 			var ttBound int
-			if tbResult == fathom.TB_LOSS {
+			if tbResult == fathom.TbLoss {
 				val = ValueLoss + height + 1
 				ttBound = TransAlpha
-			} else if tbResult == fathom.TB_WIN {
+			} else if tbResult == fathom.TbWin {
 				val = ValueWin - height - 1
 				ttBound = TransBeta
 			} else {
@@ -254,7 +254,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 				ttBound = TransExact
 			}
 			if ttBound == TransExact || ttBound == TransBeta && val >= beta || ttBound == TransAlpha && val <= alpha {
-				transposition.GlobalTransTable.Set(pos.Key, int16(val), UnknownValue, MAX_HEIGHT, NullMove, ttBound, pvNode)
+				transposition.GlobalTransTable.Set(pos.Key, int16(val), UnknownValue, MaxHeight, NullMove, ttBound, pvNode)
 				return val
 			}
 		}
@@ -399,7 +399,7 @@ afterPreMovesPruning:
 		}
 		isNoisy := move.IsCaptureOrPromotion()
 
-		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetMoveStage() > GENERATE_QUIET && !isNoisy {
+		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetStage() > StageGenerateQuiet && !isNoisy {
 			if depth <= futilityPruningDepth && int(eval)+int(PawnValueMiddle)*depth <= alpha {
 				continue
 			}
@@ -436,7 +436,7 @@ afterPreMovesPruning:
 			reduction = lmr(depth, moveCount)
 
 			// less reduction for special moves
-			reduction -= BoolToInt(t.stack[height].GetMoveStage() < GENERATE_QUIET)
+			reduction -= BoolToInt(t.stack[height].GetStage() < StageGenerateQuiet)
 			reduction += BoolToInt(!hashPv)
 			if !isNoisy {
 				reduction += BoolToInt(cutNode) * 2
@@ -448,7 +448,7 @@ afterPreMovesPruning:
 			reduction = Max(0, Min(depth-2, reduction))
 		}
 
-		if bestVal > ValueLoss && depth <= seePruningDepth && t.stack[height].GetMoveStage() > GOOD_NOISY {
+		if bestVal > ValueLoss && depth <= seePruningDepth && t.stack[height].GetStage() > StageGoodNoisy {
 			reducedDepth := depth - reduction
 			if (isNoisy && !SeeAbove(pos, move, seeNoisyMargin*reducedDepth*reducedDepth)) ||
 				(!isNoisy && !SeeAbove(pos, move, seeQuietMargin*reducedDepth)) {
@@ -543,7 +543,7 @@ func (t *thread) singularSearch(depth, height int, hashMove Move, hashValue int,
 	t.stack[height].InitSingular()
 	for {
 		move := t.getNextMove(pos, depth, height)
-		if move == NullMove || t.stack[height].GetMoveStage() >= BAD_NOISY {
+		if move == NullMove || t.stack[height].GetStage() >= StageNoisy {
 			break
 		}
 		if !pos.MakeMove(move, child) {
@@ -763,7 +763,7 @@ func (e *Engine) singleThreadBestMove(ctx, ponderCtx context.Context, rootMoves 
 			if len(res.moves) > 1 {
 				lastPonderMove = res.moves[1]
 			}
-			if i >= MAX_HEIGHT {
+			if i >= MaxHeight {
 				return lastBestMove, lastPonderMove
 			}
 			e.updateTime(res.depth, res.value)
@@ -789,7 +789,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirati
 		})
 	}
 
-	for depth := 1; depth <= MAX_HEIGHT; depth++ {
+	for depth := 1; depth <= MaxHeight; depth++ {
 		res = t.aspirationWindow(depth, lastValue, moves)
 		resultChan <- res
 		lastValue = res.value
@@ -809,14 +809,14 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 	if fathom.IsDTZProbeable(pos) {
 		if ok, bestMove, wdl, dtz := fathom.ProbeDTZ(pos, rootMoves); ok {
 			var score int
-			if wdl == fathom.TB_LOSS {
+			if wdl == fathom.TbLoss {
 				score = ValueLoss + dtz + 1
-			} else if wdl == fathom.TB_WIN {
+			} else if wdl == fathom.TbWin {
 				score = ValueWin - dtz - 1
 			} else {
 				score = 0
 			}
-			e.Update(&SearchInfo{newReportScore(score), MAX_HEIGHT - 1, MAX_HEIGHT - 1, 0, 1, 0, 1, []Move{bestMove}})
+			e.Update(&SearchInfo{newReportScore(score), MaxHeight - 1, MaxHeight - 1, 0, 1, 0, 1, []Move{bestMove}})
 			return bestMove, NullMove
 		}
 	}
@@ -863,7 +863,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 				lastPonderMove = res.moves[1]
 			}
 			e.Update(&SearchInfo{newReportScore(res.value), res.requestedDepth, seldepth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
-			if res.depth >= MAX_HEIGHT {
+			if res.depth >= MaxHeight {
 				return lastBestMove, lastPonderMove
 			}
 			// Do not stop searching even when found a mate in ponder

@@ -40,8 +40,8 @@ var forwardRanksMask [2][8]uint64
 var forwardFileMask [2][64]uint64
 
 // Outpost bitboards
-const whiteOutpustRanks = RANK_4_BB | RANK_5_BB | RANK_6_BB
-const blackOutpustRanks = RANK_5_BB | RANK_4_BB | RANK_3_BB
+const whiteOutpustRanks = Rank4_BB | Rank5_BB | Rank6_BB
+const blackOutpustRanks = Rank5_BB | Rank4_BB | Rank3_BB
 
 const (
 	BlackBlackSquareBishopFlag = 1 << iota
@@ -174,32 +174,32 @@ func init() {
 	for i := 8; i <= 55; i++ {
 		passedMask[White][i] = 0
 		for file := File(i) - 1; file <= File(i)+1; file++ {
-			if file < FILE_A || file > FILE_H {
+			if file < FileA || file > FileH {
 				continue
 			}
-			for rank := Rank(i) + 1; rank < RANK_8; rank++ {
+			for rank := Rank(i) + 1; rank < Rank8; rank++ {
 				passedMask[White][i] |= 1 << uint(rank*8+file)
 			}
 		}
 	}
 	// Outpust is similar to passed bitboard bot we do not care about pawns in same file
 	for i := 8; i <= 55; i++ {
-		outpustMask[White][i] = passedMask[White][i] & ^FILES[File(i)]
+		outpustMask[White][i] = passedMask[White][i] & ^Files_BB[File(i)]
 	}
 
 	for i := 55; i >= 8; i-- {
 		passedMask[Black][i] = 0
 		for file := File(i) - 1; file <= File(i)+1; file++ {
-			if file < FILE_A || file > FILE_H {
+			if file < FileA || file > FileH {
 				continue
 			}
-			for rank := Rank(i) - 1; rank > RANK_1; rank-- {
+			for rank := Rank(i) - 1; rank > Rank1; rank-- {
 				passedMask[Black][i] |= 1 << uint(rank*8+file)
 			}
 		}
 	}
 	for i := 55; i >= 8; i-- {
-		outpustMask[Black][i] = passedMask[Black][i] & ^FILES[File(i)]
+		outpustMask[Black][i] = passedMask[Black][i] & ^Files_BB[File(i)]
 	}
 
 	for i := 8; i <= 55; i++ {
@@ -207,13 +207,13 @@ func init() {
 		pawnsConnectedMask[Black][i] = PawnAttacks[White][i] | PawnAttacks[White][i-8]
 	}
 
-	for i := range FILES {
+	for i := range Files_BB {
 		adjacentFilesMask[i] = 0
 		if i != 0 {
-			adjacentFilesMask[i] |= FILES[i-1]
+			adjacentFilesMask[i] |= Files_BB[i-1]
 		}
 		if i != 7 {
-			adjacentFilesMask[i] |= FILES[i+1]
+			adjacentFilesMask[i] |= Files_BB[i+1]
 		}
 	}
 
@@ -226,26 +226,26 @@ func init() {
 	for y := 0; y < 64; y++ {
 		whiteKingAreaMask[y] = KingAttacks[y] | SquareMask[y] | North(KingAttacks[y])
 		blackKingAreaMask[y] = KingAttacks[y] | SquareMask[y] | South(KingAttacks[y])
-		if File(y) > FILE_A {
+		if File(y) > FileA {
 			whiteKingAreaMask[y] |= West(whiteKingAreaMask[y])
 			blackKingAreaMask[y] |= West(blackKingAreaMask[y])
 		}
-		if File(y) < FILE_H {
+		if File(y) < FileH {
 			whiteKingAreaMask[y] |= East(whiteKingAreaMask[y])
 			blackKingAreaMask[y] |= East(blackKingAreaMask[y])
 		}
 	}
 
-	for rank := RANK_1; rank <= RANK_8; rank++ {
-		for y := rank; y <= RANK_8; y++ {
-			forwardRanksMask[White][rank] |= RANKS[y]
+	for rank := Rank1; rank <= Rank8; rank++ {
+		for y := rank; y <= Rank8; y++ {
+			forwardRanksMask[White][rank] |= Ranks_BB[y]
 		}
-		forwardRanksMask[Black][rank] = (^forwardRanksMask[White][rank]) | RANKS[rank]
+		forwardRanksMask[Black][rank] = (^forwardRanksMask[White][rank]) | Ranks_BB[rank]
 	}
 
 	for y := 0; y < 64; y++ {
-		forwardFileMask[White][y] = forwardRanksMask[White][Rank(y)] & FILES[File(y)] & ^SquareMask[y]
-		forwardFileMask[Black][y] = forwardRanksMask[Black][Rank(y)] & FILES[File(y)] & ^SquareMask[y]
+		forwardFileMask[White][y] = forwardRanksMask[White][Rank(y)] & Files_BB[File(y)] & ^SquareMask[y]
+		forwardFileMask[Black][y] = forwardRanksMask[Black][Rank(y)] & Files_BB[File(y)] & ^SquareMask[y]
 	}
 }
 
@@ -265,7 +265,7 @@ func evaluateKingPawns(pos *Position) Score {
 	blackPawns := pos.Pieces[Pawn] & pos.Colours[Black]
 	whiteKingLocation := BitScan(pos.Pieces[King] & pos.Colours[White])
 	blackKingLocation := BitScan(pos.Pieces[King] & pos.Colours[Black])
-	score := SCORE_ZERO
+	score := ScoreZero
 
 	// white pawns
 	for fromBB = whitePawns; fromBB != 0; fromBB &= (fromBB - 1) {
@@ -283,7 +283,7 @@ func evaluateKingPawns(pos *Position) Score {
 		// Pawn is backward if there are no pawns behind it and cannot increase rank without being attacked by enemy pawn
 		if passedMask[Black][fromId]&whitePawns == 0 &&
 			PawnAttacks[White][fromId+8]&blackPawns != 0 {
-			if FILES[File(fromId)]&blackPawns == 0 {
+			if Files_BB[File(fromId)]&blackPawns == 0 {
 				score += BackwardOpen
 				if tuning {
 					T.BackwardOpen++
@@ -327,7 +327,7 @@ func evaluateKingPawns(pos *Position) Score {
 		}
 		if passedMask[White][fromId]&blackPawns == 0 &&
 			PawnAttacks[Black][fromId-8]&whitePawns != 0 {
-			if FILES[File(fromId)]&whitePawns == 0 {
+			if Files_BB[File(fromId)]&whitePawns == 0 {
 				score -= BackwardOpen
 				if tuning {
 					T.BackwardOpen--
@@ -358,15 +358,15 @@ func evaluateKingPawns(pos *Position) Score {
 	}
 
 	// White king storm shelter
-	for file := Max(File(whiteKingLocation)-1, FILE_A); file <= Min(File(whiteKingLocation)+1, FILE_H); file++ {
-		ours := pos.Pieces[Pawn] & FILES[file] & pos.Colours[White] & forwardRanksMask[White][Rank(whiteKingLocation)]
+	for file := Max(File(whiteKingLocation)-1, FileA); file <= Min(File(whiteKingLocation)+1, FileH); file++ {
+		ours := pos.Pieces[Pawn] & Files_BB[file] & pos.Colours[White] & forwardRanksMask[White][Rank(whiteKingLocation)]
 		var ourDist int
 		if ours == 0 {
 			ourDist = 7
 		} else {
 			ourDist = Abs(Rank(whiteKingLocation) - Rank(BitScan(ours)))
 		}
-		theirs := pos.Pieces[Pawn] & FILES[file] & pos.Colours[Black] & forwardRanksMask[White][Rank(whiteKingLocation)]
+		theirs := pos.Pieces[Pawn] & Files_BB[file] & pos.Colours[Black] & forwardRanksMask[White][Rank(whiteKingLocation)]
 		var theirDist int
 		if theirs == 0 {
 			theirDist = 7
@@ -386,7 +386,7 @@ func evaluateKingPawns(pos *Position) Score {
 			T.KingStorm[blocked][FileMirror[file]][theirDist]++
 		}
 	}
-	if KING_FLANK_BB[File(whiteKingLocation)]&pos.Pieces[Pawn] == 0 {
+	if KingFlank_BB[File(whiteKingLocation)]&pos.Pieces[Pawn] == 0 {
 		score += KingOnPawnlessFlank
 		if tuning {
 			T.KingOnPawnlessFlank++
@@ -394,15 +394,15 @@ func evaluateKingPawns(pos *Position) Score {
 	}
 
 	// Black king storm / shelter
-	for file := Max(File(blackKingLocation)-1, FILE_A); file <= Min(File(blackKingLocation)+1, FILE_H); file++ {
-		ours := pos.Pieces[Pawn] & FILES[file] & pos.Colours[Black] & forwardRanksMask[Black][Rank(blackKingLocation)]
+	for file := Max(File(blackKingLocation)-1, FileA); file <= Min(File(blackKingLocation)+1, FileH); file++ {
+		ours := pos.Pieces[Pawn] & Files_BB[file] & pos.Colours[Black] & forwardRanksMask[Black][Rank(blackKingLocation)]
 		var ourDist int
 		if ours == 0 {
 			ourDist = 7
 		} else {
 			ourDist = Abs(Rank(blackKingLocation) - Rank(MostSignificantBit(ours)))
 		}
-		theirs := pos.Pieces[Pawn] & FILES[file] & pos.Colours[White] & forwardRanksMask[Black][Rank(blackKingLocation)]
+		theirs := pos.Pieces[Pawn] & Files_BB[file] & pos.Colours[White] & forwardRanksMask[Black][Rank(blackKingLocation)]
 		var theirDist int
 		if theirs == 0 {
 			theirDist = 7
@@ -421,7 +421,7 @@ func evaluateKingPawns(pos *Position) Score {
 			T.KingStorm[blocked][FileMirror[file]][theirDist]--
 		}
 	}
-	if KING_FLANK_BB[File(blackKingLocation)]&pos.Pieces[Pawn] == 0 {
+	if KingFlank_BB[File(blackKingLocation)]&pos.Pieces[Pawn] == 0 {
 		score -= KingOnPawnlessFlank
 		if tuning {
 			T.KingOnPawnlessFlank--
@@ -638,7 +638,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				T.MinorBehindPawn++
 			}
 		}
-		if (LONG_DIAGONALS&SquareMask[fromId]) != 0 && (MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & CENTER)) {
+		if (LongDiagonals_BB&SquareMask[fromId]) != 0 && (MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & Center_BB)) {
 			score += LongDiagonalBishop
 			if tuning {
 				T.LongDiagonalBishop++
@@ -660,10 +660,10 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 
 		// Bishop is worth less if there are friendly rammed pawns of its color
 		var rammedCount Score
-		if SquareMask[fromId]&WHITE_SQUARES != 0 {
-			rammedCount = Score(PopCount(whiteRammedPawns & WHITE_SQUARES))
+		if SquareMask[fromId]&WhiteSquares_BB != 0 {
+			rammedCount = Score(PopCount(whiteRammedPawns & WhiteSquares_BB))
 		} else {
-			rammedCount = Score(PopCount(whiteRammedPawns & BLACK_SQUARES))
+			rammedCount = Score(PopCount(whiteRammedPawns & BlackSquares_BB))
 		}
 		score += BishopRammedPawns * rammedCount
 		if tuning {
@@ -723,7 +723,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				T.MinorBehindPawn--
 			}
 		}
-		if (LONG_DIAGONALS&SquareMask[fromId]) != 0 && (MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & CENTER)) {
+		if (LongDiagonals_BB&SquareMask[fromId]) != 0 && (MoreThanOne(BishopAttacks(fromId, pos.Pieces[Pawn]) & Center_BB)) {
 			score -= LongDiagonalBishop
 			if tuning {
 				T.LongDiagonalBishop--
@@ -743,10 +743,10 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 			}
 		}
 		var rammedCount Score
-		if SquareMask[fromId]&WHITE_SQUARES != 0 {
-			rammedCount = Score(PopCount(blackRammedPawns & WHITE_SQUARES))
+		if SquareMask[fromId]&WhiteSquares_BB != 0 {
+			rammedCount = Score(PopCount(blackRammedPawns & WhiteSquares_BB))
 		} else {
-			rammedCount = Score(PopCount(blackRammedPawns & BLACK_SQUARES))
+			rammedCount = Score(PopCount(blackRammedPawns & BlackSquares_BB))
 		}
 		score -= BishopRammedPawns * rammedCount
 		if tuning {
@@ -800,12 +800,12 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		whiteAttacked |= attacks
 		whiteAttackedBy[Rook] |= attacks
 
-		if pos.Pieces[Pawn]&FILES[File(fromId)] == 0 {
+		if pos.Pieces[Pawn]&Files_BB[File(fromId)] == 0 {
 			score += RookOnFile[1]
 			if tuning {
 				T.RookOnFile[1]++
 			}
-		} else if (pos.Pieces[Pawn]&pos.Colours[White])&FILES[File(fromId)] == 0 {
+		} else if (pos.Pieces[Pawn]&pos.Colours[White])&Files_BB[File(fromId)] == 0 {
 			score += RookOnFile[0]
 			if tuning {
 				T.RookOnFile[0]++
@@ -821,7 +821,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 
 		if mobility <= 3 {
 			kingFile := File(whiteKingLocation)
-			if (kingFile <= FILE_E) == (File(fromId) < kingFile) && pos.Flags|WhiteQueenSideCastleFlag|WhiteKingSideCastleFlag == pos.Flags {
+			if (kingFile <= FileE) == (File(fromId) < kingFile) && pos.Flags|WhiteQueenSideCastleFlag|WhiteKingSideCastleFlag == pos.Flags {
 				score += TrappedRook
 				if tuning {
 					T.TrappedRook++
@@ -862,12 +862,12 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		blackAttacked |= attacks
 		blackAttackedBy[Rook] |= attacks
 
-		if pos.Pieces[Pawn]&FILES[File(fromId)] == 0 {
+		if pos.Pieces[Pawn]&Files_BB[File(fromId)] == 0 {
 			score -= RookOnFile[1]
 			if tuning {
 				T.RookOnFile[1]--
 			}
-		} else if (pos.Pieces[Pawn]&pos.Colours[Black])&FILES[File(fromId)] == 0 {
+		} else if (pos.Pieces[Pawn]&pos.Colours[Black])&Files_BB[File(fromId)] == 0 {
 			score -= RookOnFile[0]
 			if tuning {
 				T.RookOnFile[0]--
@@ -883,7 +883,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 
 		if mobility <= 3 {
 			kingFile := File(blackKingLocation)
-			if (kingFile <= FILE_E) == (File(fromId) < kingFile) && pos.Flags|BlackQueenSideCastleFlag|BlackKingSideCastleFlag == pos.Flags {
+			if (kingFile <= FileE) == (File(fromId) < kingFile) && pos.Flags|BlackQueenSideCastleFlag|BlackKingSideCastleFlag == pos.Flags {
 				score -= TrappedRook
 				if tuning {
 					T.TrappedRook--
@@ -1011,7 +1011,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				}
 			}
 			// Rank seventh's push == advance so it is already calculated
-			if !stacked && Rank(fromId) != RANK_7 {
+			if !stacked && Rank(fromId) != Rank7 {
 				if push&(blackAttacked|pos.Colours[Black]) == 0 {
 					if rookOrQueenBehind || (push&whiteAttacked) == push {
 						score += PassedPushUncontestedDefended[Rank(fromId)]
@@ -1125,7 +1125,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				}
 			}
 
-			if !stacked && Rank(fromId) != RANK_2 {
+			if !stacked && Rank(fromId) != Rank2 {
 				if push&(whiteAttacked|pos.Colours[White]) == 0 {
 					if rookOrQueenBehind || (push&blackAttacked) == push {
 						score -= PassedPushUncontestedDefended[7-Rank(fromId)]
@@ -1367,9 +1367,9 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 
 	{
 		sign := BoolToInt(score.End() > 0) - BoolToInt(score.End() < 0)
-		pawnsOnBothFlanks := BoolToInt((pos.Pieces[Pawn]&KING_SIDE_BB != 0) && (pos.Pieces[Pawn]&QUEEN_SIDE_BB != 0))
+		pawnsOnBothFlanks := BoolToInt((pos.Pieces[Pawn]&KingSide_BB != 0) && (pos.Pieces[Pawn]&QueenSide_BB != 0))
 		pawnEndgame := BoolToInt(pos.Pieces[Knight]|pos.Pieces[Bishop]|pos.Pieces[Rook]|pos.Pieces[Queen] == 0)
-		infiltration := BoolToInt(Rank(whiteKingLocation) > RANK_4 || Rank(blackKingLocation) < RANK_5)
+		infiltration := BoolToInt(Rank(whiteKingLocation) > Rank4 || Rank(blackKingLocation) < Rank5)
 
 		complexity := ComplexityTotalPawns*Score(PopCount(pos.Pieces[Pawn])) +
 			ComplexityPawnBothFlanks*Score(pawnsOnBothFlanks) +
@@ -1391,15 +1391,15 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 	}
 
 	// Scale Factor inlined
-	scale := SCALE_NORMAL
+	scale := ScaleNormal
 	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
 		OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
-		OnlyOne(pos.Pieces[Bishop]&WHITE_SQUARES) &&
+		OnlyOne(pos.Pieces[Bishop]&WhiteSquares_BB) &&
 		(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
-		scale = SCALE_HARD
+		scale = ScaleHard
 	} else if (score.End() > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
 		(score.End() < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
-		scale = SCALE_DRAW
+		scale = ScaleDraw
 	}
 
 	if tuning {
@@ -1408,7 +1408,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 
 	// tapering eval
 	phase = (phase*256 + (TotalPhase / 2)) / TotalPhase
-	result := (int(score.Middle())*(256-phase) + (int(score.End()) * phase * scale / SCALE_NORMAL)) / 256
+	result := (int(score.Middle())*(256-phase) + (int(score.End()) * phase * scale / ScaleNormal)) / 256
 
 	if pos.SideToMove == White {
 		return result + int(Tempo)
@@ -1416,21 +1416,21 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 	return -result + int(Tempo)
 }
 
-const SCALE_NORMAL = 2
-const SCALE_HARD = 1
-const SCALE_DRAW = 0
+const ScaleNormal = 2
+const ScaleHard = 1
+const ScaleDraw = 0
 
 func ScaleFactor(pos *Position, endResult int16) int {
 	// OCB without other pieces endgame
 	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
 		OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
-		OnlyOne(pos.Pieces[Bishop]&WHITE_SQUARES) &&
+		OnlyOne(pos.Pieces[Bishop]&WhiteSquares_BB) &&
 		(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
-		return SCALE_HARD
+		return ScaleHard
 	}
 	if (endResult > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
 		(endResult < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
-		return SCALE_DRAW
+		return ScaleDraw
 	}
-	return SCALE_NORMAL
+	return ScaleNormal
 }

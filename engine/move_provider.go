@@ -6,20 +6,20 @@ import (
 )
 
 const (
-	TT_MOVE uint8 = iota
-	GENERATE_NOISY
-	GOOD_NOISY
-	KILLER_1
-	KILLER_2
-	COUNTER
-	GENERATE_QUIET
-	QUIET
-	BAD_NOISY
-	DONE
+	StageTtMove uint8 = iota
+	StageGenerateNoisy
+	StageGoodNoisy
+	StageKiller1
+	StageKiller2
+	StageCounter
+	StageGenerateQuiet
+	StageQuiet
+	StageNoisy
+	StageDone
 )
 
 type MoveProvider struct {
-	Moves      [MAX_MOVES]EvaledMove
+	Moves      [MaxMoves]EvaledMove
 	ttMove     Move
 	counter    Move
 	killer1    Move
@@ -51,12 +51,12 @@ func mvvlva(move Move) int32 {
 func (mp *MoveProvider) InitQs() {
 	mp.kind = NOISY
 	mp.ttMove = NullMove
-	mp.stage = GENERATE_NOISY
+	mp.stage = StageGenerateNoisy
 }
 
 func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, ttMove Move) {
 	mp.kind = NORMAL
-	mp.stage = TT_MOVE
+	mp.stage = StageTtMove
 	mp.ttMove = ttMove
 	if pos.LastMove != NullMove {
 		mp.counter = mh.CounterMoves[pos.SideToMove][pos.LastMove.From()][pos.LastMove.To()]
@@ -66,12 +66,12 @@ func (mp *MoveProvider) InitNormal(pos *Position, mh *MoveHistory, height int, t
 }
 
 func (mp *MoveProvider) InitSingular() {
-	mp.stage = GENERATE_NOISY
+	mp.stage = StageGenerateNoisy
 }
 
 // We can save generating noisy after quiescence
 func (mp *MoveProvider) RestoreFromSingular() {
-	mp.stage = GOOD_NOISY
+	mp.stage = StageGoodNoisy
 	mp.noisySize = mp.split
 }
 
@@ -82,7 +82,7 @@ func evaluateNoisy(Moves []EvaledMove) {
 	}
 }
 
-func (mp *MoveProvider) GetMoveStage() uint8 {
+func (mp *MoveProvider) GetStage() uint8 {
 	return mp.stage
 }
 
@@ -95,19 +95,19 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 	var move EvaledMove
 	var bestIdx int
 	switch mp.stage {
-	case TT_MOVE:
+	case StageTtMove:
 		mp.stage++
 		if mp.ttMove != NullMove && pos.IsMovePseudoLegal(mp.ttMove) {
 			return mp.ttMove
 		}
 		fallthrough
-	case GENERATE_NOISY:
+	case StageGenerateNoisy:
 		mp.stage++
 		mp.noisySize = GenerateNoisy(pos, mp.Moves[:])
 		mp.split = mp.noisySize
 		evaluateNoisy(mp.Moves[:mp.noisySize])
 		fallthrough
-	case GOOD_NOISY:
+	case StageGoodNoisy:
 		for mp.noisySize > 0 {
 			bestIdx = 0
 			for i := 1; i < int(mp.noisySize); i++ {
@@ -131,30 +131,30 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 			return move.Move
 		}
 		if mp.kind == NOISY {
-			mp.stage = DONE
+			mp.stage = StageDone
 			return NullMove
 		}
 		mp.stage++
 		fallthrough
-	case KILLER_1:
+	case StageKiller1:
 		mp.stage++
 		if mp.killer1 != NullMove && mp.killer1 != mp.ttMove && pos.IsMovePseudoLegal(mp.killer1) {
 			return mp.killer1
 		}
 		fallthrough
-	case KILLER_2:
+	case StageKiller2:
 		mp.stage++
 		if mp.killer2 != NullMove && mp.killer2 != mp.ttMove && pos.IsMovePseudoLegal(mp.killer2) {
 			return mp.killer2
 		}
 		fallthrough
-	case COUNTER:
+	case StageCounter:
 		mp.stage++
 		if mp.counter != NullMove && mp.counter != mp.ttMove && mp.counter != mp.killer1 && mp.counter != mp.killer2 && pos.IsMovePseudoLegal(mp.counter) {
 			return mp.counter
 		}
 		fallthrough
-	case GENERATE_QUIET:
+	case StageGenerateQuiet:
 		mp.stage++
 		mp.quietsSize = GenerateQuiet(pos, mp.Moves[mp.split:])
 		quietMoves := mp.Moves[mp.split : mp.split+mp.quietsSize]
@@ -171,7 +171,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 			}
 		}
 		fallthrough
-	case QUIET:
+	case StageQuiet:
 		for mp.quietsSize > 0 {
 			mp.quietsSize--
 			move = mp.Moves[mp.split+mp.quietsSize]
@@ -181,7 +181,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 		}
 		mp.stage++
 		fallthrough
-	case BAD_NOISY:
+	case StageNoisy:
 		for mp.noisySize > 0 {
 			mp.noisySize--
 			move = mp.Moves[mp.noisySize]
