@@ -601,17 +601,19 @@ func (t *thread) isDraw(height int) bool {
 }
 
 type searchResult struct {
-	value int
-	depth int
-	moves []Move
+	value    int
+	depth    int
+	seldepth int
+	moves    []Move
 }
 
 type aspirationWindowResult struct {
-	searchResult
+	*searchResult
 	requestedDepth int
+	multiPV        int
 }
 
-func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) aspirationWindowResult {
+func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove, multiPV int) aspirationWindowResult {
 	var alpha, beta int
 	delta := WindowSize
 	searchDepth := depth
@@ -635,7 +637,7 @@ func (t *thread) aspirationWindow(depth, lastValue int, moves []EvaledMove) aspi
 	for {
 		res := t.depSearch(Max(1, searchDepth), alpha, beta, moves)
 		if res.value > alpha && res.value < beta {
-			return aspirationWindowResult{res, depth}
+			return aspirationWindowResult{&res, depth, multiPV}
 		}
 		if res.value <= alpha {
 			beta = (alpha + beta) / 2
@@ -664,11 +666,15 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 	t.setEvaluation(0, eval)
 	t.stack[0].PV.clear()
 	t.ResetKillers(1)
+	multiPV := t.isMainThread() && t.engine.MultiPV.Val != 1
 	quietsSearched := t.stack[0].quietsSearched[:0]
 	bestVal := MinInt
 	var val int
 
 	for i := range moves {
+		if multiPV && t.engine.IsMoveExcluded(moves[i].Move) {
+			continue
+		}
 		pos.MakeLegalMove(moves[i].Move, child)
 		// Prefetch as early as possible
 		transposition.GlobalTransTable.Prefetch(child.Key)
@@ -737,66 +743,53 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 		flag = TransExact
 	}
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), eval, depth, bestMove, flag, true)
-	return searchResult{alpha, depth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return searchResult{alpha, depth, t.seldepth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
 }
 
-func (e *Engine) singleThreadBestMove(ctx, ponderCtx context.Context, rootMoves []EvaledMove) (Move, Move) {
-	var lastBestMove, lastPonderMove Move
-	thread := &e.threads[0]
-	lastValue := -Mate
-	for i := 1; ; i++ {
-		resultChan := make(chan aspirationWindowResult, 1)
-		go func(depth int) {
-			defer recoverFromTimeout()
-			res := thread.aspirationWindow(depth, lastValue, rootMoves)
-			resultChan <- res
-			lastValue = res.value
-		}(i)
-		select {
-		case <-ctx.Done():
-			return lastBestMove, lastPonderMove
-		case res := <-resultChan:
-			timeSinceStart := e.getElapsedTime()
-			e.Update(&SearchInfo{newReportScore(res.value), res.requestedDepth, thread.seldepth, thread.nodes, int(float64(thread.nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), thread.tbhits, res.moves})
-			lastBestMove = res.moves[0]
-			lastPonderMove = NullMove
-			if len(res.moves) > 1 {
-				lastPonderMove = res.moves[1]
-			}
-			if i >= MaxHeight {
-				return lastBestMove, lastPonderMove
-			}
-			e.updateTime(res.depth, res.value)
-			// Do not stop searching even when found a mate in ponder
-			if isContextActive(ponderCtx) {
-				continue
-			}
-			if res.value >= ValueWin && depthToMate(res.value) <= i {
-				return lastBestMove, lastPonderMove
-			}
-		}
-	}
-}
-
-func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirationWindowResult, idx int) {
+func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirationWindowResult) {
 	var res aspirationWindowResult
-	mainThread := idx == 0
 	lastValue := -Mate
 	// I do not think this matters much, but at the beginning only thread with id 0 have sorted moves list
-	if !mainThread {
+	if t.isMainThread() {
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
 		})
 	}
 
 	for depth := 1; depth <= MaxHeight; depth++ {
-		res = t.aspirationWindow(depth, lastValue, moves)
+		res = t.aspirationWindow(depth, lastValue, moves, 1)
 		resultChan <- res
 		lastValue = res.value
 	}
 }
 
+func (t *thread) multiPVIterativeDeepening(moves []EvaledMove, resultChan chan aspirationWindowResult) {
+	var res aspirationWindowResult
+	multiPV := Min(t.engine.MultiPV.Val, len(moves))
+	for depth := 1; depth <= MaxHeight; depth++ {
+		for moveIdx := 1; moveIdx <= multiPV; moveIdx++ {
+			t.engine.multiPVExcluded[moveIdx-1] = NullMove
+			res = t.aspirationWindow(depth, int(t.engine.lastValues[moveIdx-1]), moves, moveIdx)
+			resultChan <- res
+			t.engine.multiPVExcluded[moveIdx-1] = res.moves[0]
+			t.engine.lastValues[moveIdx-1] = int16(res.value)
+		}
+	}
+}
+
+func (t *thread) silentIterativeDeepening(moves []EvaledMove) {
+	lastValue := -Mate
+	rand.Shuffle(len(moves), func(i, j int) {
+		moves[i], moves[j] = moves[j], moves[i]
+	})
+	for depth := 1; depth <= MaxHeight; depth++ {
+		lastValue = t.aspirationWindow(depth, lastValue, moves, 1).value
+	}
+}
+
 func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, Move) {
+	isMultiPV := e.MultiPV.Val != 1
+	e.multiPVExcluded[0] = NullMove
 	for i := range e.threads {
 		e.threads[i].stack[0].position = *pos
 		e.threads[i].nodes = 0
@@ -806,7 +799,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 
 	rootMoves := GenerateAllLegalMoves(pos)
 
-	if fathom.IsDTZProbeable(pos) {
+	if !isMultiPV && fathom.IsDTZProbeable(pos) {
 		if ok, bestMove, wdl, dtz := fathom.ProbeDTZ(pos, rootMoves); ok {
 			var score int
 			if wdl == fathom.TbLoss {
@@ -816,7 +809,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 			} else {
 				score = 0
 			}
-			e.Update(&SearchInfo{newReportScore(score), MaxHeight - 1, MaxHeight - 1, 0, 1, 0, 1, []Move{bestMove}})
+			e.Update(&SearchInfo{newReportScore(score), MaxHeight - 1, MaxHeight - 1, 1, 0, 1, 0, 1, []Move{bestMove}})
 			return bestMove, NullMove
 		}
 	}
@@ -829,16 +822,29 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 
 	sortMoves(rootMoves)
 
-	if e.Threads.Val == 1 {
-		return e.singleThreadBestMove(ctx, ponderCtx, rootMoves)
-	}
-
 	resultChan := make(chan aspirationWindowResult)
-	for i := range e.threads {
-		go func(idx int) {
-			defer recoverFromTimeout()
-			e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan, idx)
-		}(i)
+	if isMultiPV {
+		for i := range e.threads {
+			if i == 0 {
+				go func(idx int) {
+					defer recoverFromTimeout()
+					e.threads[idx].multiPVIterativeDeepening(cloneEvaledMoves(rootMoves), resultChan)
+				}(i)
+				continue
+			}
+			go func(idx int) {
+				defer recoverFromTimeout()
+				e.threads[idx].silentIterativeDeepening(cloneEvaledMoves(rootMoves))
+			}(i)
+		}
+	} else {
+		for i := range e.threads {
+			go func(idx int) {
+				defer recoverFromTimeout()
+				e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan)
+			}(i)
+		}
+
 	}
 
 	prevDepth := 0
@@ -850,24 +856,27 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 			return lastBestMove, lastPonderMove
 		case res := <-resultChan:
 			// If thread reports result for depth that is lower than already calculated one, ignore results
-			if res.requestedDepth <= prevDepth {
+			if res.requestedDepth <= prevDepth && !isMultiPV {
+				continue
+			}
+			nodes, tbhits := e.aggregatesInfo()
+			timeSinceStart := e.getElapsedTime()
+			e.Update(&SearchInfo{newReportScore(res.value), res.requestedDepth, res.seldepth, res.multiPV, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
+			if res.multiPV != 1 {
 				continue
 			}
 			e.updateTime(res.depth, res.value)
-			nodes, tbhits, seldepth := e.aggregatesInfo()
-			timeSinceStart := e.getElapsedTime()
 			prevDepth = res.requestedDepth
 			lastBestMove = res.moves[0]
 			lastPonderMove = NullMove
 			if len(res.moves) > 1 {
 				lastPonderMove = res.moves[1]
 			}
-			e.Update(&SearchInfo{newReportScore(res.value), res.requestedDepth, seldepth, nodes, int(float64(nodes) / timeSinceStart.Seconds()), int(timeSinceStart.Milliseconds()), tbhits, res.moves})
 			if res.depth >= MaxHeight {
 				return lastBestMove, lastPonderMove
 			}
-			// Do not stop searching even when found a mate in ponder
-			if isContextActive(ponderCtx) {
+			// Do not stop searching even when found a mate when in MultiPV or ponder
+			if isMultiPV || isContextActive(ponderCtx) {
 				continue
 			}
 			if res.value >= ValueWin && depthToMate(res.value) <= res.depth {

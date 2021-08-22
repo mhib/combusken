@@ -16,6 +16,7 @@ import (
 const MaxHeight = 127
 const StackSize = MaxHeight + 1
 const MaxMoves = 256
+const MaxMultiPV = 128
 
 var errTimeout = errors.New("Search timeout")
 
@@ -26,19 +27,23 @@ type Engine struct {
 	PawnHash          IntOption
 	SyzygyPath        StringOption
 	SyzygyProbeDepth  IntOption
+	MultiPV           IntOption
 	Ponder            CheckOption
 	done              <-chan struct{}
 	RepeatedPositions map[uint64]interface{}
 	MovesCount        int
 	Update            func(*SearchInfo)
 	timeManager
-	threads []thread
+	threads         []thread
+	multiPVExcluded [MaxMultiPV]backend.Move
+	lastValues      [MaxMultiPV]int16
 }
 
 type thread struct {
 	engine *Engine
 	MoveHistory
 	evaluation.EvaluationContext
+	index           int
 	nodes           int
 	tbhits          int
 	disableNmpColor int
@@ -65,6 +70,7 @@ type SearchInfo struct {
 	Score    ReportScore
 	Depth    int
 	SelDepth int
+	MultiPV  int
 	Nodes    int
 	Nps      int
 	Duration int
@@ -117,7 +123,7 @@ func (e *Engine) GetInfo() (name, version, author string) {
 }
 
 func (e *Engine) GetOptions() []EngineOption {
-	return []EngineOption{&e.Hash, &e.Threads, &e.PawnHash, &e.MoveOverhead, &e.SyzygyPath, &e.SyzygyProbeDepth, &e.Ponder}
+	return []EngineOption{&e.Hash, &e.Threads, &e.PawnHash, &e.MoveOverhead, &e.SyzygyPath, &e.SyzygyProbeDepth, &e.Ponder, &e.MultiPV}
 }
 
 func NewEngine() (ret Engine) {
@@ -127,6 +133,7 @@ func NewEngine() (ret Engine) {
 	ret.MoveOverhead = IntOption{"Move Overhead", 0, 10000, 50, 50}
 	ret.SyzygyPath = StringOption{"SyzygyPath", "", "", false}
 	ret.SyzygyProbeDepth = IntOption{"SyzygyProbeDepth", 0, 100, 0, 0}
+	ret.MultiPV = IntOption{"MultiPV", 1, MaxMultiPV, 1, 1}
 	ret.Ponder = CheckOption{"Ponder", false, false}
 	ret.threads = make([]thread, 1)
 	ret.Update = func(*SearchInfo) {}
@@ -135,6 +142,15 @@ func NewEngine() (ret Engine) {
 
 func (e *Engine) SetUpdate(update func(*SearchInfo)) {
 	e.Update = update
+}
+
+func (e *Engine) IsMoveExcluded(move backend.Move) bool {
+	for i := 0; e.multiPVExcluded[i] != backend.NullMove && i < MaxMultiPV; i++ {
+		if e.multiPVExcluded[i] == move {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) Search(ctx context.Context, ponderCtx context.Context, searchParams SearchParams) (bestMove, ponderMove backend.Move) {
@@ -182,6 +198,7 @@ func (e *Engine) NewGame() {
 	transposition.GlobalTransTable = transposition.NewTransTable(e.Hash.Val)
 	e.threads = make([]thread, e.Threads.Val)
 	for i := range e.threads {
+		e.threads[i].index = i
 		e.threads[i].MoveHistory = MoveHistory{}
 		e.threads[i].engine = e
 	}
@@ -194,11 +211,10 @@ func (e *Engine) NewGame() {
 	runtime.GC()
 }
 
-func (e *Engine) aggregatesInfo() (nodes, tbhits, seldepth int) {
+func (e *Engine) aggregatesInfo() (nodes, tbhits int) {
 	for i := range e.threads {
 		nodes += e.threads[i].nodes
 		tbhits += e.threads[i].tbhits
-		seldepth = Max(seldepth, e.threads[i].seldepth)
 	}
 	return
 }
@@ -216,6 +232,10 @@ func (t *thread) incNodes() {
 
 func (t *thread) getNextMove(pos *backend.Position, depth, height int) backend.Move {
 	return t.stack[height].GetNextMove(pos, &t.MoveHistory, depth, height)
+}
+
+func (t *thread) isMainThread() bool {
+	return t.index == 0
 }
 
 func (pv *PV) clear() {
