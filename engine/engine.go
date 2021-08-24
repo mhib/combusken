@@ -238,6 +238,10 @@ func (t *thread) isMainThread() bool {
 	return t.index == 0
 }
 
+func (t *thread) getRootMovesBuffer() []backend.EvaledMove {
+	return t.stack[0].MoveProvider.Moves[:]
+}
+
 func (pv *PV) clear() {
 	pv.size = 0
 }

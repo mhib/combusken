@@ -828,20 +828,20 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 			if i == 0 {
 				go func(idx int) {
 					defer recoverFromTimeout()
-					e.threads[idx].multiPVIterativeDeepening(cloneEvaledMoves(rootMoves), resultChan)
+					e.threads[idx].multiPVIterativeDeepening(cloneEvaledMoves(e.threads[idx].getRootMovesBuffer(), rootMoves), resultChan)
 				}(i)
 				continue
 			}
 			go func(idx int) {
 				defer recoverFromTimeout()
-				e.threads[idx].silentIterativeDeepening(cloneEvaledMoves(rootMoves))
+				e.threads[idx].silentIterativeDeepening(cloneEvaledMoves(e.threads[idx].getRootMovesBuffer(), rootMoves))
 			}(i)
 		}
 	} else {
 		for i := range e.threads {
 			go func(idx int) {
 				defer recoverFromTimeout()
-				e.threads[idx].iterativeDeepening(cloneEvaledMoves(rootMoves), resultChan)
+				e.threads[idx].iterativeDeepening(cloneEvaledMoves(e.threads[idx].getRootMovesBuffer(), rootMoves), resultChan)
 			}(i)
 		}
 
@@ -901,10 +901,9 @@ func cloneMoves(src []Move) []Move {
 	return dst
 }
 
-func cloneEvaledMoves(src []EvaledMove) []EvaledMove {
-	dst := make([]EvaledMove, len(src))
+func cloneEvaledMoves(dst, src []EvaledMove) []EvaledMove {
 	copy(dst, src)
-	return dst
+	return dst[:len(src)]
 }
 
 func recoverFromTimeout() {
