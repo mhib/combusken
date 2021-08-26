@@ -115,7 +115,7 @@ func (uci *UciProtocol) thinking(msg interface{}) {
 		uci.writeBuffer.WriteString("bestmove ")
 		uci.writeBuffer.WriteString(msg.bestMove.String())
 		if msg.ponderMove != backend.NullMove {
-			uci.writeBuffer.WriteString(" ")
+			uci.writeBuffer.WriteString(" ponder ")
 			uci.writeBuffer.WriteString(msg.ponderMove.String())
 		}
 		uci.writeBuffer.WriteString("\n")
