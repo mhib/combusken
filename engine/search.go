@@ -743,7 +743,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 		flag = TransExact
 	}
 	transposition.GlobalTransTable.Set(pos.Key, transposition.ValueToTrans(alpha, 0), eval, depth, bestMove, flag, true)
-	return searchResult{alpha, depth, t.seldepth, cloneMoves(t.stack[0].PV.items[:t.stack[0].PV.size])}
+	return searchResult{alpha, depth, t.seldepth, cloneMoves(t.stack[0].PV.Moves())}
 }
 
 func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirationWindowResult) {
