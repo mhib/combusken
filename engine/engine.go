@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"runtime"
+	"sync"
 
 	"github.com/mhib/combusken/backend"
 	"github.com/mhib/combusken/evaluation"
@@ -157,7 +158,6 @@ func (e *Engine) Search(ctx context.Context, ponderCtx context.Context, searchPa
 	e.fillMoveHistory(searchParams.Positions)
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
-	defer cancel()
 	var timeoutCtx context.Context
 	timeoutCtx, e.timeManager = newTimeManager(ctx, &searchParams.Limits, e.MoveOverhead.Val, e.Ponder.Val, searchParams.Positions[len(searchParams.Positions)-1].SideToMove)
 	if searchParams.Limits.Ponder {
@@ -166,7 +166,12 @@ func (e *Engine) Search(ctx context.Context, ponderCtx context.Context, searchPa
 		ctx = timeoutCtx
 	}
 	e.done = ctx.Done()
-	return e.bestMove(ctx, ponderCtx, &searchParams.Positions[len(searchParams.Positions)-1])
+	var wg sync.WaitGroup
+	wg.Add(len(e.threads))
+	bestMove, ponderMove = e.bestMove(ctx, ponderCtx, &wg, &searchParams.Positions[len(searchParams.Positions)-1])
+	cancel()
+	wg.Wait()
+	return
 }
 
 func definePonderCancellation(ponderCtx context.Context, timeoutCtx context.Context, cancel context.CancelFunc) {

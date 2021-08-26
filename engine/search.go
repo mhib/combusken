@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"math/rand"
+	"sync"
 
 	. "github.com/mhib/combusken/backend"
 	. "github.com/mhib/combusken/evaluation"
@@ -787,7 +788,7 @@ func (t *thread) silentIterativeDeepening(moves []EvaledMove) {
 	}
 }
 
-func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, Move) {
+func (e *Engine) bestMove(ctx, ponderCtx context.Context, wg *sync.WaitGroup, pos *Position) (Move, Move) {
 	isMultiPV := e.MultiPV.Val != 1
 	e.multiPVExcluded[0] = NullMove
 	for i := range e.threads {
@@ -827,20 +828,20 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, pos *Position) (Move, 
 		for i := range e.threads {
 			if i == 0 {
 				go func(idx int) {
-					defer recoverFromTimeout()
+					defer recoverFromTimeout(wg)
 					e.threads[idx].multiPVIterativeDeepening(cloneEvaledMoves(e.threads[idx].getRootMovesBuffer(), rootMoves), resultChan)
 				}(i)
 				continue
 			}
 			go func(idx int) {
-				defer recoverFromTimeout()
+				defer recoverFromTimeout(wg)
 				e.threads[idx].silentIterativeDeepening(cloneEvaledMoves(e.threads[idx].getRootMovesBuffer(), rootMoves))
 			}(i)
 		}
 	} else {
 		for i := range e.threads {
 			go func(idx int) {
-				defer recoverFromTimeout()
+				defer recoverFromTimeout(wg)
 				e.threads[idx].iterativeDeepening(cloneEvaledMoves(e.threads[idx].getRootMovesBuffer(), rootMoves), resultChan)
 			}(i)
 		}
@@ -906,7 +907,8 @@ func cloneEvaledMoves(dst, src []EvaledMove) []EvaledMove {
 	return dst[:len(src)]
 }
 
-func recoverFromTimeout() {
+func recoverFromTimeout(wg *sync.WaitGroup) {
+	wg.Done()
 	err := recover()
 	if err != nil && err != errTimeout {
 		panic(err)
