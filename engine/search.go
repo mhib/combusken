@@ -759,8 +759,12 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirati
 
 	for depth := 1; depth <= MaxHeight; depth++ {
 		res = t.aspirationWindow(depth, lastValue, moves, 1)
-		resultChan <- res
-		lastValue = res.value
+		select {
+		case resultChan <- res:
+			lastValue = res.value
+		case <-t.engine.done:
+			return
+		}
 	}
 }
 
@@ -771,9 +775,13 @@ func (t *thread) multiPVIterativeDeepening(moves []EvaledMove, resultChan chan a
 		for moveIdx := 1; moveIdx <= multiPV; moveIdx++ {
 			t.engine.multiPVExcluded[moveIdx-1] = NullMove
 			res = t.aspirationWindow(depth, int(t.engine.lastValues[moveIdx-1]), moves, moveIdx)
-			resultChan <- res
-			t.engine.multiPVExcluded[moveIdx-1] = res.moves[0]
-			t.engine.lastValues[moveIdx-1] = int16(res.value)
+			select {
+			case resultChan <- res:
+				t.engine.multiPVExcluded[moveIdx-1] = res.moves[0]
+				t.engine.lastValues[moveIdx-1] = int16(res.value)
+			case <-t.engine.done:
+				return
+			}
 		}
 	}
 }
