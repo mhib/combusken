@@ -751,7 +751,7 @@ func (t *thread) iterativeDeepening(moves []EvaledMove, resultChan chan aspirati
 	var res aspirationWindowResult
 	lastValue := -Mate
 	// I do not think this matters much, but at the beginning only thread with id 0 have sorted moves list
-	if t.isMainThread() {
+	if !t.isMainThread() {
 		rand.Shuffle(len(moves), func(i, j int) {
 			moves[i], moves[j] = moves[j], moves[i]
 		})
