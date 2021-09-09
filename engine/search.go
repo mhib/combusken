@@ -25,7 +25,7 @@ const seeQuietMargin = -100
 const seeNoisyMargin = -28
 
 const reverseFutilityPruningDepth = 6
-const reverseFutilityPruningMargin = 90
+const reverseFutilityPruningMargin = 80
 
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
@@ -36,7 +36,7 @@ const secondCounterMovePruningDepth = 8
 const secondCounterMovePruningVal = -7340
 
 const probCutDepth = 6
-const probCutMargin = 100
+const probCutMargin = 80
 
 const WindowSize = 18
 const WindowDepth = 5

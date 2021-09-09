@@ -16,12 +16,14 @@ import (
 	. "github.com/mhib/combusken/backend"
 	"github.com/mhib/combusken/engine"
 	. "github.com/mhib/combusken/evaluation"
+	. "github.com/mhib/combusken/registeel"
 	. "github.com/mhib/combusken/utils"
 )
 
 type tuneEntry struct {
 	Position
-	result float64
+	result        float64
+	registeelEval float64
 }
 
 type thread struct {
@@ -195,7 +197,7 @@ func (t *tuner) computeError(entriesCount int) float64 {
 				if entry.Position.SideToMove == Black {
 					evaluation *= -1
 				}
-				diff := entry.result - sigmoid(t.k, evaluation)
+				diff := entry.result - sigmoid(t.k, evaluation+entry.registeelEval)
 
 				// Kahan summation
 				y := (diff * diff) - c
@@ -242,6 +244,7 @@ func (t *tuner) calculateOptimalK() {
 }
 
 func parseEntry(t *thread, fen string, resultChan chan tuneEntry) {
+	var registeel RegisteelNetwork
 	var res tuneEntry
 	sepIdx := strings.Index(fen, ";")
 	boardFen := fen[:sepIdx]
@@ -262,6 +265,7 @@ func parseEntry(t *thread, fen string, resultChan chan tuneEntry) {
 		board = child
 	}
 	res.Position = board
+	res.registeelEval = float64(registeel.CorrectEvaluation(&board))
 
 	resultChan <- res
 }

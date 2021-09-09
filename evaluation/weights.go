@@ -2,6 +2,7 @@ package evaluation
 
 import (
 	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/utils"
 )
 
 var PawnValue = S(79, 166)

@@ -40,6 +40,7 @@ type safetyCoefficient struct {
 type traceEntry struct {
 	result                 float64
 	eval                   float64
+	evalDiff               float64
 	phase                  int
 	factors                [2]float64
 	linearCoefficients     []linearCoefficient
@@ -47,7 +48,6 @@ type traceEntry struct {
 	complexityCoefficients []linearCoefficient
 	scale                  int
 	whiteMove              bool
-	evalDiff               float64
 }
 
 type weight [2]float64
@@ -307,10 +307,9 @@ func (tuner *traceTuner) parseTraceEntry(t *thread, fen string) (traceEntry, boo
 
 	res.evalDiff = res.eval - tuner.linearEvaluation(&res).cp
 
-	// Comment that if if tuning only some of the parameters
-	if math.Abs(res.evalDiff) > 1 {
-		fmt.Println("Problem with evaluation", res.evalDiff, fen)
-	}
+	// if math.Abs(res.evalDiff) > 1 {
+	// 	fmt.Println("Problem with evaluation", res.evalDiff, fen)
+	// }
 
 	return res, true
 }
