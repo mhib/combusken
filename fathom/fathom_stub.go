@@ -1,11 +1,12 @@
+//go:build !cgo
 // +build !cgo
 
 package fathom
 
 import "github.com/mhib/combusken/backend"
 
-var MAX_PIECE_COUNT = 0
-var MIN_PROBE_DEPTH = 0
+var MaxPieceCount = 0
+var MinProbeDepth = 0
 
 func SetPath(path string) {
 }
