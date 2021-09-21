@@ -1,6 +1,9 @@
 package evaluation
 
-import . "github.com/mhib/combusken/backend"
+import (
+	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/utils"
+)
 
 type Trace struct {
 	PawnValue                     int
