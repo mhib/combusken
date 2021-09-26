@@ -1392,7 +1392,9 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		score += S(0, int16(sign*Max(int(complexity.End()), -Abs(int(score.End())))))
 	}
 
-	score += ec.CorrectEvaluation(pos)
+	if Min(Abs(int(score.Middle())), Abs(int(score.End()))) < 300 {
+		score += ec.CorrectEvaluation(pos)
+	}
 
 	// Scale Factor inlined
 	scale := ScaleNormal
