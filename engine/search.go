@@ -150,7 +150,13 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 		t.SetCurrentMove(height, move)
 		moveCount++
 		childInCheck := child.IsInCheck()
+
+		t.ApplyMove(move, pos, child)
+
 		val := -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
+
+		t.RevertMove(move, pos, child)
+
 		if val > bestVal {
 			bestVal = val
 			bestMove = move
@@ -261,11 +267,11 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 		}
 	}
 
-	var child *Position = &t.stack[height+1].position
-
 	if depth <= 0 {
 		return t.quiescence(0, alpha, beta, height, inCheck)
 	}
+
+	var child *Position = &t.stack[height+1].position
 
 	t.ResetKillers(height + 1)
 	var improving bool
@@ -368,10 +374,16 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 				probCutCount++
 				t.SetCurrentMove(height, move)
 				isChildInCheck := child.IsInCheck()
+
+				t.ApplyMove(move, pos, child)
+
 				val = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
 				if val >= rBeta {
 					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck, !cutNode)
 				}
+
+				t.RevertMove(move, pos, child)
+
 				if val >= rBeta {
 					return val
 				}
@@ -480,6 +492,8 @@ afterPreMovesPruning:
 			quietsSearched = append(quietsSearched, move)
 		}
 
+		t.ApplyMove(move, pos, child)
+
 		// Search conditions as in Ethereal
 		// Search with null window and reduced depth if lmr
 		if reduction > 0 {
@@ -496,6 +510,7 @@ afterPreMovesPruning:
 		if pvNode && (moveCount == 1 || val > alpha) {
 			val = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck, false)
 		}
+		t.RevertMove(move, pos, child)
 
 		if val > bestVal {
 			bestVal = val
@@ -553,7 +568,13 @@ func (t *thread) singularSearch(depth, height int, hashMove Move, hashValue int,
 			continue
 		}
 		t.SetCurrentMove(height, move)
+
+		t.ApplyMove(move, pos, child)
+
 		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck(), cutNode)
+
+		t.RevertMove(move, pos, child)
+
 		if val > rBeta {
 			break
 		}
@@ -706,13 +727,18 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 		} else if inCheck && SeeSign(pos, moves[i].Move) {
 			newDepth++
 		}
+
+		t.ApplyMove(moves[i].Move, pos, child)
+
 		if reduction > 0 {
 			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck, true)
 			if val <= alpha {
+				t.RevertMove(moves[i].Move, pos, child)
 				continue
 			}
 		}
 		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck, false)
+		t.RevertMove(moves[i].Move, pos, child)
 		if val > bestVal {
 			bestVal = val
 			bestMove = moves[i].Move
@@ -806,6 +832,7 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, wg *sync.WaitGroup, po
 		e.threads[i].nodes = 0
 		e.threads[i].tbhits = 0
 		e.threads[i].disableNmpColor = ColourNone
+		e.threads[i].Initialize(pos)
 	}
 
 	rootMoves := GenerateAllLegalMoves(pos)

@@ -1,5 +1,9 @@
 package registeel
 
+import (
+	"math"
+)
+
 var firstLayerWeights = [sideSize*2 + castlingRightsSize][8]float32{
 	{-1.45866480e+01, 1.90160382e+00, 5.86458921e+00,
 		-1.69644141e+00, 1.87011278e+00, -1.00425863e+01,
@@ -2274,3 +2278,36 @@ var secondLayerWeights = [8][2]float32{
 }
 
 var outputBias = [2]float32{1.9892323, 7.9477506}
+
+const firstLayerDivisor = 1024
+
+var firstLayerScale = float32(1.0 / firstLayerDivisor)
+
+const outputDivisor = firstLayerDivisor * firstLayerDivisor
+
+var outputScale = float32(1.0 / outputDivisor)
+
+var firstLayerQuatizedWeights [sideSize*2 + castlingRightsSize][8]int16
+var firstLayerQuantizedBias [8]int16
+
+var secondLayerQuantizedWeights [8][2]int16
+var outputQuantizedBias [2]int32
+
+func init() {
+	for y, row := range firstLayerWeights {
+		for x, el := range row {
+			firstLayerQuatizedWeights[y][x] = int16(math.RoundToEven(float64(el / firstLayerScale)))
+		}
+	}
+	for y, row := range secondLayerWeights {
+		for x, el := range row {
+			secondLayerQuantizedWeights[y][x] = int16(math.RoundToEven(float64(el / firstLayerScale)))
+		}
+	}
+	for x, el := range firstLayerBias {
+		firstLayerQuantizedBias[x] = int16(math.RoundToEven(float64(el / firstLayerScale)))
+	}
+	for x, el := range outputBias {
+		outputQuantizedBias[x] = int32(math.RoundToEven(float64(el / outputScale)))
+	}
+}
