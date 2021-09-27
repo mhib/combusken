@@ -1392,10 +1392,6 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		score += S(0, int16(sign*Max(int(complexity.End()), -Abs(int(score.End())))))
 	}
 
-	if Min(Abs(int(score.Middle())), Abs(int(score.End()))) < 300 {
-		score += ec.CorrectEvaluation(pos)
-	}
-
 	// Scale Factor inlined
 	scale := ScaleNormal
 	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
@@ -1406,6 +1402,10 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 	} else if (score.End() > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
 		(score.End() < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
 		scale = ScaleDraw
+	}
+
+	if scale != ScaleDraw && Min(Abs(int(score.Middle())), Abs(int(score.End()))) < 300 {
+		score += ec.CorrectEvaluation(pos)
 	}
 
 	if tuning {
