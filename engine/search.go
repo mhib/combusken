@@ -24,8 +24,8 @@ const seePruningDepth = 10
 const seeQuietMargin = -100
 const seeNoisyMargin = -28
 
-const reverseFutilityPruningDepth = 6
-const reverseFutilityPruningMargin = 80
+const reverseFutilityPruningDepth = 7
+const reverseFutilityPruningMargin = 100
 
 const moveCountPruningDepth = 8
 const futilityPruningDepth = 8
@@ -312,7 +312,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	}
 
 	// Reverse futility pruning
-	if !pvNode && depth < reverseFutilityPruningDepth && int(eval)-reverseFutilityPruningMargin*depth >= beta && int(eval) < ValueTbWinInMaxDepth {
+	if !pvNode && depth < reverseFutilityPruningDepth && int(eval)-reverseFutilityPruningMargin*(depth-BoolToInt(improving)) >= beta && int(eval) < ValueTbWinInMaxDepth {
 		return int(eval)
 	}
 
