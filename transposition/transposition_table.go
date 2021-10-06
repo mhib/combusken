@@ -80,7 +80,11 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, 
 
 func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int, pvNode bool) {
 	var element = &t.Entries[key&t.Mask]
-	element.key = uint32(key >> 32)
+	adjustedKey := uint32(key >> 32)
+	if flag != TransExact && element.key == adjustedKey && (int(element.depth)+NoneDepth)/2 >= depth && element.flagPv.getFlag() != TransNone {
+		return
+	}
+	element.key = adjustedKey
 	element.value = value
 	element.eval = eval
 	element.flagPv = newFlagPv(flag, pvNode)
