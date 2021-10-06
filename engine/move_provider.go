@@ -91,6 +91,10 @@ func (mp *MoveProvider) dropNoisy(bestIdx int) {
 	mp.Moves[mp.noisySize], mp.Moves[bestIdx] = mp.Moves[bestIdx], mp.Moves[mp.noisySize]
 }
 
+func (mp *MoveProvider) skipQuiets() {
+	mp.stage = StageNoisy
+}
+
 func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, height int) Move {
 	var move EvaledMove
 	var bestIdx int
@@ -179,6 +183,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 				return move.Move
 			}
 		}
+
 		mp.stage++
 		fallthrough
 	case StageNoisy:

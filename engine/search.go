@@ -402,9 +402,11 @@ afterPreMovesPruning:
 
 		if bestVal > ValueLoss && !inCheck && moveCount > 0 && t.stack[height].GetStage() > StageGenerateQuiet && !isNoisy {
 			if depth <= futilityPruningDepth && int(eval)+int(PawnValueMiddle)*depth <= alpha {
+				t.skipQuiets(height)
 				continue
 			}
 			if depth <= moveCountPruningDepth && moveCount >= moveCountPruning(BoolToInt(improving), depth) {
+				t.skipQuiets(height)
 				continue
 			}
 			if pos.LastMove != NullMove {

@@ -239,6 +239,10 @@ func (t *thread) getNextMove(pos *backend.Position, depth, height int) backend.M
 	return t.stack[height].GetNextMove(pos, &t.MoveHistory, depth, height)
 }
 
+func (t *thread) skipQuiets(height int) {
+	t.stack[height].skipQuiets()
+}
+
 func (t *thread) isMainThread() bool {
 	return t.index == 0
 }
