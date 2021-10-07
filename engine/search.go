@@ -584,7 +584,7 @@ func (t *thread) isDraw(height int) bool {
 		return true
 	}
 
-	// Look for repetitoin in current search stack
+	// Look for repetition in the current search stack
 	for i := height - 1; i >= 0; i-- {
 		descendant := &t.stack[i].position
 		if descendant.Key == pos.Key {
