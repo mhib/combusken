@@ -1404,7 +1404,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		scale = ScaleDraw
 	}
 
-	if scale != ScaleDraw && Min(Abs(int(score.Middle())), Abs(int(score.End()))) < 300 {
+	if scale != ScaleDraw {
 		score += ec.CorrectEvaluation(pos)
 	}
 
