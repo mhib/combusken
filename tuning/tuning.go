@@ -70,7 +70,9 @@ func (t *thread) quiescence(alpha, beta, height int, inCheck bool) int {
 
 	moveCount := 0
 
-	val := (&EvaluationContext{}).Evaluate(pos)
+	var ec EvaluationContext
+	ec.Initialize(pos)
+	val := ec.Evaluate(pos)
 
 	var evaled []EvaledMove
 	if inCheck {
@@ -193,7 +195,9 @@ func (t *tuner) computeError(entriesCount int) float64 {
 			var c, sum float64
 			for y := idx; y < entriesCount; y += numCPU {
 				entry := t.entries[y]
-				evaluation := float64((&EvaluationContext{}).Evaluate(&entry.Position))
+				var ec EvaluationContext
+				ec.Initialize(&entry.Position)
+				evaluation := float64(ec.Evaluate(&entry.Position))
 				if entry.Position.SideToMove == Black {
 					evaluation *= -1
 				}
