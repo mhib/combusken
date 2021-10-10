@@ -848,6 +848,9 @@ func (e *Engine) bestMove(ctx, ponderCtx context.Context, wg *sync.WaitGroup, po
 				score = 0
 			}
 			e.Update(&SearchInfo{newReportScore(score), MaxHeight - 1, MaxHeight - 1, 1, 0, 1, 0, 1, []Move{bestMove}})
+			for range e.threads {
+				wg.Done()
+			}
 			return bestMove, NullMove
 		}
 	}
