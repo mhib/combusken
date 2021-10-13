@@ -977,17 +977,12 @@ func lmr(d, m int) int {
 var lmrTable [64][64]int
 
 func init() {
+	base := -0.7675250065028055
+	movePower := 1.1798078422389596
+	depthPower := 0.3744551389641595
+
 	lmrFormula := func(d, m int) int {
-		switch {
-		case d >= 5 && m >= 16:
-			return int(math.Round(2.0 * (math.Log(float64(d)) / math.Log(5))))
-		case d >= 4 && m >= 9:
-			return int(math.Round(1.5 * (math.Log(float64(d)) / math.Log(5))))
-		case d >= 3 && m >= 4:
-			return int(math.Round(math.Log(float64(d)) / math.Log(5)))
-		default:
-			return 0
-		}
+		return Max(int(math.Round(math.Log(math.Pow(float64(d), depthPower))*math.Log(math.Pow(float64(m), movePower))+base)), 0)
 	}
 	for d := 1; d < 64; d++ {
 		for m := 1; m < 64; m++ {
