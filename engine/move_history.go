@@ -8,7 +8,10 @@ import (
 )
 
 const MinSpecialMoveValue = 53000
-const MaxBadCapture = -100000 + 4096 // 4096 represents max mvvlva value
+
+const TransMove = 6_000_000
+const BadCapture = -3_000_000
+const GoodCapture = 3_000_000
 
 const HistoryMax = 397
 const HistoryMultiplier = 47
@@ -20,6 +23,7 @@ type MoveHistory struct {
 	ButterflyHistory [2][64][64]int32
 	FollowUpHistory  [King + 1][64][King + 1][64]int32
 	CounterHistory   [King + 1][64][King + 1][64]int32
+	CaptureHistory   [King + 1][64][King]int32
 	CurrentMove      [StackSize + 1]Move
 }
 
@@ -89,9 +93,16 @@ func (mv *MoveHistory) Clear() {
 			}
 		}
 	}
+	for a := Pawn; a <= King; a++ {
+		for b := 0; b < 64; b++ {
+			for c := Pawn; c < King; c++ {
+				mv.CaptureHistory[a][b][c] = 0
+			}
+		}
+	}
 }
 
-func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth, height int) {
+func (mv *MoveHistory) UpdateQuiet(pos *Position, moves []Move, bestMove Move, depth, height int) {
 	if pos.LastMove != NullMove {
 		if mv.KillerMoves[height][0] != bestMove {
 			mv.KillerMoves[height][0], mv.KillerMoves[height][1] = bestMove, mv.KillerMoves[height][0]
@@ -129,6 +140,25 @@ func (mv *MoveHistory) Update(pos *Position, moves []Move, bestMove Move, depth,
 	}
 }
 
+func (mv *MoveHistory) UpdateNoisy(pos *Position, moves []Move, bestMove Move, depth int) {
+	unsignedBonus := int32(Min(depth*depth, HistoryMax))
+	for _, move := range moves {
+		var signedBonus int32
+		if move == bestMove {
+			signedBonus = unsignedBonus
+		} else {
+			signedBonus = -unsignedBonus
+		}
+		captured := move.CapturedPiece()
+		if captured == None {
+			captured = Pawn
+		}
+		entry := mv.CaptureHistory[move.MovedPiece()][move.To()][captured]
+		entry += HistoryMultiplier*signedBonus - entry*unsignedBonus/HistoryDivisor
+		mv.CaptureHistory[move.MovedPiece()][move.To()][captured] = entry
+	}
+}
+
 const MinGoodCapture = int32(55001)
 
 func (mv *MoveHistory) EvaluateMoves(pos *Position, moves []EvaledMove, fromTrans Move, height, depth int) {
@@ -144,12 +174,16 @@ func (mv *MoveHistory) EvaluateMoves(pos *Position, moves []EvaledMove, fromTran
 
 	for i := range moves {
 		if moves[i].Move == fromTrans {
-			moves[i].Value = 120000
+			moves[i].Value = TransMove
 		} else if moves[i].Move.IsCaptureOrPromotion() {
+			captured := moves[i].CapturedPiece()
+			if captured == None {
+				captured = Pawn
+			}
 			if SeeSign(pos, moves[i].Move) {
-				moves[i].Value = mvvlva(moves[i].Move) + 100000
+				moves[i].Value = mv.CaptureHistory[moves[i].MovedPiece()][moves[i].To()][captured] + GoodCapture
 			} else {
-				moves[i].Value = mvvlva(moves[i].Move) - 100000
+				moves[i].Value = mv.CaptureHistory[moves[i].MovedPiece()][moves[i].To()][captured] + BadCapture
 			}
 		} else {
 			if moves[i].Move == mv.KillerMoves[height][0] {
@@ -185,5 +219,25 @@ func (mv *MoveHistory) EvaluateQuiets(pos *Position, moves []EvaledMove, height 
 		if followUp != NullMove {
 			moves[i].Value += mv.FollowUpHistory[followUp.MovedPiece()][followUp.To()][moves[i].MovedPiece()][moves[i].To()]
 		}
+	}
+}
+
+var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
+
+func mvvlva(move Move) int32 {
+	captureScore := mvvlvaScores[move.CapturedPiece()]
+	if move.IsPromotion() && move.PromotedPiece() == Queen {
+		captureScore += mvvlvaScores[Queen] - mvvlvaScores[Pawn]
+	}
+	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
+}
+
+func (mv *MoveHistory) EvaluateNoisy(pos *Position, moves []EvaledMove) {
+	for i := range moves {
+		captured := moves[i].CapturedPiece()
+		if captured == None {
+			captured = Pawn
+		}
+		moves[i].Value = mv.CaptureHistory[moves[i].MovedPiece()][moves[i].To()][captured] + mvvlva(moves[i].Move)
 	}
 }

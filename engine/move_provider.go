@@ -36,17 +36,7 @@ const (
 	NOISY
 )
 
-var mvvlvaScores = [None + 1]int32{10, 40, 45, 68, 145, 256, 0}
-
-const badNoisyValue = -4096
-
-func mvvlva(move Move) int32 {
-	captureScore := mvvlvaScores[move.CapturedPiece()]
-	if move.IsPromotion() && move.PromotedPiece() == Queen {
-		captureScore += mvvlvaScores[Queen] - mvvlvaScores[Pawn]
-	}
-	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
-}
+const badNoisyValue = -3_000_000
 
 func (mp *MoveProvider) InitQs() {
 	mp.kind = NOISY
@@ -73,13 +63,6 @@ func (mp *MoveProvider) InitSingular() {
 func (mp *MoveProvider) RestoreFromSingular() {
 	mp.stage = StageGoodNoisy
 	mp.noisySize = mp.split
-}
-
-// In Quiescent search it is expected that SEE will be checked anyway
-func evaluateNoisy(Moves []EvaledMove) {
-	for i := range Moves {
-		Moves[i].Value = mvvlva(Moves[i].Move)
-	}
 }
 
 func (mp *MoveProvider) GetStage() uint8 {
@@ -109,7 +92,7 @@ func (mp *MoveProvider) GetNextMove(pos *Position, mh *MoveHistory, depth, heigh
 		mp.stage++
 		mp.noisySize = GenerateNoisy(pos, mp.Moves[:])
 		mp.split = mp.noisySize
-		evaluateNoisy(mp.Moves[:mp.noisySize])
+		mh.EvaluateNoisy(pos, mp.Moves[:mp.noisySize])
 		fallthrough
 	case StageGoodNoisy:
 		for mp.noisySize > 0 {

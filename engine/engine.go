@@ -83,6 +83,7 @@ type StackEntry struct {
 	MoveProvider
 	PV
 	quietsSearched [MaxMoves]backend.Move
+	noisySearched  [MaxMoves]backend.Move
 	position       backend.Position
 	evaluation     int16
 }

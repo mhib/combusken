@@ -399,6 +399,8 @@ afterPreMovesPruning:
 		depth--
 	}
 
+	noisySearched := t.stack[height].noisySearched[:0]
+
 	// Quiet moves are stored in order to reduce their history value at the end of search
 	quietsSearched := t.stack[height].quietsSearched[:0]
 	bestMove := NullMove
@@ -488,7 +490,9 @@ afterPreMovesPruning:
 		newDepth := depth - 1 + extension
 
 		// Store move if it is quiet
-		if !isNoisy {
+		if isNoisy {
+			noisySearched = append(noisySearched, move)
+		} else {
 			quietsSearched = append(quietsSearched, move)
 		}
 
@@ -534,8 +538,12 @@ afterPreMovesPruning:
 		return t.contempt(pos, depth)
 	}
 
-	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
-		t.Update(pos, quietsSearched, bestMove, depth, height)
+	if alpha >= beta && bestMove != NullMove {
+		t.UpdateNoisy(pos, noisySearched, bestMove, depth)
+
+		if !bestMove.IsCaptureOrPromotion() {
+			t.UpdateQuiet(pos, quietsSearched, bestMove, depth, height)
+		}
 	}
 
 	var flag int
@@ -692,6 +700,7 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 	t.ResetKillers(1)
 	multiPV := t.isMainThread() && t.engine.MultiPV.Val != 1
 	quietsSearched := t.stack[0].quietsSearched[:0]
+	noisySearched := t.stack[0].noisySearched[:0]
 	bestVal := MinInt
 	var val int
 
@@ -706,9 +715,6 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 		t.SetCurrentMove(0, moves[i].Move)
 
 		moveCount++
-		if !moves[i].IsCaptureOrPromotion() {
-			quietsSearched = append(quietsSearched, moves[i].Move)
-		}
 		reduction := 0
 		childInCheck := child.IsInCheck()
 		if !inCheck && moveCount > 1 && moves[i].Value < MinSpecialMoveValue && !moves[i].Move.IsCaptureOrPromotion() &&
@@ -726,6 +732,12 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 			newDepth++
 		} else if inCheck && SeeSign(pos, moves[i].Move) {
 			newDepth++
+		}
+
+		if moves[i].IsCaptureOrPromotion() {
+			noisySearched = append(noisySearched, moves[i].Move)
+		} else {
+			quietsSearched = append(quietsSearched, moves[i].Move)
 		}
 
 		t.ApplyMove(moves[i].Move, pos, child)
@@ -758,8 +770,11 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 			alpha = t.contempt(pos, depth)
 		}
 	}
-	if alpha >= beta && bestMove != NullMove && !bestMove.IsCaptureOrPromotion() {
-		t.Update(pos, quietsSearched, bestMove, depth, 0)
+	if alpha >= beta && bestMove != NullMove {
+		t.UpdateNoisy(pos, noisySearched, bestMove, depth)
+		if !bestMove.IsCaptureOrPromotion() {
+			t.UpdateQuiet(pos, quietsSearched, bestMove, depth, 0)
+		}
 	}
 	t.EvaluateMoves(pos, moves, bestMove, 0, depth)
 	sortMoves(moves)
