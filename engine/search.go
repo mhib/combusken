@@ -455,7 +455,9 @@ afterPreMovesPruning:
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetStage() < StageGenerateQuiet)
 			reduction += BoolToInt(!hashPv)
-			if !isNoisy {
+			if isNoisy {
+				reduction += BoolToInt(t.getCaptureHistory(move) < 0)
+			} else {
 				reduction += BoolToInt(cutNode) * 2
 				// Increase reduction if not improving
 				reduction += BoolToInt(!improving)
@@ -463,6 +465,8 @@ afterPreMovesPruning:
 				reduction -= (t.HistoryValue(pos, move, t.GetPreviousMoveFromCurrentSide(height)) - 2746) / 12124
 			}
 			reduction = Max(0, Min(depth-2, reduction))
+		} else if isNoisy && depth >= 2 {
+			reduction = BoolToInt(t.getCaptureHistory(move) < 0)
 		}
 
 		if bestVal > ValueLoss && depth <= seePruningDepth && t.stack[height].GetStage() > StageGoodNoisy {

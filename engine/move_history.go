@@ -232,12 +232,17 @@ func mvvlva(move Move) int32 {
 	return captureScore*8 - mvvlvaScores[move.MovedPiece()]
 }
 
-func (mv *MoveHistory) EvaluateNoisy(pos *Position, moves []EvaledMove) {
+func (mh *MoveHistory) getCaptureHistory(move Move) int32 {
+	captured := move.CapturedPiece()
+	if captured == None {
+		captured = Pawn
+
+	}
+	return mh.CaptureHistory[move.MovedPiece()][move.To()][captured]
+}
+
+func (mh *MoveHistory) EvaluateNoisy(pos *Position, moves []EvaledMove) {
 	for i := range moves {
-		captured := moves[i].CapturedPiece()
-		if captured == None {
-			captured = Pawn
-		}
-		moves[i].Value = mv.CaptureHistory[moves[i].MovedPiece()][moves[i].To()][captured] + mvvlva(moves[i].Move)
+		moves[i].Value = mh.getCaptureHistory(moves[i].Move) + mvvlva(moves[i].Move)
 	}
 }
