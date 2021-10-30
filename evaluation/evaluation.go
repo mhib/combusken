@@ -1392,16 +1392,29 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		score += S(0, int16(sign*Max(int(complexity.End()), -Abs(int(score.End())))))
 	}
 
-	// Scale Factor inlined
 	scale := ScaleNormal
-	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
-		OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
-		OnlyOne(pos.Pieces[Bishop]&WhiteSquares_BB) &&
-		(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
-		scale = ScaleHard
-	} else if (score.End() > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
-		(score.End() < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
-		scale = ScaleDraw
+	{
+		winning := BoolToInt(score.End() > 0)
+		switch PopCount(pos.Colours[winning]) {
+		case 2:
+			if (pos.Colours[winning] & (pos.Pieces[Bishop] | pos.Pieces[Knight])) != 0 {
+				scale = ScaleDraw
+			} else if (pos.Colours[winning]&pos.Pieces[Rook]) != 0 && (pos.Colours[winning^1]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0 {
+				scale = ScaleDraw
+			}
+		case 3:
+			if OnlyOne(pos.Colours[winning]&pos.Pieces[Rook]) && (pos.Colours[winning]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0 && (pos.Colours[winning^1]&pos.Pieces[Rook]) != 0 {
+				scale = ScaleDraw
+			}
+		default:
+			if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
+				OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
+				OnlyOne(pos.Pieces[Bishop]&WhiteSquares_BB) &&
+				(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
+				scale = ScaleHard
+			}
+		}
+
 	}
 
 	if scale != ScaleDraw {
@@ -1425,18 +1438,3 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 const ScaleNormal = 2
 const ScaleHard = 1
 const ScaleDraw = 0
-
-func ScaleFactor(pos *Position, endResult int16) int {
-	// OCB without other pieces endgame
-	if OnlyOne(pos.Colours[Black]&pos.Pieces[Bishop]) &&
-		OnlyOne(pos.Colours[White]&pos.Pieces[Bishop]) &&
-		OnlyOne(pos.Pieces[Bishop]&WhiteSquares_BB) &&
-		(pos.Pieces[Knight]|pos.Pieces[Rook]|pos.Pieces[Queen]) == 0 {
-		return ScaleHard
-	}
-	if (endResult > 0 && PopCount(pos.Colours[White]) == 2 && (pos.Colours[White]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) ||
-		(endResult < 0 && PopCount(pos.Colours[Black]) == 2 && (pos.Colours[Black]&(pos.Pieces[Bishop]|pos.Pieces[Knight])) != 0) {
-		return ScaleDraw
-	}
-	return ScaleNormal
-}
