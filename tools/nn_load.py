@@ -17,7 +17,7 @@ def sigmoid_loss_with_static(y_true, y_pred):
 	statics_column = tf.reshape(statics, (size, 1))
 	return mse(results_column, tf.math.sigmoid(K * (y_pred + statics_column)))
 
-model = keras.models.load_model('nn_result_8', custom_objects={'sigmoid_loss_with_static': sigmoid_loss_with_static})
+model = keras.models.load_model('nn_result_16', custom_objects={'sigmoid_loss_with_static': sigmoid_loss_with_static})
 
 # print(model.predict(tf.reshape(idxs_to_vector(vectorize_fen('2r5/3b1pk1/3ppbp1/1p5p/1P1pP3/3P3P/R1PN1PP1/3B2K1 w - - 0 26'), SIZE), (1, SIZE))))
 # print(model.predict(tf.reshape(idxs_to_vector(vectorize_fen('2rqr1k1/p5p1/5p1p/2pp1P2/P3n1bN/2P1Q3/1P2P1BP/3R1RK1 b - - 0 24'), SIZE), (1, SIZE))))

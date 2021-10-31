@@ -9,7 +9,7 @@ df = pd.read_pickle('nn_input_with_phase_and_scale.gzip')
 
 print('Loaded')
 
-K = 0.0062531601041799952
+K = 0.0063309843681999909
 mse = keras.losses.MeanSquaredError()
 def sigmoid_loss_with_static(y_true, y_pred):
 	global mse
@@ -35,13 +35,13 @@ tf.config.run_functions_eagerly(True)
 
 model = keras.Sequential([
 	keras.layers.InputLayer(input_shape=(SIZE,), dtype=bool),
-	keras.layers.Dense(8, activation='relu', dtype='float32'),
+	keras.layers.Dense(16, activation='relu', dtype='float32'),
 	keras.layers.Dense(2, dtype='float32')
 ])
 keras.utils.plot_model(model)
 model.compile(loss=sigmoid_loss_with_static, optimizer=keras.optimizers.Adam())
 model.summary()
 
-history = model.fit(x = np.array(df['position'].tolist()), y=df[['result', 'static', 'phase', 'scale']].values, epochs=26)
+history = model.fit(x = np.array(df['position'].tolist()), y=df[['result', 'static', 'phase', 'scale']].values, epochs=20)
 
-model.save('nn_result_8')
+model.save('nn_result_16')
