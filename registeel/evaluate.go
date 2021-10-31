@@ -10,7 +10,7 @@ const castlingRightsSize = 16
 
 type RegisteelNetwork struct {
 	inputBuffer [65]int16
-	hiddenLayer [8]int64
+	hiddenLayer [16]int64
 	output      [2]int64
 }
 

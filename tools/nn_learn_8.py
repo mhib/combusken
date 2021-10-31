@@ -9,7 +9,7 @@ df = pd.read_pickle('nn_input_with_phase_and_scale.gzip')
 
 print('Loaded')
 
-K = 0.0062531601041799952
+K = 0.0063309843681999909
 mse = keras.losses.MeanSquaredError()
 def sigmoid_loss_with_static(y_true, y_pred):
 	global mse
@@ -42,6 +42,6 @@ keras.utils.plot_model(model)
 model.compile(loss=sigmoid_loss_with_static, optimizer=keras.optimizers.Adam())
 model.summary()
 
-history = model.fit(x = np.array(df['position'].tolist()), y=df[['result', 'static', 'phase', 'scale']].values, epochs=26)
+history = model.fit(x = np.array(df['position'].tolist()), y=df[['result', 'static', 'phase', 'scale']].values, epochs=16)
 
 model.save('nn_result_8')
