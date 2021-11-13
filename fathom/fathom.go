@@ -1,3 +1,4 @@
+//go:build !nocgo
 // +build !nocgo
 
 package fathom
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/chess"
 )
 
 var MaxPieceCount = 0
@@ -27,24 +28,24 @@ func Clear() {
 	C.tb_free()
 }
 
-func ProbeWDL(pos *backend.Position, depth int) int64 {
+func ProbeWDL(pos *chess.Position, depth int) int64 {
 	return int64(C.tb_probe_wdl(
-		C.uint64_t(pos.Colours[backend.White]),
-		C.uint64_t(pos.Colours[backend.Black]),
-		C.uint64_t(pos.Pieces[backend.King]),
-		C.uint64_t(pos.Pieces[backend.Queen]),
-		C.uint64_t(pos.Pieces[backend.Rook]),
-		C.uint64_t(pos.Pieces[backend.Bishop]),
-		C.uint64_t(pos.Pieces[backend.Knight]),
-		C.uint64_t(pos.Pieces[backend.Pawn]),
+		C.uint64_t(pos.Colours[chess.White]),
+		C.uint64_t(pos.Colours[chess.Black]),
+		C.uint64_t(pos.Pieces[chess.King]),
+		C.uint64_t(pos.Pieces[chess.Queen]),
+		C.uint64_t(pos.Pieces[chess.Rook]),
+		C.uint64_t(pos.Pieces[chess.Bishop]),
+		C.uint64_t(pos.Pieces[chess.Knight]),
+		C.uint64_t(pos.Pieces[chess.Pawn]),
 		C.uint(0),
 		C.uint(0),
 		C.uint(0),
-		C.bool(pos.SideToMove == backend.White),
+		C.bool(pos.SideToMove == chess.White),
 	))
 }
 
-func IsWDLProbeable(pos *backend.Position, depth int) bool {
+func IsWDLProbeable(pos *chess.Position, depth int) bool {
 	return MaxPieceCount != 0 &&
 		pos.FiftyMove == 0 &&
 		pos.EpSquare == 0 &&
@@ -52,44 +53,44 @@ func IsWDLProbeable(pos *backend.Position, depth int) bool {
 		depthCardinalityCheck(pos, depth)
 }
 
-func depthCardinalityCheck(pos *backend.Position, depth int) bool {
-	cardinality := backend.PopCount(pos.Colours[backend.White] | pos.Colours[backend.Black])
+func depthCardinalityCheck(pos *chess.Position, depth int) bool {
+	cardinality := chess.PopCount(pos.Colours[chess.White] | pos.Colours[chess.Black])
 	return cardinality < MaxPieceCount || (cardinality == MaxPieceCount && depth >= MinProbeDepth)
 }
 
-func IsDTZProbeable(pos *backend.Position) bool {
-	return pos.Flags == 0xF && backend.PopCount(pos.Colours[backend.White]|pos.Colours[backend.Black]) <= MaxPieceCount
+func IsDTZProbeable(pos *chess.Position) bool {
+	return pos.Flags == 0xF && chess.PopCount(pos.Colours[chess.White]|pos.Colours[chess.Black]) <= MaxPieceCount
 }
 
-var promoteTranslation = [...]int{backend.None, backend.Queen, backend.Rook, backend.Bishop, backend.Knight}
+var promoteTranslation = [...]int{chess.None, chess.Queen, chess.Rook, chess.Bishop, chess.Knight}
 
-func ProbeDTZ(pos *backend.Position, moves []backend.EvaledMove) (bool, backend.Move, int, int) {
+func ProbeDTZ(pos *chess.Position, moves []chess.EvaledMove) (bool, chess.Move, int, int) {
 	var epSquare int
 
 	if pos.EpSquare == 0 {
 		epSquare = 0
-	} else if pos.SideToMove == backend.White {
+	} else if pos.SideToMove == chess.White {
 		epSquare = pos.EpSquare + 8
 	} else {
 		epSquare = pos.EpSquare - 8
 	}
 	result := uint(C.tb_probe_root(
-		C.uint64_t(pos.Colours[backend.White]),
-		C.uint64_t(pos.Colours[backend.Black]),
-		C.uint64_t(pos.Pieces[backend.King]),
-		C.uint64_t(pos.Pieces[backend.Queen]),
-		C.uint64_t(pos.Pieces[backend.Rook]),
-		C.uint64_t(pos.Pieces[backend.Bishop]),
-		C.uint64_t(pos.Pieces[backend.Knight]),
-		C.uint64_t(pos.Pieces[backend.Pawn]),
+		C.uint64_t(pos.Colours[chess.White]),
+		C.uint64_t(pos.Colours[chess.Black]),
+		C.uint64_t(pos.Pieces[chess.King]),
+		C.uint64_t(pos.Pieces[chess.Queen]),
+		C.uint64_t(pos.Pieces[chess.Rook]),
+		C.uint64_t(pos.Pieces[chess.Bishop]),
+		C.uint64_t(pos.Pieces[chess.Knight]),
+		C.uint64_t(pos.Pieces[chess.Pawn]),
 		C.uint(pos.FiftyMove),
 		C.uint(0),
 		C.uint(epSquare),
-		C.bool(pos.SideToMove == backend.White),
+		C.bool(pos.SideToMove == chess.White),
 		nil,
 	))
 	if result == uint(C.TB_RESULT_FAILED) || result == uint(C.TB_RESULT_CHECKMATE) || result == uint(C.TB_RESULT_STALEMATE) {
-		return false, backend.NullMove, 0, 0
+		return false, chess.NullMove, 0, 0
 	}
 
 	wdl := int(C.tb_get_wdl_go(C.uint(result)))
@@ -100,7 +101,7 @@ func ProbeDTZ(pos *backend.Position, moves []backend.EvaledMove) (bool, backend.
 
 	for _, move := range moves {
 		if move.From() == from && move.To() == to {
-			if promotion != backend.None {
+			if promotion != chess.None {
 				if move.IsPromotion() && move.PromotedPiece() == promotion {
 					return true, move.Move, wdl, dtz
 				}
@@ -109,5 +110,5 @@ func ProbeDTZ(pos *backend.Position, moves []backend.EvaledMove) (bool, backend.
 			}
 		}
 	}
-	return false, backend.NullMove, 0, 0
+	return false, chess.NullMove, 0, 0
 }

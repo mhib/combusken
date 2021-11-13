@@ -1,7 +1,7 @@
 package transposition
 
 import (
-	"github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/chess"
 	. "github.com/mhib/combusken/utils"
 )
 
@@ -45,7 +45,7 @@ func (f flagPv) isPvNode() bool {
 
 type transEntry struct {
 	key      uint32
-	bestMove backend.Move
+	bestMove chess.Move
 	value    int16
 	eval     int16
 	flagPv   flagPv
@@ -63,7 +63,7 @@ func (t *TranspositionTable) Clear() {
 	}
 }
 
-func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, depth int16, move backend.Move, flag uint8, pvNode bool) {
+func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, depth int16, move chess.Move, flag uint8, pvNode bool) {
 	var element = &t.Entries[key&t.Mask]
 	if element.key != uint32(key>>32) {
 		return
@@ -78,7 +78,7 @@ func (t *TranspositionTable) Get(key uint64) (ok bool, value int16, eval int16, 
 	return
 }
 
-func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove backend.Move, flag int, pvNode bool) {
+func (t *TranspositionTable) Set(key uint64, value int16, eval int16, depth int, bestMove chess.Move, flag int, pvNode bool) {
 	var element = &t.Entries[key&t.Mask]
 	adjustedKey := uint32(key >> 32)
 	if flag != TransExact && element.key == adjustedKey && (int(element.depth)+NoneDepth)/2 >= depth && element.flagPv.getFlag() != TransNone {

@@ -13,7 +13,7 @@ import (
 	"sync"
 	"syscall"
 
-	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/chess"
 	"github.com/mhib/combusken/engine"
 	. "github.com/mhib/combusken/evaluation"
 	. "github.com/mhib/combusken/registeel"

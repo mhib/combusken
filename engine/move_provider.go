@@ -1,7 +1,7 @@
 package engine
 
 import (
-	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/chess"
 	"github.com/mhib/combusken/evaluation"
 )
 

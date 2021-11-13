@@ -1,4 +1,4 @@
-package backend
+package chess
 
 import (
 	"math/rand"

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/chess"
 )
 
 func TestWAC(t *testing.T) {

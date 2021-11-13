@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
-	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/chess"
 	. "github.com/mhib/combusken/evaluation"
 	"github.com/mhib/combusken/fathom"
 	"github.com/mhib/combusken/transposition"

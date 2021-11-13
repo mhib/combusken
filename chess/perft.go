@@ -1,4 +1,4 @@
-package backend
+package chess
 
 func Perft(pos *Position, depth int) int {
 	result := 0

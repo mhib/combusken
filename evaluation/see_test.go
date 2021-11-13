@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/chess"
 )
 
 // From zurichess

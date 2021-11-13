@@ -1,4 +1,4 @@
-package backend
+package chess
 
 // Names as in https://stackoverflow.com/a/30862064
 // Pretty much everything as in this answer, but index right shift is done by constant values(bishopShift, rookShift)

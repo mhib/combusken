@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/chess"
 	. "github.com/mhib/combusken/engine"
 )
 
@@ -19,15 +19,15 @@ type UciProtocol struct {
 	commands     map[string]func(args ...string)
 	messages     chan interface{}
 	engine       *Engine
-	positions    []backend.Position
+	positions    []chess.Position
 	cancel       context.CancelFunc
 	ponderCancel context.CancelFunc
 	state        func(msg interface{})
 }
 
 type searchResult struct {
-	bestMove   backend.Move
-	ponderMove backend.Move
+	bestMove   chess.Move
+	ponderMove chess.Move
 }
 
 func NewUciProtocol(e *Engine) *UciProtocol {
@@ -35,7 +35,7 @@ func NewUciProtocol(e *Engine) *UciProtocol {
 	uci := &UciProtocol{
 		messages:    make(chan interface{}),
 		engine:      e,
-		positions:   []backend.Position{backend.InitialPosition},
+		positions:   []chess.Position{chess.InitialPosition},
 		writeBuffer: *bytes.NewBuffer(updateBufferArray[:]),
 	}
 	uci.commands = map[string]func(args ...string){
@@ -114,7 +114,7 @@ func (uci *UciProtocol) thinking(msg interface{}) {
 	case searchResult:
 		uci.writeBuffer.WriteString("bestmove ")
 		uci.writeBuffer.WriteString(msg.bestMove.String())
-		if msg.ponderMove != backend.NullMove {
+		if msg.ponderMove != chess.NullMove {
 			uci.writeBuffer.WriteString(" ponder ")
 			uci.writeBuffer.WriteString(msg.ponderMove.String())
 		}
@@ -161,7 +161,7 @@ func (uci *UciProtocol) positionCommand(args ...string) {
 	token := args[0]
 	movesIndex := findIndexString(args, "moves")
 	if token == "startpos" {
-		fen = backend.InitialPositionFen
+		fen = chess.InitialPositionFen
 	} else if token == "fen" {
 		if movesIndex == -1 {
 			fen = strings.Join(args[1:], " ")
@@ -172,8 +172,8 @@ func (uci *UciProtocol) positionCommand(args ...string) {
 		uci.debug("Wrong position command")
 		return
 	}
-	p := backend.ParseFen(fen)
-	positions := []backend.Position{p}
+	p := chess.ParseFen(fen)
+	positions := []chess.Position{p}
 	if movesIndex >= 0 && movesIndex+1 < len(args) {
 		for _, smove := range args[movesIndex+1:] {
 			newPos, ok := positions[len(positions)-1].MakeMoveLAN(smove)

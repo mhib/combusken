@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/mhib/combusken/backend"
+	"github.com/mhib/combusken/chess"
 	"github.com/mhib/combusken/evaluation"
 	"github.com/mhib/combusken/fathom"
 	"github.com/mhib/combusken/transposition"
@@ -36,7 +36,7 @@ type Engine struct {
 	Update            func(*SearchInfo)
 	timeManager
 	threads         []thread
-	multiPVExcluded [MaxMultiPV]backend.Move
+	multiPVExcluded [MaxMultiPV]chess.Move
 	lastValues      [MaxMultiPV]int16
 }
 
@@ -76,15 +76,15 @@ type SearchInfo struct {
 	Nps      int
 	Duration int
 	Tbhits   int
-	Moves    []backend.Move
+	Moves    []chess.Move
 }
 
 type StackEntry struct {
 	MoveProvider
 	PV
-	quietsSearched [MaxMoves]backend.Move
-	noisySearched  [MaxMoves]backend.Move
-	position       backend.Position
+	quietsSearched [MaxMoves]chess.Move
+	noisySearched  [MaxMoves]chess.Move
+	position       chess.Position
 	evaluation     int16
 }
 
@@ -98,7 +98,7 @@ func (t *thread) setEvaluation(height int, eval int16) {
 
 type PV struct {
 	size  int
-	items [StackSize]backend.Move
+	items [StackSize]chess.Move
 }
 
 type LimitsType struct {
@@ -116,7 +116,7 @@ type LimitsType struct {
 }
 
 type SearchParams struct {
-	Positions []backend.Position
+	Positions []chess.Position
 	Limits    LimitsType
 }
 
@@ -146,8 +146,8 @@ func (e *Engine) SetUpdate(update func(*SearchInfo)) {
 	e.Update = update
 }
 
-func (e *Engine) IsMoveExcluded(move backend.Move) bool {
-	for i := 0; e.multiPVExcluded[i] != backend.NullMove && i < MaxMultiPV; i++ {
+func (e *Engine) IsMoveExcluded(move chess.Move) bool {
+	for i := 0; e.multiPVExcluded[i] != chess.NullMove && i < MaxMultiPV; i++ {
 		if e.multiPVExcluded[i] == move {
 			return true
 		}
@@ -155,7 +155,7 @@ func (e *Engine) IsMoveExcluded(move backend.Move) bool {
 	return false
 }
 
-func (e *Engine) Search(ctx context.Context, ponderCtx context.Context, searchParams SearchParams) (bestMove, ponderMove backend.Move) {
+func (e *Engine) Search(ctx context.Context, ponderCtx context.Context, searchParams SearchParams) (bestMove, ponderMove chess.Move) {
 	e.fillMoveHistory(searchParams.Positions)
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithCancel(ctx)
@@ -183,7 +183,7 @@ func definePonderCancellation(ponderCtx context.Context, timeoutCtx context.Cont
 	}()
 }
 
-func (e *Engine) fillMoveHistory(positions []backend.Position) {
+func (e *Engine) fillMoveHistory(positions []chess.Position) {
 	e.MovesCount = len(positions) - 1
 	moveHistory := make(map[uint64]int)
 	for i := len(positions) - 1; i >= 0; i-- {
@@ -236,7 +236,7 @@ func (t *thread) incNodes() {
 	}
 }
 
-func (t *thread) getNextMove(pos *backend.Position, depth, height int) backend.Move {
+func (t *thread) getNextMove(pos *chess.Position, depth, height int) chess.Move {
 	return t.stack[height].GetNextMove(pos, &t.MoveHistory, depth, height)
 }
 
@@ -248,7 +248,7 @@ func (t *thread) isMainThread() bool {
 	return t.index == 0
 }
 
-func (t *thread) getRootMovesBuffer() []backend.EvaledMove {
+func (t *thread) getRootMovesBuffer() []chess.EvaledMove {
 	return t.stack[0].MoveProvider.Moves[:]
 }
 
@@ -256,12 +256,12 @@ func (pv *PV) clear() {
 	pv.size = 0
 }
 
-func (pv *PV) assign(m backend.Move, child *PV) {
+func (pv *PV) assign(m chess.Move, child *PV) {
 	pv.size = 1 + child.size
 	pv.items[0] = m
 	copy(pv.items[1:], child.Moves())
 }
 
-func (pv *PV) Moves() []backend.Move {
+func (pv *PV) Moves() []chess.Move {
 	return pv.items[:pv.size]
 }

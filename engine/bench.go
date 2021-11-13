@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/mhib/combusken/backend"
+	. "github.com/mhib/combusken/chess"
 )
 
 type positionTest struct {

@@ -1,8 +1,8 @@
-package backend
+package chess
 
 import "fmt"
 
-// Move is represented as int32\
+// Move is represented as int32
 // Bits are:
 // 4 bits for move type
 // 3 bits for captured piece type
