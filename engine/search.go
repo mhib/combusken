@@ -323,7 +323,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	}
 
 	// Null move pruning
-	if !pvNode && pos.LastMove != NullMove && t.disableNmpColor != pos.SideToMove && depth >= 2 && t.GetPreviousMoveFromCurrentSide(height) != NullMove && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !IsLateEndGame(pos) && int(eval) >= beta {
+	if !pvNode && pos.LastMove != NullMove && t.disableNmpColor != pos.SideToMove && depth >= 2 && t.GetPreviousMoveFromCurrentSide(height) != NullMove && (!hashOk || (hashFlag&TransAlpha == 0) || int(hashValue) >= beta) && !isPiecelessEndGame(pos) && int(eval) >= beta {
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
@@ -972,6 +972,10 @@ func recoverFromTimeout(wg *sync.WaitGroup) {
 	if err != nil && err != errTimeout {
 		panic(err)
 	}
+}
+
+func isPiecelessEndGame(pos *Position) bool {
+	return ((pos.Pieces[Rook] | pos.Pieces[Queen] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[pos.SideToMove]) == 0
 }
 
 // Gaps from Best Increments for the Average Case of Shellsort, Marcin Ciura.

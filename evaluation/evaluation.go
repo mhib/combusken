@@ -249,10 +249,6 @@ func init() {
 	}
 }
 
-func IsLateEndGame(pos *Position) bool {
-	return ((pos.Pieces[Rook] | pos.Pieces[Queen] | pos.Pieces[Bishop] | pos.Pieces[Knight]) & pos.Colours[pos.SideToMove]) == 0
-}
-
 func evaluateKingPawns(pos *Position) Score {
 	if !tuning {
 		if ok, score := GlobalPawnKingTable.Get(pos.PawnKey); ok {
