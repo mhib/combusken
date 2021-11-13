@@ -9,7 +9,6 @@ const sideSize = (48 + 64*5)
 const castlingRightsSize = 16
 
 type RegisteelNetwork struct {
-	inputBuffer [65]int16
 	hiddenLayer [16]int64
 	output      [2]int64
 }
@@ -18,9 +17,12 @@ func (network *RegisteelNetwork) Initialize(pos *Position) {
 	for i := range network.hiddenLayer {
 		network.hiddenLayer[i] = int64(firstLayerQuantizedBias[i])
 	}
-	inputSize := network.FillInput(pos)
+
+	var inputBuffer [65]int16
+	inputSize := fillInput(pos, inputBuffer[:])
+
 	for i := 0; i < inputSize; i++ {
-		input := network.inputBuffer[i]
+		input := inputBuffer[i]
 		for output := range network.hiddenLayer {
 			network.hiddenLayer[output] += int64(firstLayerQuatizedWeights[input][output])
 		}
@@ -177,47 +179,47 @@ func (network *RegisteelNetwork) RevertMove(move Move, from, to *Position) {
 	}
 }
 
-func (network *RegisteelNetwork) FillInput(pos *Position) (bufferSize int) {
+func fillInput(pos *Position, buffer []int16) (bufferSize int) {
 	var fromBB uint64
 	for colour := Black; colour <= White; colour++ {
 		sideOffset := sideSize * colour
 		for fromBB = pos.Colours[colour] & pos.Pieces[Pawn]; fromBB != 0; fromBB &= (fromBB - 1) {
-			network.inputBuffer[bufferSize] = int16(sideOffset + BitScan(fromBB) - 8)
+			buffer[bufferSize] = int16(sideOffset + BitScan(fromBB) - 8)
 			bufferSize++
 		}
 		piece := Knight
 		offset := sideOffset + 48
 		for fromBB = pos.Colours[colour] & pos.Pieces[piece]; fromBB != 0; fromBB &= (fromBB - 1) {
-			network.inputBuffer[bufferSize] = int16(offset + BitScan(fromBB))
+			buffer[bufferSize] = int16(offset + BitScan(fromBB))
 			bufferSize++
 		}
 
 		piece = Bishop
 		offset = sideOffset + 48 + 64
 		for fromBB = pos.Colours[colour] & pos.Pieces[piece]; fromBB != 0; fromBB &= (fromBB - 1) {
-			network.inputBuffer[bufferSize] = int16(offset + BitScan(fromBB))
+			buffer[bufferSize] = int16(offset + BitScan(fromBB))
 			bufferSize++
 		}
 
 		piece = Rook
 		offset = sideOffset + 48 + 64*2
 		for fromBB = pos.Colours[colour] & pos.Pieces[piece]; fromBB != 0; fromBB &= (fromBB - 1) {
-			network.inputBuffer[bufferSize] = int16(offset + BitScan(fromBB))
+			buffer[bufferSize] = int16(offset + BitScan(fromBB))
 			bufferSize++
 		}
 
 		piece = Queen
 		offset = sideOffset + 48 + 64*3
 		for fromBB = pos.Colours[colour] & pos.Pieces[piece]; fromBB != 0; fromBB &= (fromBB - 1) {
-			network.inputBuffer[bufferSize] = int16(offset + BitScan(fromBB))
+			buffer[bufferSize] = int16(offset + BitScan(fromBB))
 			bufferSize++
 		}
 
 		offset = sideOffset + 48 + 64*4
-		network.inputBuffer[bufferSize] = int16(offset + BitScan(pos.Colours[colour]&pos.Pieces[King]))
+		buffer[bufferSize] = int16(offset + BitScan(pos.Colours[colour]&pos.Pieces[King]))
 		bufferSize++
 	}
-	network.inputBuffer[bufferSize] = int16(sideSize*2 + uint(pos.Flags))
+	buffer[bufferSize] = int16(sideSize*2 + uint(pos.Flags))
 	bufferSize++
 	return
 }
