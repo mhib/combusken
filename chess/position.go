@@ -289,7 +289,7 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 	fromMask := SquareMask[move.From()]
 	toMask := SquareMask[move.To()]
 
-	if move == NullMove || (we&fromMask) == 0 ||
+	if move == NullMove || (we&fromMask) == 0 || (we&toMask) != 0 ||
 		(move.IsCapture() && (move.CapturedPiece() >= King || (move.Type() != EPCapture && pos.Pieces[move.CapturedPiece()]&them&toMask == 0))) ||
 		(!move.IsCapture() && toMask&them != 0) {
 		return false
@@ -297,13 +297,13 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 
 	switch move.MovedPiece() {
 	case Knight:
-		return move.IsNormal() && (pos.Pieces[Knight]&fromMask) != 0 && (KnightAttacks[move.From()] & ^we)&toMask != 0
+		return move.IsNormal() && (pos.Pieces[Knight]&fromMask) != 0 && KnightAttacks[move.From()]&toMask != 0
 	case Bishop:
-		return move.IsNormal() && (pos.Pieces[Bishop]&fromMask) != 0 && (BishopAttacks(move.From(), occupancy) & ^we)&toMask != 0
+		return move.IsNormal() && (pos.Pieces[Bishop]&fromMask) != 0 && BishopAttacks(move.From(), occupancy)&toMask != 0
 	case Rook:
-		return move.IsNormal() && (pos.Pieces[Rook]&fromMask) != 0 && (RookAttacks(move.From(), occupancy) & ^we)&toMask != 0
+		return move.IsNormal() && (pos.Pieces[Rook]&fromMask) != 0 && RookAttacks(move.From(), occupancy)&toMask != 0
 	case Queen:
-		return move.IsNormal() && (pos.Pieces[Queen]&fromMask) != 0 && (QueenAttacks(move.From(), occupancy) & ^we)&toMask != 0
+		return move.IsNormal() && (pos.Pieces[Queen]&fromMask) != 0 && QueenAttacks(move.From(), occupancy)&toMask != 0
 	case Pawn:
 		if (pos.Pieces[Pawn] & fromMask) == 0 {
 			return false
@@ -343,7 +343,7 @@ func (pos *Position) IsMovePseudoLegal(move Move) bool {
 			return false
 		}
 		if move.IsNormal() {
-			return (KingAttacks[move.From()] & ^we)&toMask != 0
+			return KingAttacks[move.From()]&toMask != 0
 		}
 		if pos.SideToMove == White {
 			if move == WhiteKingSideCastle {
