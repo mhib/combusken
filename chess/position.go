@@ -33,6 +33,7 @@ type Position struct {
 	Pieces     [King + 1]uint64
 	Key        uint64
 	PawnKey    uint64
+	Checkers   uint64
 	SideToMove int
 	EpSquare   int
 	FiftyMove  int
@@ -103,6 +104,7 @@ func (pos *Position) MakeNullMove(res *Position) {
 	res.Pieces[King] = pos.Pieces[King]
 	res.SideToMove = pos.SideToMove ^ 1
 	res.Flags = pos.Flags
+	res.Checkers = 0
 	res.Key = pos.Key ^ zobristColor ^ zobristEpSquare[pos.EpSquare]
 	res.PawnKey = pos.PawnKey
 
@@ -172,12 +174,22 @@ func (pos *Position) MakeMove(move Move, res *Position) bool {
 
 	res.Key ^= zobristFlags[res.Flags]
 	res.SideToMove = pos.SideToMove ^ 1
+	res.Checkers = res.AllSquareAttackers(BitScan(res.Colours[res.SideToMove]&res.Pieces[King]), res.SideToMove^1)
 	res.LastMove = move
 	return true
 }
 
 func (pos *Position) IsInCheck() bool {
-	return pos.IsSquareAttacked(BitScan(pos.Colours[pos.SideToMove]&pos.Pieces[King]), pos.SideToMove^1)
+	return pos.Checkers != 0
+}
+
+func (pos *Position) AllSquareAttackers(square, side int) uint64 {
+	theirOccupation := pos.Colours[side]
+	return (PawnAttacks[side^1][square] & pos.Pieces[Pawn] & theirOccupation) |
+		(KnightAttacks[square] & theirOccupation & pos.Pieces[Knight]) |
+		(KingAttacks[square] & pos.Pieces[King] & theirOccupation) |
+		(BishopAttacks(square, pos.Colours[Black]|pos.Colours[White]) & (pos.Pieces[Bishop] | pos.Pieces[Queen]) & theirOccupation) |
+		(RookAttacks(square, pos.Colours[Black]|pos.Colours[White]) & (pos.Pieces[Queen] | pos.Pieces[Rook]) & theirOccupation)
 }
 
 func (pos *Position) IsSquareAttacked(square, side int) bool {

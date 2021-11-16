@@ -62,7 +62,7 @@ func depthToMate(val int) int {
 	return val - Mate
 }
 
-func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
+func (t *thread) quiescence(depth, alpha, beta, height int) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 	t.seldepth = Max(t.seldepth, height)
@@ -70,6 +70,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 	pos := &t.stack[height].position
 	alphaOrig := alpha
 	pvNode := alpha != beta-1
+	inCheck := pos.IsInCheck()
 
 	if height >= MaxHeight || t.isDraw(height) {
 		return t.contempt(pos, depth)
@@ -149,11 +150,10 @@ func (t *thread) quiescence(depth, alpha, beta, height int, inCheck bool) int {
 
 		t.SetCurrentMove(height, move)
 		moveCount++
-		childInCheck := child.IsInCheck()
 
 		t.ApplyMove(move, pos, child)
 
-		val := -t.quiescence(depth-1, -beta, -alpha, height+1, childInCheck)
+		val := -t.quiescence(depth-1, -beta, -alpha, height+1)
 
 		t.RevertMove(move, pos, child)
 
@@ -203,7 +203,7 @@ func moveCountPruning(improving, depth int) int {
 	return (2+depth*depth)*(1+improving)/2 - 1
 }
 
-func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode bool) int {
+func (t *thread) alphaBeta(depth, alpha, beta, height int, cutNode bool) int {
 	t.incNodes()
 	t.stack[height].PV.clear()
 	t.seldepth = Max(t.seldepth, height)
@@ -216,6 +216,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 
 	// Node is not pv if it is searched with null window
 	pvNode := alpha != beta-1
+	inCheck := pos.IsInCheck()
 
 	// Mate distance pruning
 	alpha = Max(lossIn(height+1), alpha)
@@ -268,7 +269,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 	}
 
 	if depth <= 0 {
-		return t.quiescence(0, alpha, beta, height, inCheck)
+		return t.quiescence(0, alpha, beta, height)
 	}
 
 	var child *Position = &t.stack[height+1].position
@@ -327,7 +328,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 		pos.MakeNullMove(child)
 		t.CurrentMove[height] = NullMove
 		reduction := depth/4 + 3 + Min(int(eval)-beta, 384)/128
-		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, false, !cutNode)
+		val = -t.alphaBeta(depth-reduction, -beta, -beta+1, height+1, !cutNode)
 		if val >= beta {
 			if depth < 10 || t.disableNmpColor != ColourNone {
 				if val >= ValueTbWinInMaxDepth {
@@ -339,7 +340,7 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 				// Null move pruning verification search.
 				// Idea from stockfish
 				t.disableNmpColor = pos.SideToMove
-				val = t.alphaBeta(depth-reduction, beta-1, beta, height, false, false)
+				val = t.alphaBeta(depth-reduction, beta-1, beta, height, false)
 				t.disableNmpColor = ColourNone
 				if val >= beta {
 					if val >= ValueTbWinInMaxDepth {
@@ -373,13 +374,12 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, inCheck bool, cutNode
 
 				probCutCount++
 				t.SetCurrentMove(height, move)
-				isChildInCheck := child.IsInCheck()
 
 				t.ApplyMove(move, pos, child)
 
-				val = -t.quiescence(0, -rBeta, -rBeta+1, height+1, isChildInCheck)
+				val = -t.quiescence(0, -rBeta, -rBeta+1, height+1)
 				if val >= rBeta {
-					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, isChildInCheck, !cutNode)
+					val = -t.alphaBeta(depth-4, -rBeta, -rBeta+1, height+1, !cutNode)
 				}
 
 				t.RevertMove(move, pos, child)
@@ -505,18 +505,18 @@ afterPreMovesPruning:
 		// Search conditions as in Ethereal
 		// Search with null window and reduced depth if lmr
 		if reduction > 0 {
-			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, childInCheck, true)
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, height+1, true)
 		}
 		// Search with null window without reduced depth if
 		// search with lmr null window exceeded alpha or
 		// not in pv (this is the same as normal search as non pv nodes are searched with null window anyway)
 		// pv and not first move
 		if (reduction > 0 && val > alpha) || (reduction == 0 && !(pvNode && moveCount == 1)) {
-			val = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, childInCheck, !cutNode)
+			val = -t.alphaBeta(newDepth, -(alpha + 1), -alpha, height+1, !cutNode)
 		}
 		// If pvNode and first move or search with null window exceeded alpha, search with full window
 		if pvNode && (moveCount == 1 || val > alpha) {
-			val = -t.alphaBeta(newDepth, -beta, -alpha, height+1, childInCheck, false)
+			val = -t.alphaBeta(newDepth, -beta, -alpha, height+1, false)
 		}
 		t.RevertMove(move, pos, child)
 
@@ -583,7 +583,7 @@ func (t *thread) singularSearch(depth, height int, hashMove Move, hashValue int,
 
 		t.ApplyMove(move, pos, child)
 
-		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, child.IsInCheck(), cutNode)
+		val = -t.alphaBeta(depth/2-1, -rBeta-1, -rBeta, height+1, cutNode)
 
 		t.RevertMove(move, pos, child)
 
@@ -747,13 +747,13 @@ func (t *thread) depSearch(depth, alpha, beta int, moves []EvaledMove) searchRes
 		t.ApplyMove(moves[i].Move, pos, child)
 
 		if reduction > 0 {
-			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, childInCheck, true)
+			val = -t.alphaBeta(newDepth-reduction, -(alpha + 1), -alpha, 1, true)
 			if val <= alpha {
 				t.RevertMove(moves[i].Move, pos, child)
 				continue
 			}
 		}
-		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, childInCheck, false)
+		val = -t.alphaBeta(newDepth, -beta, -alpha, 1, false)
 		t.RevertMove(moves[i].Move, pos, child)
 		if val > bestVal {
 			bestVal = val

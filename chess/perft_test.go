@@ -41,6 +41,11 @@ func TestPerft(t *testing.T) {
 			depth: 5,
 			nodes: 164075551,
 		},
+		{
+			fen:   "8/8/b2N4/8/7p/5P1P/3pr1P1/R3k1K1 b - - 1 1",
+			depth: 6,
+			nodes: 14304486,
+		},
 	}
 	for i, test := range tests {
 		var p = ParseFen(test.fen)

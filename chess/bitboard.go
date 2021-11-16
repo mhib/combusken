@@ -68,6 +68,8 @@ var Files_BB = [...]uint64{FileA_BB, FileB_BB, FileC_BB, FileD_BB, FileE_BB, Fil
 var KingFlank_BB = [8]uint64{QueenSide_BB ^ FileD_BB, QueenSide_BB, QueenSide_BB,
 	CenterFiles_BB, CenterFiles_BB, KingSide_BB, KingSide_BB, KingSide_BB ^ FileE_BB}
 
+var Between_BB [64][64]uint64
+
 func File(id int) int {
 	return id & 7
 }
@@ -403,4 +405,18 @@ func init() {
 	initBishopMoveBoard(bishopBlockerBoard)
 	initBishopMagicIndex(bishopBlockerBoard)
 	initBishopAttacks(bishopBlockerBoard)
+
+	for y := 0; y < 64; y++ {
+		for x := 0; x < 64; x++ {
+			bishopAttacks := BishopAttacks(y, SquareMask[x])
+			if bishopAttacks&SquareMask[x] != 0 {
+				Between_BB[y][x] = bishopAttacks & BishopAttacks(x, SquareMask[y])
+			}
+
+			rookAttacks := RookAttacks(y, SquareMask[x])
+			if rookAttacks&SquareMask[x] != 0 {
+				Between_BB[y][x] = rookAttacks & RookAttacks(x, SquareMask[y])
+			}
+		}
+	}
 }

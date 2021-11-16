@@ -62,6 +62,8 @@ func ParseFen(input string) Position {
 
 	HashPosition(&res)
 
+	res.Checkers = res.AllSquareAttackers(BitScan(res.Pieces[King]&res.Colours[res.SideToMove]), res.SideToMove^1)
+
 	return res
 }
 
