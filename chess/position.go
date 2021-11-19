@@ -291,6 +291,7 @@ func (pos *Position) MakeLegalMove(move Move, res *Position) {
 
 	res.Key ^= zobristFlags[res.Flags]
 	res.SideToMove = pos.SideToMove ^ 1
+	res.Checkers = res.AllSquareAttackers(BitScan(res.Colours[res.SideToMove]&res.Pieces[King]), res.SideToMove^1)
 	res.LastMove = move
 }
 
