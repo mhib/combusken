@@ -9,7 +9,7 @@ const sideSize = (48 + 64*5)
 const castlingRightsSize = 16
 
 type RegisteelNetwork struct {
-	hiddenLayer [16]int64
+	hiddenLayer [8]int64
 	output      [2]int64
 }
 
