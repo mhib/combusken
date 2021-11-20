@@ -444,12 +444,11 @@ afterPreMovesPruning:
 		transposition.GlobalTransTable.Prefetch(child.Key)
 
 		moveCount++
-		childInCheck := child.IsInCheck()
 
 		reduction := 0
 		// Late Move Reduction
 		// https://www.chessprogramming.org/Late_Move_Reductions
-		if !inCheck && moveCount > 1 && (!isNoisy || cutNode) && !childInCheck {
+		if moveCount > 1 && (!isNoisy || cutNode) {
 			reduction = lmr(depth, moveCount)
 
 			// less reduction for special moves
@@ -465,7 +464,7 @@ afterPreMovesPruning:
 				reduction -= (t.HistoryValue(pos, move, t.GetPreviousMoveFromCurrentSide(height)) - 2746) / 12124
 			}
 			reduction = Max(0, Min(depth-2, reduction))
-		} else if isNoisy && depth >= 2 {
+		} else if isNoisy && moveCount > 1 && depth >= 2 {
 			reduction = BoolToInt(t.getCaptureHistory(move) < 0)
 		}
 
