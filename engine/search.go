@@ -453,7 +453,10 @@ afterPreMovesPruning:
 
 			// less reduction for special moves
 			reduction -= BoolToInt(t.stack[height].GetStage() < StageGenerateQuiet)
+
 			reduction += BoolToInt(!hashPv)
+
+			reduction -= BoolToInt(child.IsInCheck())
 			if isNoisy {
 				reduction += BoolToInt(t.getCaptureHistory(move) < 0)
 			} else {
@@ -464,7 +467,7 @@ afterPreMovesPruning:
 				reduction -= (t.HistoryValue(pos, move, t.GetPreviousMoveFromCurrentSide(height)) - 2746) / 12124
 			}
 			reduction = Max(0, Min(depth-2, reduction))
-		} else if isNoisy && moveCount > 1 && depth >= 2 {
+		} else if isNoisy && !child.IsInCheck() && moveCount > 1 && depth >= 2 {
 			reduction = BoolToInt(t.getCaptureHistory(move) < 0)
 		}
 
