@@ -282,7 +282,8 @@ func (t *thread) alphaBeta(depth, alpha, beta, height int, cutNode bool) int {
 		eval = UnknownValue
 		t.setEvaluation(height, eval)
 		goto afterPreMovesPruning
-	} else if hashOk && hashEval != UnknownValue {
+	}
+	if hashOk && hashEval != UnknownValue {
 		eval = hashEval
 		t.setEvaluation(height, hashEval)
 		// Idea from stockfish
