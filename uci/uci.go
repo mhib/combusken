@@ -305,7 +305,9 @@ func (uci *UciProtocol) setOptionCommand(fields ...string) {
 	for _, option := range uci.engine.GetOptions() {
 		if strings.EqualFold(option.GetName(), name) {
 			err := option.SetValue(value)
-			if err != nil {
+			if err == nil {
+				uci.debug(fmt.Sprintf("set %s to %s", option.GetName(), value))
+			} else {
 				uci.debug(err.Error())
 			}
 			return
