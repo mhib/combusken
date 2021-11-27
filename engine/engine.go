@@ -31,7 +31,7 @@ type Engine struct {
 	MultiPV           IntOption
 	Ponder            CheckOption
 	done              <-chan struct{}
-	RepeatedPositions map[uint64]interface{}
+	RepeatedPositions map[uint64]struct{}
 	MovesCount        int
 	Update            func(*SearchInfo)
 	timeManager
@@ -192,7 +192,7 @@ func (e *Engine) fillMoveHistory(positions []chess.Position) {
 			break
 		}
 	}
-	e.RepeatedPositions = make(map[uint64]interface{})
+	e.RepeatedPositions = make(map[uint64]struct{})
 	for key, count := range moveHistory {
 		if count >= 2 {
 			e.RepeatedPositions[key] = struct{}{}
