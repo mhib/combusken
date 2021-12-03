@@ -1409,8 +1409,10 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 
 	}
 
-	if scale != ScaleDraw {
-		score += ec.CorrectEvaluation(pos)
+	if !tuning {
+		if scale != ScaleDraw {
+			score += ec.CorrectEvaluation(pos)
+		}
 	}
 
 	if tuning {
