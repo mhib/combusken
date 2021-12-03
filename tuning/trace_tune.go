@@ -607,7 +607,7 @@ func loadTrace() (linearRes []int, safetyRes [][2]int, complexityRes []int) {
 		}
 	}
 	for x := 0; x < 2; x++ {
-		for y := 0; y < 4; y++ {
+		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
 				linearRes = append(linearRes, T.KingStorm[x][y][z])
 			}
@@ -787,7 +787,7 @@ func loadWeights() ([]weight, []weight, []weight) {
 		}
 	}
 	for x := 0; x < 2; x++ {
-		for y := 0; y < 4; y++ {
+		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
 				linearScores = append(linearScores, KingStorm[x][y][z])
 			}

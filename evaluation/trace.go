@@ -43,7 +43,7 @@ type Trace struct {
 	TrappedRook                   int
 	KingDefenders                 [12]int
 	KingShelter                   [2][8][8]int
-	KingStorm                     [2][4][8]int
+	KingStorm                     [2][8][8]int
 	KingOnPawnlessFlank           int
 	Hanging                       int
 	ThreatByKing                  int

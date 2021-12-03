@@ -721,7 +721,7 @@ func loadScoresToSlice() (res []EvaluationValue) {
 		}
 	}
 	for x := 0; x < 2; x++ {
-		for y := 0; y < 4; y++ {
+		for y := 0; y < 8; y++ {
 			for z := 0; z < 8; z++ {
 				res = append(res, ScoreValue{&KingStorm[x][y][z]})
 			}

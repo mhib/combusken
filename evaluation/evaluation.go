@@ -377,10 +377,10 @@ func evaluateKingPawns(pos *Position) Score {
 		}
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
-		score += KingStorm[blocked][FileMirror[file]][theirDist]
+		score += KingStorm[blocked][file][theirDist]
 
 		if tuning {
-			T.KingStorm[blocked][FileMirror[file]][theirDist]++
+			T.KingStorm[blocked][file][theirDist]++
 		}
 	}
 	if KingFlank_BB[File(kingLocation[White])]&pos.Pieces[Pawn] == 0 {
@@ -413,9 +413,9 @@ func evaluateKingPawns(pos *Position) Score {
 		}
 
 		blocked := BoolToInt(ourDist != 7 && ourDist == theirDist-1)
-		score -= KingStorm[blocked][FileMirror[file]][theirDist]
+		score -= KingStorm[blocked][file][theirDist]
 		if tuning {
-			T.KingStorm[blocked][FileMirror[file]][theirDist]--
+			T.KingStorm[blocked][file][theirDist]--
 		}
 	}
 	if KingFlank_BB[File(kingLocation[Black])]&pos.Pieces[Pawn] == 0 {
