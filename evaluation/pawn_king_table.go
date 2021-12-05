@@ -9,7 +9,7 @@ import (
 var GlobalPawnKingTable PawnKingTable
 
 type PKTableEntry struct {
-	key   uint64
+	key   uint32
 	score Score
 }
 
@@ -25,7 +25,7 @@ func NewPawnKingTable(megabytes int) PawnKingTable {
 
 func (t *PawnKingTable) Get(key uint64) (ok bool, score Score) {
 	var element = &t.Entries[key&t.Mask]
-	if element.key != key {
+	if element.key != uint32(key>>32) {
 		return
 	}
 	ok = true
@@ -35,7 +35,7 @@ func (t *PawnKingTable) Get(key uint64) (ok bool, score Score) {
 
 func (t *PawnKingTable) Set(key uint64, score Score) {
 	var element = &t.Entries[key&t.Mask]
-	element.key = key
+	element.key = uint32(key >> 32)
 	element.score = score
 }
 
