@@ -135,6 +135,7 @@ func (t *thread) quiescence(depth, alpha, beta, height int) int {
 		}
 		t.stack[height].InitQs()
 	}
+	deltaPruningBase := bestVal + 200
 
 	for {
 		move := t.getNextMove(pos, 0, height)
@@ -143,6 +144,13 @@ func (t *thread) quiescence(depth, alpha, beta, height int) int {
 		}
 		if !pos.MakeMove(move, child) {
 			continue
+		}
+
+		if !inCheck && !child.IsInCheck() && bestVal > -ValueTbWinInMaxDepth && !move.IsPromotion() {
+			// Delta pruning
+			if deltaPruningBase+SEEValues[move.CapturedPiece()] < alpha {
+				continue
+			}
 		}
 
 		// Prefetch as early as possible
