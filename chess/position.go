@@ -194,11 +194,13 @@ func (pos *Position) AllSquareAttackers(square, side int) uint64 {
 
 func (pos *Position) IsSquareAttacked(square, side int) bool {
 	theirOccupation := pos.Colours[side]
+	theirBishops := (pos.Pieces[Bishop] | pos.Pieces[Queen]) & theirOccupation
+	theirRooks := (pos.Pieces[Rook] | pos.Pieces[Queen]) & theirOccupation
 	return PawnAttacks[side^1][square]&pos.Pieces[Pawn]&theirOccupation != 0 ||
 		KnightAttacks[square]&theirOccupation&pos.Pieces[Knight] != 0 ||
 		KingAttacks[square]&pos.Pieces[King]&theirOccupation != 0 ||
-		BishopAttacks(square, pos.Colours[Black]|pos.Colours[White])&(pos.Pieces[Bishop]|pos.Pieces[Queen])&theirOccupation != 0 ||
-		RookAttacks(square, pos.Colours[Black]|pos.Colours[White])&(pos.Pieces[Queen]|pos.Pieces[Rook])&theirOccupation != 0
+		(theirBishops != 0 && BishopAttacks(square, pos.Colours[Black]|pos.Colours[White])&theirBishops != 0) ||
+		(theirRooks != 0 && RookAttacks(square, pos.Colours[Black]|pos.Colours[White])&theirRooks != 0)
 }
 
 func (pos *Position) Print() {
