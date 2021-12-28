@@ -900,7 +900,10 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		phase -= QueenPhase
 		fromId = BitScan(fromBB)
 
-		attacks = QueenAttacks(fromId, allOccupation)
+		rookAttacks := RookAttacks(fromId, allOccupation)
+		bishopAttacks := BishopAttacks(fromId, allOccupation)
+
+		attacks = rookAttacks | bishopAttacks
 		mobility := PopCount(whiteMobilityArea & attacks)
 		score += MobilityBonus[3][mobility]
 		score += Psqt[White][Queen][fromId]
@@ -911,6 +914,17 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 			T.PieceScores[Queen][Rank(fromId)][File(fromId)]++
 			T.MobilityBonus[3][mobility]++
 			T.QueenBishopExistence[bishopExistanceTranslations[bishopFlag][White][Colour(fromId)]]++
+		}
+
+		pinningRooks := pos.Pieces[Rook] & pos.Colours[Black] & ^rookAttacks
+		pinningBishops := pos.Pieces[Bishop] & pos.Colours[Black] & ^bishopAttacks
+		if (pinningRooks != 0 && RookAttacks(fromId, allOccupation & ^rookAttacks)&pinningRooks != 0) ||
+			(pinningBishops != 0 && BishopAttacks(fromId, allOccupation & ^bishopAttacks)&pinningBishops != 0) {
+			score += QueenPinned
+
+			if tuning {
+				T.QueenPinned++
+			}
 		}
 
 		attackedByTwo[White] |= attacked[White] & attacks
@@ -932,7 +946,10 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 		phase -= QueenPhase
 		fromId = BitScan(fromBB)
 
-		attacks = QueenAttacks(fromId, allOccupation)
+		rookAttacks := RookAttacks(fromId, allOccupation)
+		bishopAttacks := BishopAttacks(fromId, allOccupation)
+
+		attacks = rookAttacks | bishopAttacks
 		mobility := PopCount(blackMobilityArea & attacks)
 		score -= MobilityBonus[3][mobility]
 		score -= Psqt[Black][Queen][fromId]
@@ -943,6 +960,17 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 			T.PieceScores[Queen][7-Rank(fromId)][File(fromId)]--
 			T.MobilityBonus[3][mobility]--
 			T.QueenBishopExistence[bishopExistanceTranslations[bishopFlag][Black][Colour(fromId)]]--
+		}
+
+		pinningRooks := pos.Pieces[Rook] & pos.Colours[White] & ^rookAttacks
+		pinningBishops := pos.Pieces[Bishop] & pos.Colours[White] & ^bishopAttacks
+		if (pinningRooks != 0 && RookAttacks(fromId, allOccupation & ^rookAttacks)&pinningRooks != 0) ||
+			(pinningBishops != 0 && BishopAttacks(fromId, allOccupation & ^bishopAttacks)&pinningBishops != 0) {
+			score -= QueenPinned
+
+			if tuning {
+				T.QueenPinned--
+			}
 		}
 
 		attackedByTwo[Black] |= attacked[Black] & attacks

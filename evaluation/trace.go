@@ -38,6 +38,7 @@ type Trace struct {
 	KnightOutpostDefendedBonus    int
 	DistantKnight                 [4]int
 	MinorBehindPawn               int
+	QueenPinned                   int
 	RookOnFile                    [2]int
 	RookOnQueenFile               int
 	TrappedRook                   int
