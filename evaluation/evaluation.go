@@ -27,7 +27,7 @@ var pawnsConnectedMask [2][64]uint64
 
 var passedMask [2][64]uint64
 
-var outpustMask [2][64]uint64
+var outpostMask [2][64]uint64
 
 var distanceBetween [64][64]int16
 
@@ -40,8 +40,8 @@ var forwardRanksMask [2][8]uint64
 var forwardFileMask [2][64]uint64
 
 // Outpost bitboards
-const whiteOutpustRanks = Rank4_BB | Rank5_BB | Rank6_BB
-const blackOutpustRanks = Rank5_BB | Rank4_BB | Rank3_BB
+const whiteOutpostRanks = Rank4_BB | Rank5_BB | Rank6_BB
+const blackOutpostRanks = Rank5_BB | Rank4_BB | Rank3_BB
 
 const (
 	BlackBlackSquareBishopFlag = 1 << iota
@@ -184,7 +184,7 @@ func init() {
 	}
 	// Outpust is similar to passed bitboard bot we do not care about pawns in same file
 	for i := 8; i <= 55; i++ {
-		outpustMask[White][i] = passedMask[White][i] & ^Files_BB[File(i)]
+		outpostMask[White][i] = passedMask[White][i] & ^Files_BB[File(i)]
 	}
 
 	for i := 55; i >= 8; i-- {
@@ -199,7 +199,7 @@ func init() {
 		}
 	}
 	for i := 55; i >= 8; i-- {
-		outpustMask[Black][i] = passedMask[Black][i] & ^Files_BB[File(i)]
+		outpostMask[Black][i] = passedMask[Black][i] & ^Files_BB[File(i)]
 	}
 
 	for i := 8; i <= 55; i++ {
@@ -518,7 +518,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				T.MinorBehindPawn++
 			}
 		}
-		if SquareMask[fromId]&whiteOutpustRanks != 0 && outpustMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+		if SquareMask[fromId]&whiteOutpostRanks != 0 && outpostMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 				score += KnightOutpostDefendedBonus
 				if tuning {
@@ -574,7 +574,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				T.MinorBehindPawn--
 			}
 		}
-		if SquareMask[fromId]&blackOutpustRanks != 0 && outpustMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+		if SquareMask[fromId]&blackOutpostRanks != 0 && outpostMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 				score -= KnightOutpostDefendedBonus
 				if tuning {
@@ -638,7 +638,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				T.LongDiagonalBishop++
 			}
 		}
-		if SquareMask[fromId]&whiteOutpustRanks != 0 && outpustMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
+		if SquareMask[fromId]&whiteOutpostRanks != 0 && outpostMask[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) == 0 {
 			if PawnAttacks[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) != 0 {
 				score += BishopOutpostDefendedBonus
 				if tuning {
@@ -723,7 +723,7 @@ func (ec *EvaluationContext) Evaluate(pos *Position) int {
 				T.LongDiagonalBishop--
 			}
 		}
-		if SquareMask[fromId]&blackOutpustRanks != 0 && outpustMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
+		if SquareMask[fromId]&blackOutpostRanks != 0 && outpostMask[Black][fromId]&(pos.Pieces[Pawn]&pos.Colours[White]) == 0 {
 			if PawnAttacks[White][fromId]&(pos.Pieces[Pawn]&pos.Colours[Black]) != 0 {
 				score -= BishopOutpostDefendedBonus
 				if tuning {
