@@ -32,11 +32,13 @@ type searchResult struct {
 
 func NewUciProtocol(e *Engine) *UciProtocol {
 	var updateBufferArray [1000]byte
+	buffer := bytes.NewBuffer(updateBufferArray[:])
+	buffer.Reset()
 	uci := &UciProtocol{
 		messages:    make(chan interface{}),
 		engine:      e,
 		positions:   []chess.Position{chess.InitialPosition},
-		writeBuffer: *bytes.NewBuffer(updateBufferArray[:]),
+		writeBuffer: *buffer,
 	}
 	uci.commands = map[string]func(args ...string){
 		"uci":        uci.uciCommand,
